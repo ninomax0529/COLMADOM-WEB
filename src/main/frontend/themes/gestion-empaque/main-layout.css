@@ -50,17 +50,78 @@ vaadin-side-nav-item vaadin-icon {
 
 /* Estilos para el pie de página */
 .custom-footer {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
     text-align: center;
-    padding: 5px;
-    background-color: #f8f9fa;
+    padding: 2px;
+    background-color: #ffff99;
     border-top: 2px solid #ddd;
-    color: #333;
+    color: #000000;
+}
+
+/* Estilos para el pie de página */
+.custom-grid {
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    padding: 1px;
+    background-color: #ffffff;
+    border-top: 1px solid #ddd;
+    color: #000000;
 }
 
 /* Mejorar la apariencia general de la tabla */
 :host ::slotted(vaadin-grid) {
     border-radius: 8px;
     overflow: hidden;
+}
+
+/* Fuente personalizada (opcional) */
+/* Puedes importar la fuente en tu index.html o a través de un @import en este CSS */
+/* @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap'); */
+
+/* Estilos generales para el grid */
+/* Estilos generales para el grid */
+.my-custom-grid {
+    font-family: 'Roboto', sans-serif;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Estilo para las celdas del grid */
+.my-custom-grid .vaadin-grid-cell {
+    padding: 12px 16px;
+    color: #555;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* Estilo para el encabezado */
+.my-custom-grid .vaadin-grid-header-cell {
+    background-color: #ffcc80;
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+    padding: 14px 16px;
+    border-bottom: 2px solid #ff9800;
+    text-align: center;
+}
+
+/* Estilo para filas alternadas */
+.my-custom-grid .vaadin-grid-row:nth-child(even) {
+    background-color: #fff8e1;
+}
+
+/* Efecto hover en las filas */
+.my-custom-grid .vaadin-grid-row:hover {
+    background-color: #fff3e0;
+    transition: background-color 0.3s ease;
+}
+
+/* Estilo para resaltar la fila específica (por ejemplo, la fila de "Carlos") */
+.my-custom-grid .highlight-row {
+    background-color: #e0f7fa !important; /* Fondo azul muy claro */
+    font-weight: bold;
+    color: #006064;
 }

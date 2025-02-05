@@ -52,7 +52,7 @@ import com.vaadin.flow.component.html.Div;
 
 @PageTitle("Empacadora")
 @Route("Empacadora")
-@Menu(order = 2, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
+@Menu(order = 1, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 @Uses(Icon.class)
 public class EmpacadoraView extends Composite<VerticalLayout> {
 
@@ -509,9 +509,9 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
 
                 editor.getItem().setEmpacadoPorHora(ph);
                 editor.getItem().setMinutoTrabajado(ClaseUtil.formatoNumero(minutoTrabajado));
-                editor.getItem().setNombrePaletizadora(paletizadora.getDescripcion());
+                editor.getItem().setNombrePaletizadora(paletizadora.getAbreviatura());
                 editor.getItem().setPaletizadora(paletizadora.getCodigo());
-                editor.getItem().setNombreSilo(almacen.getDescripcion());
+                editor.getItem().setNombreSilo(almacen.getAbreviatura());
                 editor.getItem().setSilo(almacen.getCodigo());
 //                actualizarMovimietoProducto();
 

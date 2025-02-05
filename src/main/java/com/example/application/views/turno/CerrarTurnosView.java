@@ -16,8 +16,10 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.Uses;
+import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.editor.Editor;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -43,7 +45,7 @@ import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
 @PageTitle("Cerrar Turno")
 @Route("CerrarTurno")
-@Menu(order = 1, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
+@Menu(order = 2, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 @Uses(Icon.class)
 public class CerrarTurnosView extends Composite<VerticalLayout> {
 
@@ -72,6 +74,16 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
             cantidadDespachoAcum = 0.00, cantidadProducidaAcum = 0.00;
     Date ff, fi;
     public Button saveButton;
+
+    private Div footerDiv;
+    private Div footePnhrDiv;
+    private Div footerDivII;
+    private Div footeDivIF;
+    private Div footerDivDespacho;
+    private Div footerDivProduc;
+    private Div footerDivDespachoAcum;
+    private Div footerDivProducAcum;
+    private Div footerDivTotal;
 
     public CerrarTurnosView(TurnoService turnoServiceArg, OperacionEmpacadoraService operacionEmpacadoraArg,
             EstdoTurnoService estadoTurnoServiceArg) {
@@ -233,6 +245,7 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
             dataProviderMovProdc = new ListDataProvider<>(listaDetMovProdc);
             movimientoProductoGrid.setDataProvider(dataProviderMovProdc);
             actualizarMovimietoProducto();
+            updateFooterMovimiento();
 
             dataProvider.refreshAll();
             dataProviderMovProdc.refreshAll();
@@ -274,7 +287,7 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
         basicGrid.addColumn(DetalleOperacionEmpacadora::getNombreEmpacadora).setHeader("Empacadora");
         basicGrid.addColumn(DetalleOperacionEmpacadora::getNombrePaletizadora).setHeader("Paletizadora");
         basicGrid.addColumn(DetalleOperacionEmpacadora::getNombreSilo).setHeader("Silo");
-
+      
         TextField acumuladoTextField = new TextField();
 
         acumuladoTextField.setWidthFull();
@@ -295,11 +308,50 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
 
         movimientoProductoGrid.setHeight("220px");
         movimientoProductoGrid.setWidthFull();
-        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getNombreProducto).setHeader("Producto");
-        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioInicial).setHeader("Inv.Inicial");
-        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioFinal).setHeader("Inv.Final").setKey("inventarioFinal");
-        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getDespacho).setHeader("Despacho");
-        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getPorduccionPorEmpacadora).setHeader("Produccion");
+        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getNombreProducto).setHeader("Producto")
+                .setFooter("TOTAL FUNDAS :")
+                             .setKey("total");
+        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioInicial).setHeader("Inv.Inicial")
+                .setKey("ii");
+        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioFinal).setHeader("Inv.Final")
+                .setKey("inventarioFinal");
+        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getDespacho).setHeader("Despacho")
+                .setKey("desp");
+        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getPorduccionPorEmpacadora).setHeader("Produccion")
+                .setKey("produc");
+        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getDspachoAcumulado)
+                .setHeader("Despacho Acumulado")
+                .setKey("despAcu");
+        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getProduccionAcumulada)
+                .setHeader("Produccion Acumulada")
+                .setKey("producAcu");
+
+        footerDivII = new Div();
+        footeDivIF = new Div();
+        footerDivDespacho = new Div();
+        footerDivProduc = new Div();
+        footerDivDespachoAcum = new Div();
+        footerDivProducAcum = new Div();
+        footerDivTotal = new Div();
+
+        footerDivDespacho.addClassName("custom-footer");
+        footerDivProduc.addClassName("custom-footer");
+        footerDivII.addClassName("custom-footer");
+        footeDivIF.addClassName("custom-footer");
+        footerDivDespachoAcum.addClassName("custom-footer");
+        footerDivProducAcum.addClassName("custom-footer");
+        footerDivTotal.addClassName("procesada");
+
+//         movimientoProductoGrid.getColumnByKey("total").setFooter(footerDivTotal);
+        movimientoProductoGrid.getColumnByKey("ii").setFooter(footerDivII);
+        movimientoProductoGrid.getColumnByKey("inventarioFinal").setFooter(footeDivIF);
+        movimientoProductoGrid.getColumnByKey("desp").setFooter(footerDivDespacho);
+        movimientoProductoGrid.getColumnByKey("produc").setFooter(footerDivProduc);
+        movimientoProductoGrid.getColumnByKey("despAcu").setFooter(footerDivDespachoAcum);
+        movimientoProductoGrid.getColumnByKey("producAcu").setFooter(footerDivProducAcum);
+        movimientoProductoGrid.addClassName("my-custom-grid");
+
+        updateFooterMovimiento();
 
         TextField txtInventarioFinal = new TextField();
 
@@ -359,6 +411,7 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
                 System.out.println("inventarioFinal actual : " + inventarioFinal);
                 editor.getItem().setInventarioFinal(inventarioFinal);
                 actualizarMovimietoProducto();
+                updateFooterMovimiento();
 
                 listaDetMovProdc
                         .forEach(det -> {
@@ -428,6 +481,41 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
             rs.setOperacionEmpacadora(op);
 
         });
+
+    }
+
+    // Método para actualizar el total en el pie de página
+    private void updateFooterMovimiento() {
+
+        Double totalII = 0.00,
+                totalIf = 0.00,
+                totalDespacho = 0.00,
+                totalProduccion = 0.00,
+                totalDespachoAcum = 0.00,
+                totalProduccionAcum = 0.00;
+
+        if (!(listaDetMovProdc == null)) {
+
+            for (DetalleMovimientoProducto det1 : listaDetMovProdc) {
+
+                totalII += det1.getInventarioInicial();
+                totalIf += det1.getInventarioFinal();
+                totalDespacho += det1.getDespacho();
+                totalProduccion += det1.getPorduccionPorEmpacadora();
+                totalDespachoAcum += det1.getDspachoAcumulado();
+                totalProduccionAcum += det1.getProduccionAcumulada();
+
+            }
+//            totalII = ClaseUtil.formatoNumero(totalII / 60);
+//            Double total = listaDet.stream().mapToDouble(DetalleOperacionEmpacadora::getMinutoTrabajado).sum();
+            System.out.println("total : " + totalII);
+            footeDivIF.setText(totalIf.toString());
+            footerDivII.setText(totalII.toString());
+            footerDivDespacho.setText(totalDespacho.toString());
+            footerDivProduc.setText(totalProduccion.toString());
+            footerDivDespachoAcum.setText(totalDespachoAcum.toString());
+            footerDivProducAcum.setText(totalProduccionAcum.toString());
+        }
 
     }
 
