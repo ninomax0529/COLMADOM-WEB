@@ -1,20 +1,66 @@
 vaadin-scroller[slot="drawer"] {
-  padding: var(--lumo-space-s);
+    padding: var(--lumo-space-s);
 }
 
 vaadin-side-nav-item vaadin-icon {
-  padding: 0;
+    padding: 0;
 }
 
 [slot="drawer"]:is(header, footer) {
-  display: flex;
-  align-items: center;
-  gap: var(--lumo-space-s);
-  padding: var(--lumo-space-s) var(--lumo-space-m);
-  min-height: var(--lumo-size-xl);
-  box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    min-height: var(--lumo-size-xl);
+    box-sizing: border-box;
 }
 
 [slot="drawer"]:is(header, footer):is(:empty) {
-  display: none;
+    display: none;
+}
+
+.procesada{
+
+    background-color: #ff3333;
+    color: #ffffff
+
+}
+
+
+.sinprocesar{
+
+    background-color: #66cc00;
+    color: #ffffff
+
+}
+
+.my-grid {
+  --lumo-primary-color: #007bff; /* Color principal */
+  --lumo-secondary-color: #6c757d; /* Color secundario */
+  --lumo-font-family: Arial, sans-serif; /* Fuente */
+}
+
+.my-grid .vaadin-grid-cell {
+  background-color: var(--lumo-base-color);
+}
+
+.my-grid .vaadin-grid-cell:nth-child(even) {
+  background-color: var(--lumo-contrast-5pct);
+}
+
+/* Estilos para el pie de página */
+.custom-footer {
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    padding: 5px;
+    background-color: #f8f9fa;
+    border-top: 2px solid #ddd;
+    color: #333;
+}
+
+/* Mejorar la apariencia general de la tabla */
+:host ::slotted(vaadin-grid) {
+    border-radius: 8px;
+    overflow: hidden;
 }
