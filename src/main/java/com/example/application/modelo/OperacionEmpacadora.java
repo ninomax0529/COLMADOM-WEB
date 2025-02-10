@@ -127,15 +127,15 @@ public class OperacionEmpacadora implements Serializable {
     private Date fechaAnulado;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "operacionEmpacadora")
     private Collection<DetalleMovimientoProducto> detalleMovimientoProductoCollection;
-    @JoinColumn(name = "estado", referencedColumnName = "codigo")
-    @ManyToOne(optional = false)
-    private EstadoTurno estado;
     @JoinColumn(name = "turno", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Turno turno;
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Usuariop usuario;
+    @JoinColumn(name = "estado", referencedColumnName = "codigo")
+    @ManyToOne(optional = false)
+    private EstadoTurno estado;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "operacionEmpacadora")
     private Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection;
 
@@ -333,14 +333,6 @@ public class OperacionEmpacadora implements Serializable {
         this.detalleMovimientoProductoCollection = detalleMovimientoProductoCollection;
     }
 
-    public EstadoTurno getEstado() {
-        return estado;
-    }
-
-    public void setEstado(EstadoTurno estado) {
-        this.estado = estado;
-    }
-
     public Turno getTurno() {
         return turno;
     }
@@ -355,6 +347,14 @@ public class OperacionEmpacadora implements Serializable {
 
     public void setUsuario(Usuariop usuario) {
         this.usuario = usuario;
+    }
+
+    public EstadoTurno getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoTurno estado) {
+        this.estado = estado;
     }
 
     @XmlTransient

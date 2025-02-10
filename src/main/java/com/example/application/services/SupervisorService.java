@@ -15,4 +15,6 @@ public interface SupervisorService {
 
     public List<Supervisor> getLista();
 
+    public Supervisor getSupervisor(int codigo);
+
 }

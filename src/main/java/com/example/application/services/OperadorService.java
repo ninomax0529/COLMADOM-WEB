@@ -11,9 +11,9 @@ import java.util.List;
  *
  * @author Maximiliano
  */
-
 public interface OperadorService {
-    
-    
+
     public List<Operador> getLista();
+
+    public Operador getOperador(int codigo);
 }

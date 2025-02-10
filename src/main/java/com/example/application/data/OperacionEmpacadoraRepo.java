@@ -42,14 +42,15 @@ public interface OperacionEmpacadoraRepo extends JpaRepository<OperacionEmpacado
 
     String str = "  SELECT * from operacion_empacadora  "
             + " where turno=:tn  and date(fecha_inicio)=:fecha ";
+
     @Query(value = str, nativeQuery = true)
     public OperacionEmpacadora getOperacionEmpacadora(@Param("tn") int tn, @Param("fecha") Date fecha);
-    
-      String strest = "  SELECT * from operacion_empacadora  "
+
+    String strest = "  SELECT * from operacion_empacadora  "
             + " where turno=:tn and estado=:estadoParam and date(fecha_inicio)=:fecha ";
 
     @Query(value = strest, nativeQuery = true)
-    public OperacionEmpacadora getOperacionEmpacadora(@Param("tn") int tn,@Param("estadoParam") int estado, @Param("fecha") Date fecha);
+    public OperacionEmpacadora getOperacionEmpacadora(@Param("tn") int tn, @Param("estadoParam") int estado, @Param("fecha") Date fecha);
 
     String sqlEmpacado = """
                          SELECT  sum(d.empacado_por_hora) as produccion from  operacion_empacadora o
@@ -57,19 +58,34 @@ public interface OperacionEmpacadoraRepo extends JpaRepository<OperacionEmpacado
                          INNER JOIN detalle_operacion_empacadora d on o.codigo=d.operacion_empacadora and o.turno=:tn
                          
                           where date(o.fecha_creacion)=:fecha and d.producto=:produ """;
-    
-     @Query(value = sqlEmpacado, nativeQuery = true)
-    public Double  getEmpacado(@Param("tn") int tn, @Param("fecha") Date fecha,@Param("produ") Integer produc);
-    
-        String sqlTotalEmpacado = """
+
+    @Query(value = sqlEmpacado, nativeQuery = true)
+    public Double getEmpacado(@Param("tn") int tn, @Param("fecha") Date fecha, @Param("produ") Integer produc);
+
+    String sqlTotalEmpacado = """
                          SELECT  sum(d.empacado_por_hora) as produccion from  operacion_empacadora o
                          
                          INNER JOIN detalle_operacion_empacadora d on o.codigo=d.operacion_empacadora 
                          
                           where date(o.fecha_creacion)=:fecha and d.producto=:produ """;
+
+    @Query(value = sqlTotalEmpacado, nativeQuery = true)
+    public Double getEmpacado(@Param("fecha") Date fecha, @Param("produ") Integer produc);
+
+    String fundaSilo = """
+                        SELECT 
+                       
+                        sum(dop.empacado_por_hora)  as total
+                       
+                        from operacion_empacadora op INNER JOIN 
+                        detalle_operacion_empacadora dop 
+                        on op.codigo=dop.operacion_empacadora
+                       
+                       where date(op.fecha_creacion)=:fecha
+                       and  dop.silo=:silo """ ;
     
-     @Query(value = sqlTotalEmpacado, nativeQuery = true)
-    public Double  getEmpacado(@Param("fecha") Date fecha,@Param("produ") Integer produc);
+     @Query(value = fundaSilo, nativeQuery = true)
+    public Double getEmpacadoPorSilo(@Param("fecha") Date fecha, @Param("silo") Integer silo);
 
 
 }

@@ -33,5 +33,7 @@ public interface OperacionEmpacadoraService {
     public Double getEmpacado(int turno, Date fecha, int product);
 
     public Double getEmpacado(Date fecha, int product);
+    
+    public Double getEmpacadoPorSilo(Date fecha, int silo);
 
 }

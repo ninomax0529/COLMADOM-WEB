@@ -128,15 +128,74 @@ public class DespachoServiceImpl implements DespachoService {
     }
 
     @Override
-    public Double getDespacho(String turno, String producto, Date fecha) {
+    public Double getDespacho(String hora, String producto, Date fecha) {
 
         String fiStr = new SimpleDateFormat("yyyy-MM-dd").format(fecha);
+        String url;
 //        String ffStr = new SimpleDateFormat("yyyy-MM-dd").format(ff);
 
 //        System.out.println("fiStr " + fiStr + " ffStr : " + ffStr);
-        String url = "http://172.20.1.18:8000/ccibao/v1/tracking/despachoPorTurno.xsjs?hf=" + turno
-                + "&item=" + producto
-                + "&ff=" + fiStr;
+        if (hora.equals("13")) {
+
+            url = "http://172.20.1.18:8000/ccibao/v1/tracking/despachoPorProductoTurnoUno.xsjs?hf=" + hora
+                    + "&item=" + producto
+                    + "&ff=" + fiStr;
+        } else {
+
+            url = "http://172.20.1.18:8000/ccibao/v1/tracking/despachoPorProductoTurnoDos.xsjs?hf=" + hora
+                    + "&item=" + producto
+                    + "&ff=" + fiStr;
+        }
+
+        String despacho;
+
+        try {
+            // Crear encabezados con autenticación
+            HttpHeaders headers = ClaseUtil.configurarEncabezado(username, password);
+
+            // Crear la entidad HTTP con los encabezados
+            HttpEntity<DataXSJS> entity = new HttpEntity<>(headers);
+
+            // Realizar la solicitud GET con autenticación
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    String.class
+            );
+
+            DataXSJS dataXSJS = objectMapper.readValue(response.getBody(), DataXSJS.class);
+
+            despacho = dataXSJS.getData().getQuantity() == null ? "0.0" : dataXSJS.getData().getQuantity();
+
+            return Double.valueOf(despacho);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            System.out.println("Error al consumir el servicio XSJS: " + e.getMessage());
+            return null;
+        }
+
+    }
+
+    @Override
+    public Double getDespachoPorTransferencia(String hora, String producto, Date fecha) {
+
+        String fiStr = new SimpleDateFormat("yyyy-MM-dd").format(fecha);
+        String url;
+//        String ffStr = new SimpleDateFormat("yyyy-MM-dd").format(ff);
+
+//        System.out.println("fiStr " + fiStr + " ffStr : " + ffStr);
+        if (hora.equals("13")) {
+            url = "http://172.20.1.18:8000/ccibao/v1/tracking/despachoTransferenciaTurnoUno.xsjs?hf=" + hora
+                    + "&item=" + producto
+                    + "&ff=" + fiStr;
+        } else {
+            url = "http://172.20.1.18:8000/ccibao/v1/tracking/despachoTransferenciaPorTurnoDos.xsjs?hf=" + hora
+                    + "&item=" + producto
+                    + "&ff=" + fiStr;
+        }
 
         String despacho;
 

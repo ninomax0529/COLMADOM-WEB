@@ -23,4 +23,7 @@ public interface DespachoService {
     public Double getDespacho(String producto);
 
     public Double getDespacho(String turno, String producto, Date fecha);
+
+    public Double getDespachoPorTransferencia(String turno, String producto, Date fecha);
+
 }

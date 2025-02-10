@@ -99,7 +99,9 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
     Date ff, fi;
     Button btnBuscar;
     Double cantidadDespacho = 0.00, cantidadProducida = 0.00,
-            cantidadDespachoAcum = 0.00, cantidadProducidaAcum = 0.00;
+            cantidadDespachoAcum = 0.00,
+            cantidadProducidaAcum = 0.00,
+            inventarioFinal = 0.00;
 
     public EmpacadoraView(TurnoService turnoServiceArg, OperacionEmpacadoraService operacionEmpacadoraArg, EquipoService empacadoraServiceArg,
             ProductoService productoServiceArg, AlmacenService almacenServiceArg, DespachoService despachoServiceArg,
@@ -155,6 +157,7 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
         layoutRow.addClassName(Gap.MEDIUM);
         layoutRow.setWidth("100%");
         layoutRow.setHeight("min-content");
+        layoutRow.setMargin(false);
         layoutRow2.setHeightFull();
         layoutRow.setFlexGrow(1.0, layoutRow2);
         layoutRow2.addClassName(Gap.MEDIUM);
@@ -312,7 +315,7 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
         basicGrid.addColumn(DetalleOperacionEmpacadora::getHora).setHeader("Horas")
                 .setFooter("TOTAL : ")
                 .setKey("hora");
-//        movimientoProductoGrid.addColumn(DetalleOperacionEmpacadora::getPaletizadora).setHeader("Paletizadora");
+
         basicGrid.addColumn(DetalleOperacionEmpacadora::getMinutoTrabajado).setHeader("Tiempo(Hora)")
                 .setFooter(createFooter(""))
                 .setKey("tp");
@@ -572,13 +575,7 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
             col.setSortable(true);
         });
 
-//        basicGrid.addItemDoubleClickListener(e -> {
-//            editor.editItem(e.getItem());
-//            Component editorComponent = e.getColumn().getEditorComponent();
-//            if (editorComponent instanceof Focusable) {
-//                ((Focusable) editorComponent).focus();
-//            }
-//        });
+
         editor.addCancelListener(e -> {
 
         });
@@ -595,7 +592,7 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
         movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioInicial)
                 .setHeader("Inv.Inicial")
                 .setKey("ii");
-        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioFinal)
+        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioFinalSap)
                 .setHeader("Inv.Final")
                 .setKey("inventarioFinal");
 
@@ -648,29 +645,61 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
         ff = fi;
         int turno = op.getTurno().getCodigo();
 
-        listaDetMovProdc.forEach(rs -> {
+        listaDetMovProdc.forEach((DetalleMovimientoProducto rs) -> {
 
+            cantidadDespacho = 0.00;
+            cantidadDespachoAcum = 0.00;
             if (turno == 1) {
 
-                cantidadDespacho = this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
+                if (rs.getProducto().getCodigo() == 4) {
+
+                    cantidadDespacho = this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespacho += this.despachoService.getDespachoPorTransferencia("13", rs.getProducto().getCodigoSap(), ff);
+
+                } else {
+
+                    cantidadDespacho = this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
+                }
+//             
+
                 cantidadDespachoAcum = cantidadDespacho;
+
+                System.out.println("cantidadDespacho ti : " + cantidadDespacho);
+
             } else {
 
-                cantidadDespacho = this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
-                cantidadDespachoAcum = this.despachoService.getDespacho("23", rs.getProducto().getCodigoSap(), ff);
-                cantidadDespacho = cantidadDespachoAcum - cantidadDespacho;
+                if (rs.getProducto().getCodigo() == 4) {
+
+                    cantidadDespacho = this.despachoService.getDespacho("23", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespacho += this.despachoService.getDespachoPorTransferencia("23", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespachoAcum = cantidadDespacho;
+
+                    cantidadDespachoAcum += this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespachoAcum += this.despachoService.getDespachoPorTransferencia("13", rs.getProducto().getCodigoSap(), ff);
+
+                } else {
+
+                    cantidadDespacho = this.despachoService.getDespacho("23", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespachoAcum = this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespachoAcum += this.despachoService.getDespacho("23", rs.getProducto().getCodigoSap(), ff);
+                }
+
             }
 
-            System.out.println("cantidadDespacho : " + cantidadDespacho);
-
-//            cantidadDespachoAcum = this.despachoService.getDespacho(rs.getProducto().getCodigoSap(), fi, ff);
             cantidadProducida = this.operacionEmpacadoraService.getEmpacado(turno, ff, rs.getProducto().getCodigo());
             cantidadProducidaAcum = this.operacionEmpacadoraService.getEmpacado(ff, rs.getProducto().getCodigo());
 
+            inventarioFinal = rs.getInventarioInicial() + cantidadProducidaAcum - cantidadDespachoAcum;
             rs.setDespacho(cantidadDespacho.intValue());
             rs.setPorduccionPorEmpacadora(cantidadProducida.intValue());
             rs.setProduccionAcumulada(cantidadProducidaAcum.intValue());
             rs.setDspachoAcumulado(cantidadDespachoAcum.intValue());
+
+            if (!(rs.getProducto().getCodigo() == 4)) {
+                rs.setInventarioFinalSap(inventarioFinal.intValue());
+            } else {
+                rs.setInventarioFinalSap(0);
+            }
 
         });
 

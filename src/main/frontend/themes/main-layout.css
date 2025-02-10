@@ -21,7 +21,7 @@ vaadin-side-nav-item vaadin-icon {
 
 .procesada{
 
-    background-color: #ff3333;
+    background-color: #3A86FF;
     color: #ffffff
 
 }
@@ -47,16 +47,21 @@ vaadin-side-nav-item vaadin-icon {
 .my-grid .vaadin-grid-cell:nth-child(even) {
   background-color: var(--lumo-contrast-5pct);
 }
+vaadin-side-nav-item vaadin-icon {
+  padding: 0;
+}
 
 /* Estilos para el pie de página */
 .custom-footer {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     text-align: center;
     padding: 2px;
-    background-color: #ffff99;
+    
+    background-color: #ffffff;
     border-top: 2px solid #ddd;
     color: #000000;
+    
 }
 
 /* Estilos para el pie de página */
@@ -124,4 +129,9 @@ vaadin-side-nav-item vaadin-icon {
     background-color: #e0f7fa !important; /* Fondo azul muy claro */
     font-weight: bold;
     color: #006064;
+}
+
+/* Estilo para resaltar la fila seleccionada en el grid */
+vaadin-grid::part(row)[selected] {
+    background-color: #dff0d8 !important;  /* Verde claro */
 }

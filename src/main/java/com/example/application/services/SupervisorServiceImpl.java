@@ -30,5 +30,20 @@ public class SupervisorServiceImpl implements SupervisorService {
 
         return lista;
     }
+
+    @Override
+    public Supervisor getSupervisor(int codigo) {
+      
+        
+        Supervisor obj = null;
+        try {
+
+            obj = this.supervisorRepo.findById(codigo).get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return obj;
+    }
     
 }

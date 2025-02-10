@@ -82,6 +82,8 @@ public class Usuariop implements Serializable {
     private Rolp rol;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
     private Collection<OperacionEmpacadora> operacionEmpacadoraCollection;
+    @OneToMany(mappedBy = "usuario")
+    private Collection<CementoEmpacadoPorSilo> cementoEmpacadoPorSiloCollection;
 
     public Usuariop() {
     }
@@ -180,6 +182,15 @@ public class Usuariop implements Serializable {
 
     public void setOperacionEmpacadoraCollection(Collection<OperacionEmpacadora> operacionEmpacadoraCollection) {
         this.operacionEmpacadoraCollection = operacionEmpacadoraCollection;
+    }
+
+    @XmlTransient
+    public Collection<CementoEmpacadoPorSilo> getCementoEmpacadoPorSiloCollection() {
+        return cementoEmpacadoPorSiloCollection;
+    }
+
+    public void setCementoEmpacadoPorSiloCollection(Collection<CementoEmpacadoPorSilo> cementoEmpacadoPorSiloCollection) {
+        this.cementoEmpacadoPorSiloCollection = cementoEmpacadoPorSiloCollection;
     }
 
     @Override

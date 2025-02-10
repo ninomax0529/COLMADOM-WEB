@@ -30,6 +30,9 @@ public class MainLayout extends AppLayout {
         setPrimarySection(Section.DRAWER);
         addDrawerContent();
         addHeaderContent();
+      
+     
+        
     }
 
     private void addHeaderContent() {
@@ -46,6 +49,7 @@ public class MainLayout extends AppLayout {
         Span appName = new Span("Gestion Empaque");
         appName.addClassNames(LumoUtility.FontWeight.SEMIBOLD, LumoUtility.FontSize.LARGE);
         Header header = new Header(appName);
+        header.addClassName("procesada");
 
         Scroller scroller = new Scroller(createNavigation());
 
@@ -63,6 +67,8 @@ public class MainLayout extends AppLayout {
                 nav.addItem(new SideNavItem(entry.title(), entry.path()));
             }
         });
+        
+//        nav.getStyle().set("background-color", "#000000"); // Tonos suaves de azul
 
         return nav;
     }

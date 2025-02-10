@@ -143,4 +143,14 @@ public class OperacionEmpacadoraImpl implements OperacionEmpacadoraService {
 
         return empacado == null ? 0 : empacado;
     }
+
+    @Override
+    public Double getEmpacadoPorSilo(Date fecha, int silo) {
+       
+                  
+        Double empacado = this.oprRepo.getEmpacadoPorSilo(fecha, silo);
+
+        return empacado == null ? 0 : empacado;
+    }
+
 }

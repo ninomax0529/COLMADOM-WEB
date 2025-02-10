@@ -43,6 +43,7 @@ import com.example.application.util.ClaseUtil;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.editor.Editor;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import java.util.logging.Level;
@@ -112,27 +113,21 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
         multiSelectComboBoxProducto = new MultiSelectComboBox();
         multiSelectComboBoxEmp = new MultiSelectComboBox();
         HorizontalLayout layoutRow3 = new HorizontalLayout();
+        getContent().setSpacing(false);
 
-        Button buttonPrimary = new Button("Guardar",
+        Button btnGuardar = new Button("Guardar",
                 event -> {
 
                     try {
 
+                        if (datePicker.getValue() == null) {
+
+                            Notification.show("Tiene que seleccionar una fecha ", 3000, Notification.Position.MIDDLE);
+                            return;
+                        }
+
                         if (comboBoxTurno.getValue() == null) {
-
                             Notification.show("Tiene que seleccionar un turno ", 3000, Notification.Position.MIDDLE);
-                            return;
-                        }
-
-                        if (comboBoxOperador.getValue() == null) {
-
-                            Notification.show("Tiene que seleccionar un Operador ", 3000, Notification.Position.MIDDLE);
-                            return;
-                        }
-
-                        if (comboBoxSupervisor.getValue() == null) {
-
-                            Notification.show("Tiene que seleccionar un Supervisor ", 3000, Notification.Position.MIDDLE);
                             return;
                         }
 
@@ -142,20 +137,85 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
                             return;
                         }
 
-                        progressBar.setIndeterminate(true);
+                        if (comboBoxSupervisor.getValue() == null) {
+
+                            Notification.show("Tiene que seleccionar un Supervisor ", 3000, Notification.Position.MIDDLE);
+                            return;
+                        }
+
+                        if (comboBoxOperador.getValue() == null) {
+
+                            Notification.show("Tiene que seleccionar un Operador ", 3000, Notification.Position.MIDDLE);
+                            return;
+                        }
+
+                        if (lista == null) {
+
+                            Notification.show("No hay empacadora agregada para este turnbo ", 3000, Notification.Position.MIDDLE);
+                            return;
+                        }
+
+                        Date fecha;//= Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+                        fecha = ClaseUtil.asDate(datePicker.getValue());
+
+                        int turno = comboBoxTurno.getValue().getCodigo();
+                        System.out.println("turno : " + turno);
+                        System.out.println("fecha : " + fecha);
+
+                        opem = this.operacionEmpacadoraService.getOperacionEmpacadora(turno, fecha);
+
+                        System.out.println("Op : " + opem);
+
+                        if (!(opem == null)) {
+
+                            Notification.show("Hay un turno en esta fecha !", 3000, Notification.Position.TOP_CENTER);
+
+                            return;
+                        }
+
+//                        progressBar.setIndeterminate(true);
                         guardar();
 
-                        progressBar.setIndeterminate(false);
-
+//                        progressBar.setIndeterminate(false);
                     } catch (Exception e) {
-                        progressBar.setIndeterminate(false);
+                        e.printStackTrace();
+//                        progressBar.setIndeterminate(false);
                         System.out.println("Error ; " + e.getMessage());
 
                     }
 
                 });
 
-        Button buttonAbrir = new Button("Generar",
+        Button btnNuevo = new Button("Nuevo",
+                event -> {
+
+                    if (comboBoxTurno.getValue() == null) {
+
+                        Notification.show("Tiene que seleccionar un turno ", 2000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    if (multiSelectComboBoxEmp.isEmpty()) {
+                        Notification.show("No hay empacadora seleccionada ", 2000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    if (multiSelectComboBoxProducto.isEmpty()) {
+                        Notification.show("No hay productos seleccionado ", 2000, Notification.Position.MIDDLE);
+                        return;
+                    }
+
+                    try {
+
+                        abrirTurno();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                });
+
+        Button btnBuscar = new Button("Buscar",
                 event -> {
 
                     if (comboBoxTurno.getValue() == null) {
@@ -164,8 +224,6 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
                     }
 
                     buscar();
-//
-//                    abrirTurno();
 
                 });
 
@@ -206,26 +264,34 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
         layoutRow3.addClassName(Gap.MEDIUM);
         layoutRow3.setWidth("100%");
         layoutRow3.setHeight("min-content");
-        buttonPrimary.setText("Guardar");
-        buttonPrimary.setWidth("min-content");
-        buttonPrimary.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        buttonAbrir.setText("Abrir");
-        buttonAbrir.setWidth("min-content");
-
+        btnGuardar.setText("Guardar");
+        btnGuardar.setWidth("min-content");
+        btnGuardar.addThemeVariants(ButtonVariant.LUMO_ICON);
+        btnNuevo.setText("Nuevo");
+        btnNuevo.setWidth("min-content");
+        btnNuevo.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+        btnBuscar.setText("Buscar");
+        btnBuscar.setWidth("min-content");
+        btnBuscar.addThemeVariants(ButtonVariant.LUMO_WARNING);
+        getContent().setPadding(true);
+        getContent().setMargin(true);
         getContent().add(layoutRow);
+        layoutRow.setAlignItems(FlexComponent.Alignment.BASELINE);
+        layoutRow3.setAlignItems(FlexComponent.Alignment.BASELINE);
 
         layoutRow.add(datePicker);
         layoutRow.add(comboBoxTurno);
         layoutRow.add(comboBoxControl);
         layoutRow.add(comboBoxSupervisor);
         layoutRow.add(comboBoxOperador);
-        layoutRow.add(multiSelectComboBoxEmp);
-        layoutRow.add(multiSelectComboBoxProducto);
+        layoutRow3.add(multiSelectComboBoxEmp);
+        layoutRow3.add(multiSelectComboBoxProducto);
 
         getContent().add(layoutRow2);
         getContent().add(layoutRow3);
-        layoutRow3.add(buttonAbrir);
-        layoutRow3.add(buttonPrimary);
+        layoutRow3.add(btnNuevo);
+        layoutRow3.add(btnBuscar);
+        layoutRow3.add(btnGuardar);
         getContent().add(basicGrid);
         getContent().add(movimientoProductoGrid);
 
@@ -382,10 +448,13 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
             dataProvider.refreshAll();
 
         } catch (Exception e) {
+            e.printStackTrace();
             System.out.println("Error : " + e.getMessage());
         }
 
-        progressBar.setIndeterminate(false);
+        System.out.println("Detalle : " + lista.size());
+
+//        progressBar.setIndeterminate(false);
         return lista;
     }
 
@@ -393,10 +462,6 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
 
         try {
 
-//            LocalDate localDate = LocalDate.of(
-//                    datePicker.getValue().getYear(), datePicker.getValue().getMonthValue(),
-//                    datePicker.getValue().getDayOfMonth()
-//            );
             Date fecha;//= Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
 
             fecha = ClaseUtil.asDate(datePicker.getValue());
@@ -411,14 +476,14 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
 
             if (opem == null) {
 
-                abrirTurno();
+                Notification.show("No hay un turno abierto en esta fecha !", 4000, Notification.Position.MIDDLE);
 
-//                Notification.show("No hay un turno abierto en esta fecha !", 4000, Notification.Position.MIDDLE);
                 return;
-            } else {
-                System.out.println("Actualizando turno codigo "+opem.getCodigo());
-                editar = true;
             }
+
+            comboBoxControl.setValue(this.operadorService.getOperador(opem.getControl()));
+            comboBoxOperador.setValue(this.operadorService.getOperador(opem.getOperador()));
+            comboBoxSupervisor.setValue(this.supervisorService.getSupervisor(opem.getSupervisor()));
 
             lista = this.operacionEmpacadoraService
                     .getDetalleOperacion(opem);
@@ -426,10 +491,10 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
             dataProvider = new ListDataProvider<>(lista);
             basicGrid.setDataProvider(dataProvider);
             basicGrid.getColumnByKey("editar");
-        
+
             listaDetMovProdc = this.operacionEmpacadoraService
                     .getDetalleMovimientoProducto(opem);
-         
+
             dataProviderMovProdc = new ListDataProvider<>(listaDetMovProdc);
             movimientoProductoGrid.setDataProvider(dataProviderMovProdc);
 
@@ -448,6 +513,9 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
         if (opem == null) {
             System.out.println("opem : " + opem);
             opem = new OperacionEmpacadora();
+            editar = false;
+        } else {
+            editar = true;
         }
 
         try {
@@ -494,13 +562,13 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
 
             if (editar == false) {
 
+                System.out.println("Editando ...");
                 listaDetMovProdc = crearMovimietoProducto(opem);
+                dataProviderMovProdc = new ListDataProvider<>(listaDetMovProdc);
+                movimientoProductoGrid.setDataProvider(dataProviderMovProdc);
+                opem.setDetalleMovimientoProductoCollection(listaDetMovProdc);
             }
 
-            dataProviderMovProdc = new ListDataProvider<>(listaDetMovProdc);
-            movimientoProductoGrid.setDataProvider(dataProviderMovProdc);
-
-            opem.setDetalleMovimientoProductoCollection(listaDetMovProdc);
             opem.setHoraInicio(new Date());
             opem.setHoraFinal(new Date());
             opem.setUsuario(new Usuariop(1));
@@ -510,6 +578,7 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
             listaDetMovProdc = this.operacionEmpacadoraService.getDetalleMovimientoProducto(opem);
 
             dataProviderMovProdc.refreshAll();
+            dataProvider.refreshAll();
 
             Notification.show("Turno guardado exitosamenete ", 3000, Notification.Position.MIDDLE);
         } catch (Exception e) {
@@ -540,7 +609,7 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
         Editor<DetalleMovimientoProducto> editor = movimientoProductoGrid.getEditor();
         editor.setBinder(binder);
 
-        movimientoProductoGrid.setHeight("250");
+        movimientoProductoGrid.setHeight("270");
         movimientoProductoGrid.setWidthFull();
         movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getNombreProducto).setHeader("Producto");
         movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioInicial).setHeader("Inv.Inicial").setKey("inventarioInicial");
@@ -652,13 +721,13 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
 
         DetalleMovimientoProducto detMovProd;
 
-        if (opem.getTurno().getCodigo() == 2) {
+        opTurno1 = this.operacionEmpacadoraService.getOperacionEmpacadora(1, fecha);
+        System.out.println("opTurno1 : " + opTurno1);
+
+        if (opem.getTurno().getCodigo() == 2 && opTurno1!=null) {
 
             System.out.println("Segundo turno");
 
-            opTurno1 = this.operacionEmpacadoraService.getOperacionEmpacadora(1, fecha);
-            System.out.println("opTurno1 : " + opTurno1);
-           
             for (DetalleMovimientoProducto dm : this.operacionEmpacadoraService.getDetalleMovimientoProducto(opTurno1)) {
 
                 detMovProd = new DetalleMovimientoProducto();
@@ -676,7 +745,6 @@ public class AbrirTurnoView extends Composite<VerticalLayout> {
                 listaMovi.add(detMovProd);
 
             }
-
 
         } else {
 

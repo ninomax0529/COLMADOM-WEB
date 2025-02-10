@@ -5,6 +5,7 @@
 package com.example.application.modelo;
 
 import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,11 +15,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
+import java.util.Collection;
 
 /**
  *
@@ -89,6 +93,10 @@ public class Almacen implements Serializable {
     @Size(max = 10)
     @Column(name = "abreviatura")
     private String abreviatura;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacenSilo")
+    private Collection<DetalleMedicionSilo> detalleMedicionSiloCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacenSilo")
+    private Collection<DetalleCementoEmpacadoPorSilo> detalleCementoEmpacadoPorSiloCollection;
     @JoinColumn(name = "tipo_equipo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private TipoEquipo tipoEquipo;
@@ -233,6 +241,24 @@ public class Almacen implements Serializable {
 
     public void setAbreviatura(String abreviatura) {
         this.abreviatura = abreviatura;
+    }
+
+    @XmlTransient
+    public Collection<DetalleMedicionSilo> getDetalleMedicionSiloCollection() {
+        return detalleMedicionSiloCollection;
+    }
+
+    public void setDetalleMedicionSiloCollection(Collection<DetalleMedicionSilo> detalleMedicionSiloCollection) {
+        this.detalleMedicionSiloCollection = detalleMedicionSiloCollection;
+    }
+
+    @XmlTransient
+    public Collection<DetalleCementoEmpacadoPorSilo> getDetalleCementoEmpacadoPorSiloCollection() {
+        return detalleCementoEmpacadoPorSiloCollection;
+    }
+
+    public void setDetalleCementoEmpacadoPorSiloCollection(Collection<DetalleCementoEmpacadoPorSilo> detalleCementoEmpacadoPorSiloCollection) {
+        this.detalleCementoEmpacadoPorSiloCollection = detalleCementoEmpacadoPorSiloCollection;
     }
 
     public TipoEquipo getTipoEquipo() {

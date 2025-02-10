@@ -71,14 +71,16 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
     ListDataProvider<DetalleMovimientoProducto> dataProviderMovProdc;
     OperacionEmpacadora op;
     Double cantidadDespacho = 0.00, cantidadProducida = 0.00,
-            cantidadDespachoAcum = 0.00, cantidadProducidaAcum = 0.00;
+            cantidadDespachoAcum = 0.00, cantidadProducidaAcum = 0.00,
+            inventarioFinal = 0.00;
     Date ff, fi;
     public Button saveButton;
 
     private Div footerDiv;
     private Div footePnhrDiv;
     private Div footerDivII;
-    private Div footeDivIF;
+    private Div footeDivIFSap;
+    private Div footeDivIFFisico;
     private Div footerDivDespacho;
     private Div footerDivProduc;
     private Div footerDivDespachoAcum;
@@ -241,10 +243,11 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
 
             listaDetMovProdc = this.operacionEmpacadoraService
                     .getDetalleMovimientoProducto(op);
+            actualizarMovimietoProducto();
 
             dataProviderMovProdc = new ListDataProvider<>(listaDetMovProdc);
             movimientoProductoGrid.setDataProvider(dataProviderMovProdc);
-            actualizarMovimietoProducto();
+
             updateFooterMovimiento();
 
             dataProvider.refreshAll();
@@ -277,7 +280,7 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
         editor.setBinder(binder);
 //        editor.setBuffered(true);
 
-        basicGrid.setHeight("450px");
+        basicGrid.setHeight("425px");
 
         basicGrid.addColumn(DetalleOperacionEmpacadora::getHora).setHeader("Horas").setKey("hora");
         basicGrid.addColumn(DetalleOperacionEmpacadora::getMinutoTrabajado).setHeader("Tiempo Trabajado");
@@ -287,7 +290,7 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
         basicGrid.addColumn(DetalleOperacionEmpacadora::getNombreEmpacadora).setHeader("Empacadora");
         basicGrid.addColumn(DetalleOperacionEmpacadora::getNombrePaletizadora).setHeader("Paletizadora");
         basicGrid.addColumn(DetalleOperacionEmpacadora::getNombreSilo).setHeader("Silo");
-      
+
         TextField acumuladoTextField = new TextField();
 
         acumuladoTextField.setWidthFull();
@@ -306,15 +309,20 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
         Editor<DetalleMovimientoProducto> editor = movimientoProductoGrid.getEditor();
         editor.setBinder(binder);
 
-        movimientoProductoGrid.setHeight("220px");
+        movimientoProductoGrid.setHeight("270px");
         movimientoProductoGrid.setWidthFull();
+
         movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getNombreProducto).setHeader("Producto")
-                .setFooter("TOTAL FUNDAS :")
-                             .setKey("total");
+                .setFooter("TOTAL FUNDAS :");
+
         movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioInicial).setHeader("Inv.Inicial")
                 .setKey("ii");
-        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioFinal).setHeader("Inv.Final")
-                .setKey("inventarioFinal");
+        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioFinal).setHeader("Inv.Final  Fisico")
+                .setKey("invFinalFisico");
+
+        movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getInventarioFinalSap).setHeader("Inv.Final Calculado")
+                .setKey("invFinalSap");
+
         movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getDespacho).setHeader("Despacho")
                 .setKey("desp");
         movimientoProductoGrid.addColumn(DetalleMovimientoProducto::getPorduccionPorEmpacadora).setHeader("Produccion")
@@ -327,7 +335,8 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
                 .setKey("producAcu");
 
         footerDivII = new Div();
-        footeDivIF = new Div();
+        footeDivIFSap = new Div();
+        footeDivIFFisico = new Div();
         footerDivDespacho = new Div();
         footerDivProduc = new Div();
         footerDivDespachoAcum = new Div();
@@ -337,18 +346,20 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
         footerDivDespacho.addClassName("custom-footer");
         footerDivProduc.addClassName("custom-footer");
         footerDivII.addClassName("custom-footer");
-        footeDivIF.addClassName("custom-footer");
+        footeDivIFSap.addClassName("custom-footer");
+        footeDivIFFisico.addClassName("custom-footer");
         footerDivDespachoAcum.addClassName("custom-footer");
         footerDivProducAcum.addClassName("custom-footer");
         footerDivTotal.addClassName("procesada");
 
-//         movimientoProductoGrid.getColumnByKey("total").setFooter(footerDivTotal);
+        movimientoProductoGrid.getColumnByKey("invFinalFisico").setFooter(footeDivIFFisico);
         movimientoProductoGrid.getColumnByKey("ii").setFooter(footerDivII);
-        movimientoProductoGrid.getColumnByKey("inventarioFinal").setFooter(footeDivIF);
+        movimientoProductoGrid.getColumnByKey("invFinalSap").setFooter(footeDivIFSap);
         movimientoProductoGrid.getColumnByKey("desp").setFooter(footerDivDespacho);
         movimientoProductoGrid.getColumnByKey("produc").setFooter(footerDivProduc);
         movimientoProductoGrid.getColumnByKey("despAcu").setFooter(footerDivDespachoAcum);
         movimientoProductoGrid.getColumnByKey("producAcu").setFooter(footerDivProducAcum);
+
         movimientoProductoGrid.addClassName("my-custom-grid");
 
         updateFooterMovimiento();
@@ -357,7 +368,7 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
 
         txtInventarioFinal.setWidthFull();
 
-        movimientoProductoGrid.getColumnByKey("inventarioFinal").setEditorComponent(txtInventarioFinal);
+        movimientoProductoGrid.getColumnByKey("invFinalFisico").setEditorComponent(txtInventarioFinal);
 
         Grid.Column<DetalleMovimientoProducto> editColumn = movimientoProductoGrid.addComponentColumn(det -> {
 
@@ -400,17 +411,18 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
                 }
 
                 String valor = txtInventarioFinal.getValue().isEmpty() ? "0.0" : txtInventarioFinal.getValue();
-                Integer inventarioFinal = Integer.valueOf(valor);
+                Integer invFinal = Integer.valueOf(valor);
 
-                if (inventarioFinal < 0) {
+                if (invFinal < 0) {
 
                     Notification.show("El inventario no puede ser menor que cero ", 3000, Notification.Position.MIDDLE);
                     return;
                 }
 
-                System.out.println("inventarioFinal actual : " + inventarioFinal);
-                editor.getItem().setInventarioFinal(inventarioFinal);
+                System.out.println("inventarioFinal actual : " + invFinal);
                 actualizarMovimietoProducto();
+                editor.getItem().setInventarioFinal(invFinal);
+
                 updateFooterMovimiento();
 
                 listaDetMovProdc
@@ -449,36 +461,67 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
         });
     }
 
-    private void actualizarMovimietoProducto() {
+        private void actualizarMovimietoProducto() {
 
         fi = ClaseUtil.asDate(datePicker.getValue());
         ff = fi;
         int turno = op.getTurno().getCodigo();
 
-        listaDetMovProdc.forEach(rs -> {
+        listaDetMovProdc.forEach((DetalleMovimientoProducto rs) -> {
 
+            cantidadDespacho = 0.00;
+            cantidadDespachoAcum = 0.00;
             if (turno == 1) {
 
-                cantidadDespacho = this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
+                if (rs.getProducto().getCodigo() == 4) {
+
+                    cantidadDespacho = this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespacho += this.despachoService.getDespachoPorTransferencia("13", rs.getProducto().getCodigoSap(), ff);
+
+                } else {
+
+                    cantidadDespacho = this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
+                }
+//             
+
                 cantidadDespachoAcum = cantidadDespacho;
+
+                System.out.println("cantidadDespacho ti : " + cantidadDespacho);
+
             } else {
 
-                cantidadDespacho = this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
-                cantidadDespachoAcum = this.despachoService.getDespacho("23", rs.getProducto().getCodigoSap(), ff);
-                cantidadDespacho = cantidadDespachoAcum - cantidadDespacho;
+                if (rs.getProducto().getCodigo() == 4) {
+
+                    cantidadDespacho = this.despachoService.getDespacho("23", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespacho += this.despachoService.getDespachoPorTransferencia("23", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespachoAcum = cantidadDespacho;
+
+                    cantidadDespachoAcum += this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespachoAcum += this.despachoService.getDespachoPorTransferencia("13", rs.getProducto().getCodigoSap(), ff);
+
+                } else {
+
+                    cantidadDespacho = this.despachoService.getDespacho("23", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespachoAcum = this.despachoService.getDespacho("13", rs.getProducto().getCodigoSap(), ff);
+                    cantidadDespachoAcum += this.despachoService.getDespacho("23", rs.getProducto().getCodigoSap(), ff);
+                }
+
             }
 
-            System.out.println("cantidadDespacho : " + cantidadDespacho);
-
-//            cantidadDespachoAcum = this.despachoService.getDespacho(rs.getProducto().getCodigoSap(), fi, ff);
             cantidadProducida = this.operacionEmpacadoraService.getEmpacado(turno, ff, rs.getProducto().getCodigo());
             cantidadProducidaAcum = this.operacionEmpacadoraService.getEmpacado(ff, rs.getProducto().getCodigo());
 
+            inventarioFinal = rs.getInventarioInicial() + cantidadProducidaAcum - cantidadDespachoAcum;
             rs.setDespacho(cantidadDespacho.intValue());
             rs.setPorduccionPorEmpacadora(cantidadProducida.intValue());
             rs.setProduccionAcumulada(cantidadProducidaAcum.intValue());
             rs.setDspachoAcumulado(cantidadDespachoAcum.intValue());
-            rs.setOperacionEmpacadora(op);
+
+            if (!(rs.getProducto().getCodigo() == 4)) {
+                rs.setInventarioFinalSap(inventarioFinal.intValue());
+            } else {
+                rs.setInventarioFinalSap(0);
+            }
 
         });
 
@@ -489,6 +532,7 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
 
         Double totalII = 0.00,
                 totalIf = 0.00,
+                totalIfFisico = 0.00,
                 totalDespacho = 0.00,
                 totalProduccion = 0.00,
                 totalDespachoAcum = 0.00,
@@ -499,7 +543,8 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
             for (DetalleMovimientoProducto det1 : listaDetMovProdc) {
 
                 totalII += det1.getInventarioInicial();
-                totalIf += det1.getInventarioFinal();
+                totalIfFisico += det1.getInventarioFinal();
+                totalIf += det1.getInventarioFinalSap();
                 totalDespacho += det1.getDespacho();
                 totalProduccion += det1.getPorduccionPorEmpacadora();
                 totalDespachoAcum += det1.getDspachoAcumulado();
@@ -509,7 +554,8 @@ public class CerrarTurnosView extends Composite<VerticalLayout> {
 //            totalII = ClaseUtil.formatoNumero(totalII / 60);
 //            Double total = listaDet.stream().mapToDouble(DetalleOperacionEmpacadora::getMinutoTrabajado).sum();
             System.out.println("total : " + totalII);
-            footeDivIF.setText(totalIf.toString());
+            footeDivIFSap.setText(totalIf.toString());
+            footeDivIFFisico.setText(totalIfFisico.toString());
             footerDivII.setText(totalII.toString());
             footerDivDespacho.setText(totalDespacho.toString());
             footerDivProduc.setText(totalProduccion.toString());
