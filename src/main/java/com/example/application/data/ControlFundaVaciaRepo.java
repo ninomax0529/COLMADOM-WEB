@@ -4,8 +4,9 @@
  */
 package com.example.application.data;
 
-import com.example.application.modelo.CementoEmpacadoPorSilo;
+import com.example.application.modelo.ControlDeFundaVacia;
 import com.example.application.modelo.DetalleCementoEmpacadoPorSilo;
+import com.example.application.modelo.DetalleControlDeFundaVacia;
 import java.util.Date;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,20 +19,18 @@ import org.springframework.stereotype.Repository;
  * @author Maximiliano
  */
 @Repository
-public interface CementoEmpacadoPorsiloRepo extends JpaRepository<CementoEmpacadoPorSilo, Integer>{
-    
-    
-    String str1 = "  select * from  detalle_cemento_empacado_por_silo o where empaque_silo=:cep ";
+public interface ControlFundaVaciaRepo extends JpaRepository<ControlDeFundaVacia, Integer> {
+
+    String str1 = "  select * from  detalle_control_de_funda_vacia o where control_funda_vacia=:control ";
 
     @Query(value = str1, nativeQuery = true)
-    public List<DetalleCementoEmpacadoPorSilo> getDetalle(@Param("cep") int cep);
+    public List<DetalleControlDeFundaVacia> getDetalle(@Param("control") int control);
     
     
-      String strest = "  SELECT * from cemento_empacado_por_silo  "
+    
+      String strest = "  SELECT * from control_de_funda_vacia  "
             + " where  date(fecha)=:fecha ";
 
     @Query(value = strest, nativeQuery = true)
-    public CementoEmpacadoPorSilo getCementoEmcadoPorSilo(@Param("fecha") Date fecha);
-
-
+    public ControlDeFundaVacia getControlDeFundaVacia(@Param("fecha") Date fecha);
 }

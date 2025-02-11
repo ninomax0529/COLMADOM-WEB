@@ -38,19 +38,13 @@ import java.util.Date;
     @NamedQuery(name = "Usuariop.findAll", query = "SELECT u FROM Usuariop u")})
 public class Usuariop implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 55)
     @Column(name = "nombre")
     private String nombre;
     @Basic(optional = false)
-    @NotNull
+    @NotNull()
     @Size(min = 1, max = 55)
     @Column(name = "apellidos")
     private String apellidos;
@@ -72,11 +66,18 @@ public class Usuariop implements Serializable {
     @NotNull
     @Column(name = "primer_login")
     private boolean primerLogin;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "ultima_session")
-    @Temporal(TemporalType.TIMESTAMP)
+
     private Date ultimaSession;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "usaurio")
+    private Collection<ProyecconDeVenta> proyecconDeVentaCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
+    private Collection<ControlDeFundaVacia> controlDeFundaVaciaCollection;
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @JoinColumn(name = "rol", referencedColumnName = "codigo")
     @ManyToOne
     private Rolp rol;
@@ -111,45 +112,6 @@ public class Usuariop implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getApellidos() {
-        return apellidos;
-    }
-
-    public void setApellidos(String apellidos) {
-        this.apellidos = apellidos;
-    }
-
-    public String getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(String usuario) {
-        this.usuario = usuario;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public boolean getHabilitado() {
-        return habilitado;
-    }
-
-    public void setHabilitado(boolean habilitado) {
-        this.habilitado = habilitado;
-    }
 
     public boolean getPrimerLogin() {
         return primerLogin;
@@ -216,6 +178,65 @@ public class Usuariop implements Serializable {
     @Override
     public String toString() {
         return "com.example.application.modelo.Usuariop[ codigo=" + codigo + " ]";
+    }
+    @XmlTransient
+    public Collection<ControlDeFundaVacia> getControlDeFundaVaciaCollection() {
+        return controlDeFundaVaciaCollection;
+    }
+    public void setControlDeFundaVaciaCollection(Collection<ControlDeFundaVacia> controlDeFundaVaciaCollection) {
+        this.controlDeFundaVaciaCollection = controlDeFundaVaciaCollection;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getApellidos() {
+        return apellidos;
+    }
+
+    public void setApellidos(String apellidos) {
+        this.apellidos = apellidos;
+    }
+
+    public String getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(String usuario) {
+        this.usuario = usuario;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+
+    public boolean getHabilitado() {
+        return habilitado;
+    }
+
+    public void setHabilitado(boolean habilitado) {
+        this.habilitado = habilitado;
+    }
+
+  
+
+    @XmlTransient
+    public Collection<ProyecconDeVenta> getProyecconDeVentaCollection() {
+        return proyecconDeVentaCollection;
+    }
+
+    public void setProyecconDeVentaCollection(Collection<ProyecconDeVenta> proyecconDeVentaCollection) {
+        this.proyecconDeVentaCollection = proyecconDeVentaCollection;
     }
     
 }

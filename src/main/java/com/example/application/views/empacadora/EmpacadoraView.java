@@ -330,11 +330,12 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
 
         footerDiv = new Div();
         footePnhrDiv = new Div();
-        updateFooterDetalle();
+
         footerDiv.addClassName("custom-footer");
         footePnhrDiv.addClassName("custom-footer");
         basicGrid.getColumnByKey("tp").setFooter(footerDiv);
         basicGrid.getColumnByKey("pnh").setFooter(footePnhrDiv);
+        updateFooterDetalle();
 
         basicGrid.addComponentColumn(det -> {
 
@@ -543,9 +544,6 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
                 updateFooterDetalle();
                 updateFooterMovimiento();
 
-//                } else {
-//                    Notification.show("Acción cancelada.");
-//                }
             } catch (Exception ex) {
                 ex.printStackTrace();
 
@@ -570,11 +568,10 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
 
         editColumn.setEditorComponent(actions);
 
-        basicGrid.getColumns().forEach(col -> {
-            col.setAutoWidth(true);
-            col.setSortable(true);
-        });
-
+//        basicGrid.getColumns().forEach(col -> {
+//            col.setAutoWidth(true);
+//            col.setSortable(true);
+//        });
 
         editor.addCancelListener(e -> {
 
