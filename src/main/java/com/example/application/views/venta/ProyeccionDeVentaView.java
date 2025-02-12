@@ -1,14 +1,11 @@
 package com.example.application.views.venta;
 
-import com.example.application.modelo.ControlDeFundaVacia;
-import com.example.application.modelo.DetalleControlDeFundaVacia;
 import com.example.application.modelo.DetalleProyeccionDeVenta;
 import com.example.application.modelo.Producto;
 import com.example.application.modelo.ProyecconDeVenta;
 import com.example.application.modelo.Usuariop;
 import com.example.application.services.AlmacenService;
-import com.example.application.services.ControlFundaVaciaService;
-import com.example.application.services.OperacionEmpacadoraService;
+import com.example.application.services.DespachoService;
 import com.example.application.services.ProductoService;
 import com.example.application.services.ProyeccionDeVentaService;
 import com.example.application.util.ClaseUtil;
@@ -54,9 +51,11 @@ public class ProyeccionDeVentaView extends Composite<VerticalLayout> {
     @Autowired
     ProyeccionDeVentaService proyeccionVentaService;
     @Autowired
-    AlmacenService almacenService;   
+    AlmacenService almacenService;
     @Autowired
     ProductoService productoService;
+    @Autowired
+    DespachoService despachoService;
 
     Grid<DetalleProyeccionDeVenta> basicGrid;
 
@@ -66,21 +65,22 @@ public class ProyeccionDeVentaView extends Composite<VerticalLayout> {
     ListDataProvider<DetalleProyeccionDeVenta> dataProvider;
 
     ProyecconDeVenta proyeccionVemta;
-  
+
     Date fecha;
     public Button saveButton;
 
     private Div footeDivCantidad;
-
+    private Div footeDivDespachada;
+    private Div footeDivDiferencia;
 
     boolean editar = false;
 
     public ProyeccionDeVentaView(ProyeccionDeVentaService proyeccionVentaArg,
-            ProductoService productoServiceArg) {
+            ProductoService productoServiceArg, DespachoService despachoServiceArg) {
 
         this.proyeccionVentaService = proyeccionVentaArg;
         this.productoService = productoServiceArg;
-      
+        this.despachoService = despachoServiceArg;
 
         HorizontalLayout layoutRow = new HorizontalLayout();
         HorizontalLayout layoutRow2 = new HorizontalLayout();
@@ -207,7 +207,6 @@ public class ProyeccionDeVentaView extends Composite<VerticalLayout> {
                 proyeccionVemta.setUsaurio(new Usuariop(1));
                 proyeccionVemta.setTotal(0);
                 proyeccionVemta.setNombreUsuario("maximo");
-             
 
                 DetalleProyeccionDeVenta detalleProyeccion;
 
@@ -216,14 +215,15 @@ public class ProyeccionDeVentaView extends Composite<VerticalLayout> {
 
                 for (Producto p : listaProd) {
 
-                        detalleProyeccion = new DetalleProyeccionDeVenta();
-                        detalleProyeccion.setProducto(p.getCodigo());
-                        detalleProyeccion.setNombreProducto(p.getDescripcion());
-                        detalleProyeccion.setCantidad(0);
-                        detalleProyeccion.setProyeccionVenta(proyeccionVemta);
-                     
-                        listaDet.add(detalleProyeccion);
-                
+                    detalleProyeccion = new DetalleProyeccionDeVenta();
+                    detalleProyeccion.setProducto(p);
+                    detalleProyeccion.setNombreProducto(p.getDescripcion());
+                    detalleProyeccion.setCantidad(0);
+                    detalleProyeccion.setDespachada(0);
+                    detalleProyeccion.setDiferencia(0);
+                    detalleProyeccion.setProyeccionVenta(proyeccionVemta);
+
+                    listaDet.add(detalleProyeccion);
 
                 }
 
@@ -260,9 +260,33 @@ public class ProyeccionDeVentaView extends Composite<VerticalLayout> {
             listaDet = new ArrayList<>();
             listaDet.addAll(this.proyeccionVentaService.getDetalle(proyeccionVemta.getCodigo()));
 
+            int cantidadDespacho, cantidadDespachoAcum, diferencia;
+
             for (DetalleProyeccionDeVenta detaEmcado : listaDet) {
 
-//                detaEmcado.setFundaPaletizada(this.operacionEmpacadoraService.getEmpacadoPorSilo(fecha, detaEmcado.getAlmacenSilo().getCodigo()));
+                if (detaEmcado.getProducto().getCodigo() == 4) {
+
+                    cantidadDespacho = this.despachoService.getDespacho("23", detaEmcado.getProducto().getCodigoSap(), fecha).intValue();
+                    cantidadDespacho += this.despachoService.getDespachoPorTransferencia("23", detaEmcado.getProducto().getCodigoSap(), fecha).intValue();
+                    cantidadDespachoAcum = cantidadDespacho;
+
+                    cantidadDespachoAcum += this.despachoService.getDespacho("13",detaEmcado.getProducto().getCodigoSap(), fecha).intValue();
+                    cantidadDespachoAcum += this.despachoService.getDespachoPorTransferencia("13", detaEmcado.getProducto().getCodigoSap(), fecha).intValue();
+
+                } else {
+
+                    cantidadDespacho = this.despachoService.getDespacho("23", detaEmcado.getProducto().getCodigoSap(), fecha).intValue();
+                    cantidadDespachoAcum = this.despachoService.getDespacho("13", detaEmcado.getProducto().getCodigoSap(), fecha).intValue();
+                    cantidadDespachoAcum += this.despachoService.getDespacho("23", detaEmcado.getProducto().getCodigoSap(), fecha).intValue();
+                }
+//                cantidadDespacho = this.despachoService.getDespacho("13", detaEmcado.getProducto().getCodigoSap(), fecha).intValue();
+//                cantidadDespacho += this.despachoService.getDespachoPorTransferencia("23", detaEmcado.getProducto().getCodigoSap(), fecha);
+//                cantidadDespachoAcum = cantidadDespacho;
+
+                diferencia = detaEmcado.getCantidad() -cantidadDespachoAcum;
+
+                detaEmcado.setDespachada(cantidadDespachoAcum);
+                detaEmcado.setDiferencia(diferencia);
             }
 
             dataProvider = new ListDataProvider<>(listaDet);
@@ -288,22 +312,25 @@ public class ProyeccionDeVentaView extends Composite<VerticalLayout> {
         basicGrid.setHeight("600px");
 
         basicGrid.addColumn(DetalleProyeccionDeVenta::getNombreProducto).setHeader("Fundas").setFooter("Total :");
-        basicGrid.addColumn(DetalleProyeccionDeVenta::getCantidad).setHeader("cantidad").setKey("cantidad");
-    
+        basicGrid.addColumn(DetalleProyeccionDeVenta::getCantidad).setHeader("Proyectada").setKey("proyectada");
+        basicGrid.addColumn(DetalleProyeccionDeVenta::getDespachada).setHeader("Despachada").setKey("despachada");
+        basicGrid.addColumn(DetalleProyeccionDeVenta::getDiferencia).setHeader("Diferencia").setKey("diferencia");
 
-        TextField txtCantidad = new TextField();       
+        TextField txtCantidad = new TextField();
 
-        basicGrid.getColumnByKey("cantidad").setEditorComponent(txtCantidad);
-      
+        basicGrid.getColumnByKey("proyectada").setEditorComponent(txtCantidad);
 
         footeDivCantidad = new Div();
-      
+        footeDivDespachada = new Div();
+        footeDivDiferencia = new Div();
 
         footeDivCantidad.addClassName("custom-footer");
-      
+        footeDivDespachada.addClassName("custom-footer");
+        footeDivDiferencia.addClassName("custom-footer");
 
-        basicGrid.getColumnByKey("cantidad").setFooter(footeDivCantidad);
-      
+        basicGrid.getColumnByKey("proyectada").setFooter(footeDivCantidad);
+        basicGrid.getColumnByKey("despachada").setFooter(footeDivDespachada);
+        basicGrid.getColumnByKey("diferencia").setFooter(footeDivDiferencia);
 
         updateFooterMovimiento();
 
@@ -322,7 +349,7 @@ public class ProyeccionDeVentaView extends Composite<VerticalLayout> {
             });
 
             txtCantidad.setValue(Integer.toString(det.getCantidad()));
-          
+
             txtCantidad.focus();
 
             return editButton;
@@ -338,20 +365,15 @@ public class ProyeccionDeVentaView extends Composite<VerticalLayout> {
                     txtCantidad.focus();
                     return;
                 }
-                if (txtCantidad.getValue().isEmpty()) {
-
-                    Notification.show("El campo esta vacio  ", 3000, Notification.Position.MIDDLE);
-                    txtCantidad.focus();
-                    return;
-                }
-              
 
                 String valorCantidad = txtCantidad.getValue().isEmpty() ? "0.0" : txtCantidad.getValue();
                 Integer cantidad = Integer.valueOf(valorCantidad);
 
+                int diferencia = cantidad - editor.getItem().getDespachada();
 
                 editor.getItem().setCantidad(cantidad);
-               
+                editor.getItem().setDiferencia(diferencia);
+
                 updateFooterMovimiento();
 
                 listaDet.forEach(det -> {
@@ -367,7 +389,6 @@ public class ProyeccionDeVentaView extends Composite<VerticalLayout> {
                 dataProvider.refreshAll();
 
                 txtCantidad.clear();
-           
 
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -406,21 +427,23 @@ public class ProyeccionDeVentaView extends Composite<VerticalLayout> {
     // Método para actualizar el total en el pie de página
     private void updateFooterMovimiento() {
 
-        Integer total = 0;
+        Integer total = 0, despacho = 0, diferencia = 0;
 
         if (!(listaDet == null)) {
 
             for (DetalleProyeccionDeVenta det1 : listaDet) {
 
                 total += det1.getCantidad();
-                         
+                despacho += det1.getDespachada();
+                diferencia += det1.getDiferencia();
+
             }
 
             footeDivCantidad.setText(total.toString());
-            
+            footeDivDespachada.setText(despacho.toString());
+            footeDivDiferencia.setText(diferencia.toString());
+
             proyeccionVemta.setTotal(total);
-                   
-            
 
         }
 

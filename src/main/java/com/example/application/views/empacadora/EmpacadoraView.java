@@ -325,6 +325,11 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
         basicGrid.addColumn(DetalleOperacionEmpacadora::getEmpacadoPorHora).setHeader("PN/Horas")
                 .setKey("pnh");
 
+        basicGrid.addColumn(DetalleOperacionEmpacadora::getFundaRota).setHeader("Fundas Rotas")
+                .setKey("fundarota");
+        basicGrid.addColumn(DetalleOperacionEmpacadora::getFundaFallida).setHeader("Fundas Fallidas")
+                .setKey("fundafallida");
+
         basicGrid.addColumn(DetalleOperacionEmpacadora::getNombreProducto).setHeader("Producto");
         basicGrid.addColumn(DetalleOperacionEmpacadora::getNombreEmpacadora).setHeader("Empacadora");
 
@@ -390,7 +395,11 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
             return comboBox;
         }).setHeader("Silos");
 
-        TextField acumuladoTextField = new TextField();
+        TextField txtAcumulado = new TextField();
+
+        TextField txtRotas = new TextField();
+        TextField txtFallidas = new TextField();
+
         Grid.Column<DetalleOperacionEmpacadora> editColumn = basicGrid.addComponentColumn(det -> {
 
             Button editButton = new Button("Registrar");
@@ -420,28 +429,36 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
 
             System.out.println("det.getEditable()  : " + det.getEditable());
 
-            acumuladoTextField.setValue(det.getAcumulado().toString());
-            acumuladoTextField.focus();
+            txtAcumulado.setValue(det.getAcumulado().toString());
+            txtAcumulado.focus();
 
             return editButton;
         }).setWidth("150px").setFlexGrow(1).setKey("editar");
 
-        acumuladoTextField.setWidthFull();
+        txtAcumulado.setWidthFull();
 
-        basicGrid.getColumnByKey("acumulado").setEditorComponent(acumuladoTextField);
+        basicGrid.getColumnByKey("acumulado").setEditorComponent(txtAcumulado);
+        basicGrid.getColumnByKey("fundarota").setEditorComponent(txtRotas);
+        basicGrid.getColumnByKey("fundafallida").setEditorComponent(txtFallidas);
 
         Button saveButton = new Button("Guardar", e -> {
 
             try {
 
-                if (acumuladoTextField.getValue().isEmpty()) {
+                if (txtAcumulado.getValue().isEmpty()) {
 
                     Notification.show("La cantidad de funda acumulada esta vacia ", 3000, Notification.Position.MIDDLE);
                     return;
                 }
 
-                String valor = acumuladoTextField.getValue().isEmpty() ? "0.0" : acumuladoTextField.getValue();
+                String valor = txtAcumulado.getValue().isEmpty() ? "0.0" : txtAcumulado.getValue();
                 Double acumulado = Double.valueOf(valor);
+
+                String valorRotas = txtRotas.getValue().isEmpty() ? "0" : txtRotas.getValue();
+                Integer fundaRotas = Integer.valueOf(valorRotas);
+
+                String valorFundaFalida = txtFallidas.getValue().isEmpty() ? "0" : txtFallidas.getValue();
+                Integer fundaFalida = Integer.valueOf(valorFundaFalida);
 
                 if (acumulado < 0) {
 
@@ -476,6 +493,8 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
                     editor.getItem().setPaletizadora(paletizadora.getCodigo());
                     editor.getItem().setNombreSilo(almacen.getAbreviatura());
                     editor.getItem().setSilo(almacen.getCodigo());
+                    editor.getItem().setFundaRota(fundaRotas);
+                    editor.getItem().setFundaFallida(fundaFalida);
 
                     op.setDetalleOperacionEmpacadoraCollection(listaDet);
                     op.setDetalleMovimientoProductoCollection(listaDetMovProdc);
@@ -485,7 +504,7 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
                     dataProvider.refreshAll();
                     dataProviderMovProdc.refreshAll();
 
-                    acumuladoTextField.clear();
+                    txtAcumulado.clear();
                     updateFooterDetalle();
                     updateFooterMovimiento();
                     return;
@@ -517,6 +536,8 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
                 editor.getItem().setPaletizadora(paletizadora.getCodigo());
                 editor.getItem().setNombreSilo(almacen.getAbreviatura());
                 editor.getItem().setSilo(almacen.getCodigo());
+                editor.getItem().setFundaRota(fundaRotas);
+                editor.getItem().setFundaFallida(fundaFalida);
 //                actualizarMovimietoProducto();
 
                 listaDet.forEach(det -> {
@@ -540,7 +561,9 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
                 btnBuscar.click();
                 dataProvider.refreshAll();
 
-                acumuladoTextField.clear();
+                txtAcumulado.clear();
+                txtFallidas.clear();
+                txtRotas.clear();
                 updateFooterDetalle();
                 updateFooterMovimiento();
 
@@ -572,7 +595,6 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
 //            col.setAutoWidth(true);
 //            col.setSortable(true);
 //        });
-
         editor.addCancelListener(e -> {
 
         });

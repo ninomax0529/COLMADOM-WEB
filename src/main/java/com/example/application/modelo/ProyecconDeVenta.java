@@ -63,11 +63,11 @@ public class ProyecconDeVenta implements Serializable {
     @NotNull
     @Column(name = "total")
     private int total;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "proyeccionVenta")
-    private Collection<DetalleProyeccionDeVenta> detalleProyeccionDeVentaCollection;
     @JoinColumn(name = "usaurio", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Usuariop usaurio;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "proyeccionVenta")
+    private Collection<DetalleProyeccionDeVenta> detalleProyeccionDeVentaCollection;
 
     public ProyecconDeVenta() {
     }
@@ -124,6 +124,14 @@ public class ProyecconDeVenta implements Serializable {
         this.total = total;
     }
 
+    public Usuariop getUsaurio() {
+        return usaurio;
+    }
+
+    public void setUsaurio(Usuariop usaurio) {
+        this.usaurio = usaurio;
+    }
+
     @XmlTransient
     public Collection<DetalleProyeccionDeVenta> getDetalleProyeccionDeVentaCollection() {
         return detalleProyeccionDeVentaCollection;
@@ -131,14 +139,6 @@ public class ProyecconDeVenta implements Serializable {
 
     public void setDetalleProyeccionDeVentaCollection(Collection<DetalleProyeccionDeVenta> detalleProyeccionDeVentaCollection) {
         this.detalleProyeccionDeVentaCollection = detalleProyeccionDeVentaCollection;
-    }
-
-    public Usuariop getUsaurio() {
-        return usaurio;
-    }
-
-    public void setUsaurio(Usuariop usaurio) {
-        this.usaurio = usaurio;
     }
 
     @Override

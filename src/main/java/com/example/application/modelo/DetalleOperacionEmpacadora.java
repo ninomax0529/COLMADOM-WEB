@@ -79,6 +79,14 @@ public class DetalleOperacionEmpacadora implements Serializable {
     @NotNull
     @Column(name = "editable")
     private boolean editable;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "funda_rota")
+    private int fundaRota;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "funda_fallida")
+    private int fundaFallida;
     @JoinColumn(name = "operacion_empacadora", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private OperacionEmpacadora operacionEmpacadora;
@@ -96,13 +104,15 @@ public class DetalleOperacionEmpacadora implements Serializable {
         this.codigo = codigo;
     }
 
-    public DetalleOperacionEmpacadora(Integer codigo, int horaInicio, int horaFinal, String nombreEmpacadora, String nombreProducto, boolean editable) {
+    public DetalleOperacionEmpacadora(Integer codigo, int horaInicio, int horaFinal, String nombreEmpacadora, String nombreProducto, boolean editable, int fundaRota, int fundaFallida) {
         this.codigo = codigo;
         this.horaInicio = horaInicio;
         this.horaFinal = horaFinal;
         this.nombreEmpacadora = nombreEmpacadora;
         this.nombreProducto = nombreProducto;
         this.editable = editable;
+        this.fundaRota = fundaRota;
+        this.fundaFallida = fundaFallida;
     }
 
     public Integer getCodigo() {
@@ -215,6 +225,22 @@ public class DetalleOperacionEmpacadora implements Serializable {
 
     public void setEditable(boolean editable) {
         this.editable = editable;
+    }
+
+    public int getFundaRota() {
+        return fundaRota;
+    }
+
+    public void setFundaRota(int fundaRota) {
+        this.fundaRota = fundaRota;
+    }
+
+    public int getFundaFallida() {
+        return fundaFallida;
+    }
+
+    public void setFundaFallida(int fundaFallida) {
+        this.fundaFallida = fundaFallida;
     }
 
     public OperacionEmpacadora getOperacionEmpacadora() {

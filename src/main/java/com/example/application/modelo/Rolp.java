@@ -32,18 +32,17 @@ import java.util.Collection;
     @NamedQuery(name = "Rolp.findAll", query = "SELECT r FROM Rolp r")})
 public class Rolp implements Serializable {
 
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 45)
-    @Column(name = "descripcion")
-    private String descripcion;
-
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
+    @Basic(optional = false)
+    @NotNull
+    @Size(min = 1, max = 45)
+    @Column(name = "descripcion")
+    private String descripcion;
     @OneToMany(mappedBy = "rol")
     private Collection<Usuariop> usuariopCollection;
 
@@ -67,6 +66,13 @@ public class Rolp implements Serializable {
         this.codigo = codigo;
     }
 
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
 
     @XmlTransient
     public Collection<Usuariop> getUsuariopCollection() {
@@ -100,14 +106,6 @@ public class Rolp implements Serializable {
     @Override
     public String toString() {
         return "com.example.application.modelo.Rolp[ codigo=" + codigo + " ]";
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
     }
     
 }

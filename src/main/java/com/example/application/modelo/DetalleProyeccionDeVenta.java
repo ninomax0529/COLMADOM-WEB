@@ -39,17 +39,24 @@ public class DetalleProyeccionDeVenta implements Serializable {
     private Integer codigo;
     @Basic(optional = false)
     @NotNull
-    @Column(name = "producto")
-    private int producto;
+    @Size(min = 1, max = 20)
+    @Column(name = "nombre_producto")
+    private String nombreProducto;
     @Basic(optional = false)
     @NotNull
     @Column(name = "cantidad")
     private int cantidad;
     @Basic(optional = false)
     @NotNull
-    @Size(min = 1, max = 20)
-    @Column(name = "nombre_producto")
-    private String nombreProducto;
+    @Column(name = "despachada")
+    private int despachada;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "diferencia")
+    private int diferencia;
+    @JoinColumn(name = "producto", referencedColumnName = "codigo")
+    @ManyToOne(optional = false)
+    private Producto producto;
     @JoinColumn(name = "proyeccion_venta", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private ProyecconDeVenta proyeccionVenta;
@@ -61,11 +68,12 @@ public class DetalleProyeccionDeVenta implements Serializable {
         this.codigo = codigo;
     }
 
-    public DetalleProyeccionDeVenta(Integer codigo, int producto, int cantidad, String nombreProducto) {
+    public DetalleProyeccionDeVenta(Integer codigo, String nombreProducto, int cantidad, int despachada, int diferencia) {
         this.codigo = codigo;
-        this.producto = producto;
-        this.cantidad = cantidad;
         this.nombreProducto = nombreProducto;
+        this.cantidad = cantidad;
+        this.despachada = despachada;
+        this.diferencia = diferencia;
     }
 
     public Integer getCodigo() {
@@ -76,12 +84,12 @@ public class DetalleProyeccionDeVenta implements Serializable {
         this.codigo = codigo;
     }
 
-    public int getProducto() {
-        return producto;
+    public String getNombreProducto() {
+        return nombreProducto;
     }
 
-    public void setProducto(int producto) {
-        this.producto = producto;
+    public void setNombreProducto(String nombreProducto) {
+        this.nombreProducto = nombreProducto;
     }
 
     public int getCantidad() {
@@ -92,12 +100,28 @@ public class DetalleProyeccionDeVenta implements Serializable {
         this.cantidad = cantidad;
     }
 
-    public String getNombreProducto() {
-        return nombreProducto;
+    public int getDespachada() {
+        return despachada;
     }
 
-    public void setNombreProducto(String nombreProducto) {
-        this.nombreProducto = nombreProducto;
+    public void setDespachada(int despachada) {
+        this.despachada = despachada;
+    }
+
+    public int getDiferencia() {
+        return diferencia;
+    }
+
+    public void setDiferencia(int diferencia) {
+        this.diferencia = diferencia;
+    }
+
+    public Producto getProducto() {
+        return producto;
+    }
+
+    public void setProducto(Producto producto) {
+        this.producto = producto;
     }
 
     public ProyecconDeVenta getProyeccionVenta() {

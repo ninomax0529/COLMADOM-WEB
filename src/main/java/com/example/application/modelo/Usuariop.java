@@ -38,13 +38,19 @@ import java.util.Date;
     @NamedQuery(name = "Usuariop.findAll", query = "SELECT u FROM Usuariop u")})
 public class Usuariop implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 55)
     @Column(name = "nombre")
     private String nombre;
     @Basic(optional = false)
-    @NotNull()
+    @NotNull
     @Size(min = 1, max = 55)
     @Column(name = "apellidos")
     private String apellidos;
@@ -66,18 +72,13 @@ public class Usuariop implements Serializable {
     @NotNull
     @Column(name = "primer_login")
     private boolean primerLogin;
-
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "ultima_session")
+    @Temporal(TemporalType.TIMESTAMP)
     private Date ultimaSession;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "usaurio")
     private Collection<ProyecconDeVenta> proyecconDeVentaCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
-    private Collection<ControlDeFundaVacia> controlDeFundaVaciaCollection;
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @JoinColumn(name = "rol", referencedColumnName = "codigo")
     @ManyToOne
     private Rolp rol;
@@ -85,6 +86,8 @@ public class Usuariop implements Serializable {
     private Collection<OperacionEmpacadora> operacionEmpacadoraCollection;
     @OneToMany(mappedBy = "usuario")
     private Collection<CementoEmpacadoPorSilo> cementoEmpacadoPorSiloCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
+    private Collection<ControlDeFundaVacia> controlDeFundaVaciaCollection;
 
     public Usuariop() {
     }
@@ -110,81 +113,6 @@ public class Usuariop implements Serializable {
 
     public void setCodigo(Integer codigo) {
         this.codigo = codigo;
-    }
-
-
-    public boolean getPrimerLogin() {
-        return primerLogin;
-    }
-
-    public void setPrimerLogin(boolean primerLogin) {
-        this.primerLogin = primerLogin;
-    }
-
-    public Date getUltimaSession() {
-        return ultimaSession;
-    }
-
-    public void setUltimaSession(Date ultimaSession) {
-        this.ultimaSession = ultimaSession;
-    }
-
-    public Rolp getRol() {
-        return rol;
-    }
-
-    public void setRol(Rolp rol) {
-        this.rol = rol;
-    }
-
-    @XmlTransient
-    public Collection<OperacionEmpacadora> getOperacionEmpacadoraCollection() {
-        return operacionEmpacadoraCollection;
-    }
-
-    public void setOperacionEmpacadoraCollection(Collection<OperacionEmpacadora> operacionEmpacadoraCollection) {
-        this.operacionEmpacadoraCollection = operacionEmpacadoraCollection;
-    }
-
-    @XmlTransient
-    public Collection<CementoEmpacadoPorSilo> getCementoEmpacadoPorSiloCollection() {
-        return cementoEmpacadoPorSiloCollection;
-    }
-
-    public void setCementoEmpacadoPorSiloCollection(Collection<CementoEmpacadoPorSilo> cementoEmpacadoPorSiloCollection) {
-        this.cementoEmpacadoPorSiloCollection = cementoEmpacadoPorSiloCollection;
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 0;
-        hash += (codigo != null ? codigo.hashCode() : 0);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Usuariop)) {
-            return false;
-        }
-        Usuariop other = (Usuariop) object;
-        if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString() {
-        return "com.example.application.modelo.Usuariop[ codigo=" + codigo + " ]";
-    }
-    @XmlTransient
-    public Collection<ControlDeFundaVacia> getControlDeFundaVaciaCollection() {
-        return controlDeFundaVaciaCollection;
-    }
-    public void setControlDeFundaVaciaCollection(Collection<ControlDeFundaVacia> controlDeFundaVaciaCollection) {
-        this.controlDeFundaVaciaCollection = controlDeFundaVaciaCollection;
     }
 
     public String getNombre() {
@@ -219,7 +147,6 @@ public class Usuariop implements Serializable {
         this.password = password;
     }
 
-
     public boolean getHabilitado() {
         return habilitado;
     }
@@ -228,7 +155,21 @@ public class Usuariop implements Serializable {
         this.habilitado = habilitado;
     }
 
-  
+    public boolean getPrimerLogin() {
+        return primerLogin;
+    }
+
+    public void setPrimerLogin(boolean primerLogin) {
+        this.primerLogin = primerLogin;
+    }
+
+    public Date getUltimaSession() {
+        return ultimaSession;
+    }
+
+    public void setUltimaSession(Date ultimaSession) {
+        this.ultimaSession = ultimaSession;
+    }
 
     @XmlTransient
     public Collection<ProyecconDeVenta> getProyecconDeVentaCollection() {
@@ -237,6 +178,66 @@ public class Usuariop implements Serializable {
 
     public void setProyecconDeVentaCollection(Collection<ProyecconDeVenta> proyecconDeVentaCollection) {
         this.proyecconDeVentaCollection = proyecconDeVentaCollection;
+    }
+
+    public Rolp getRol() {
+        return rol;
+    }
+
+    public void setRol(Rolp rol) {
+        this.rol = rol;
+    }
+
+    @XmlTransient
+    public Collection<OperacionEmpacadora> getOperacionEmpacadoraCollection() {
+        return operacionEmpacadoraCollection;
+    }
+
+    public void setOperacionEmpacadoraCollection(Collection<OperacionEmpacadora> operacionEmpacadoraCollection) {
+        this.operacionEmpacadoraCollection = operacionEmpacadoraCollection;
+    }
+
+    @XmlTransient
+    public Collection<CementoEmpacadoPorSilo> getCementoEmpacadoPorSiloCollection() {
+        return cementoEmpacadoPorSiloCollection;
+    }
+
+    public void setCementoEmpacadoPorSiloCollection(Collection<CementoEmpacadoPorSilo> cementoEmpacadoPorSiloCollection) {
+        this.cementoEmpacadoPorSiloCollection = cementoEmpacadoPorSiloCollection;
+    }
+
+    @XmlTransient
+    public Collection<ControlDeFundaVacia> getControlDeFundaVaciaCollection() {
+        return controlDeFundaVaciaCollection;
+    }
+
+    public void setControlDeFundaVaciaCollection(Collection<ControlDeFundaVacia> controlDeFundaVaciaCollection) {
+        this.controlDeFundaVaciaCollection = controlDeFundaVaciaCollection;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 0;
+        hash += (codigo != null ? codigo.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        // TODO: Warning - this method won't work in the case the id fields are not set
+        if (!(object instanceof Usuariop)) {
+            return false;
+        }
+        Usuariop other = (Usuariop) object;
+        if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "com.example.application.modelo.Usuariop[ codigo=" + codigo + " ]";
     }
     
 }

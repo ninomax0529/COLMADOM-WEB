@@ -69,11 +69,11 @@ public class ControlFundaVaciaView extends Composite<VerticalLayout> {
 
     List<DetalleControlDeFundaVacia> listaDet;
     ListDataProvider<DetalleControlDeFundaVacia> dataProvider;
+    Button saveButtonActualizar;
 
     ControlDeFundaVacia controlFundaVacia;
-    Double cantidadDespacho = 0.00, cantidadProducida = 0.00,
-            cantidadDespachoAcum = 0.00, cantidadProducidaAcum = 0.00,
-            inventarioFinal = 0.00;
+
+    Integer invFinal = 0, diferencia = 0, invInicial = 0;
     Date fecha;
     public Button saveButton;
 
@@ -285,9 +285,17 @@ public class ControlFundaVaciaView extends Composite<VerticalLayout> {
             listaDet = new ArrayList<>();
             listaDet.addAll(this.controlFundaService.getDetalle(controlFundaVacia.getCodigo()));
 
+            int empacada = 0;
             for (DetalleControlDeFundaVacia detaEmcado : listaDet) {
 
-//                detaEmcado.setFundaPaletizada(this.operacionEmpacadoraService.getEmpacadoPorSilo(fecha, detaEmcado.getAlmacenSilo().getCodigo()));
+                empacada = this.operacionEmpacadoraService.getEmpacado(fecha, detaEmcado.getArticulo()).intValue();
+                detaEmcado.setEmpacada(empacada);
+
+                invFinal = invInicial + detaEmcado.getRecibida() - empacada - detaEmcado.getFundaRota();
+                diferencia = detaEmcado.getInventarioFisico() - invFinal;
+                detaEmcado.setDiferencia(diferencia);
+                detaEmcado.setInventarioFinal(invFinal);
+
             }
 
             dataProvider = new ListDataProvider<>(listaDet);
@@ -386,7 +394,7 @@ public class ControlFundaVaciaView extends Composite<VerticalLayout> {
             return editButton;
         }).setWidth("150px").setFlexGrow(1).setKey("editar");
 
-        Button saveButtonActualizar = new Button("Guardar", e -> {
+        saveButtonActualizar = new Button("Guardar", e -> {
 
             try {
 
@@ -423,7 +431,6 @@ public class ControlFundaVaciaView extends Composite<VerticalLayout> {
                     return;
                 }
 
-                Integer invFinal = 0, diferencia = 0, invInicial = 0;
                 String valorRecibida = txtRecibida.getValue().isEmpty() ? "0.0" : txtRecibida.getValue();
                 Integer recibida = Integer.valueOf(valorRecibida);
 
@@ -541,8 +548,6 @@ public class ControlFundaVaciaView extends Composite<VerticalLayout> {
             controlFundaVacia.setRecibida(totalRecibida);
             controlFundaVacia.setInventarioFinal(invFinal);
             controlFundaVacia.setInventarioInicial(invInicial);
-          
-            
 
         }
 

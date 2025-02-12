@@ -51,6 +51,8 @@ public class Producto implements Serializable {
     private Collection<DetalleMovimientoProducto> detalleMovimientoProductoCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "producto")
     private Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "producto")
+    private Collection<DetalleProyeccionDeVenta> detalleProyeccionDeVentaCollection;
 
     public Producto() {
     }
@@ -104,6 +106,15 @@ public class Producto implements Serializable {
 
     public void setDetalleOperacionEmpacadoraCollection(Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection) {
         this.detalleOperacionEmpacadoraCollection = detalleOperacionEmpacadoraCollection;
+    }
+
+    @XmlTransient
+    public Collection<DetalleProyeccionDeVenta> getDetalleProyeccionDeVentaCollection() {
+        return detalleProyeccionDeVentaCollection;
+    }
+
+    public void setDetalleProyeccionDeVentaCollection(Collection<DetalleProyeccionDeVenta> detalleProyeccionDeVentaCollection) {
+        this.detalleProyeccionDeVentaCollection = detalleProyeccionDeVentaCollection;
     }
 
     @Override
