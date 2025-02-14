@@ -106,7 +106,17 @@ public class ClaseUtil {
         headers.add("Authorization", "Basic " + encodeAutorizacion);
         return headers;
     }
+    public static Date fechaAyer(Date fecha) {
 
+        int diferenciaEnDias = 1;
+//            Date fechaActual = Calendar.getInstance().getTime();
+        long tiempoActual = fecha.getTime();
+        long unDia = diferenciaEnDias * 24 * 60 * 60 * 1000;
+        Date fechaAyer = new Date(tiempoActual - unDia);
+
+        return fechaAyer;
+    }
+    
     public static void main(String[] args) {
 
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();

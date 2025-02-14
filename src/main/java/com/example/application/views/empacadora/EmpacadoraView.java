@@ -313,25 +313,31 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
         basicGrid.setHeight("450px");
 
         basicGrid.addColumn(DetalleOperacionEmpacadora::getHora).setHeader("Horas")
+                .setWidth("50px")
                 .setFooter("TOTAL : ")
                 .setKey("hora");
 
         basicGrid.addColumn(DetalleOperacionEmpacadora::getMinutoTrabajado).setHeader("Tiempo(Hora)")
+                  .setWidth("90px")
                 .setFooter(createFooter(""))
                 .setKey("tp");
         basicGrid.addColumn(DetalleOperacionEmpacadora::getAcumulado).setHeader("PN/Acumulado")
                 .setKey("acumulado");
 
         basicGrid.addColumn(DetalleOperacionEmpacadora::getEmpacadoPorHora).setHeader("PN/Horas")
+                   .setWidth("90px")
                 .setKey("pnh");
 
         basicGrid.addColumn(DetalleOperacionEmpacadora::getFundaRota).setHeader("Fundas Rotas")
+                   .setWidth("90px")
                 .setKey("fundarota");
         basicGrid.addColumn(DetalleOperacionEmpacadora::getFundaFallida).setHeader("Fundas Fallidas")
                 .setKey("fundafallida");
 
         basicGrid.addColumn(DetalleOperacionEmpacadora::getNombreProducto).setHeader("Producto");
-        basicGrid.addColumn(DetalleOperacionEmpacadora::getNombreEmpacadora).setHeader("Empacadora");
+        basicGrid.addColumn(DetalleOperacionEmpacadora::getNombreEmpacadora)
+                   .setWidth("90px")
+                .setHeader("Empacadora");
 
         footerDiv = new Div();
         footePnhrDiv = new Div();
@@ -445,6 +451,7 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
 
             try {
 
+                  Double acumuladoTurno1=0.00,pnh=0.00; 
                 if (txtAcumulado.getValue().isEmpty()) {
 
                     Notification.show("La cantidad de funda acumulada esta vacia ", 3000, Notification.Position.MIDDLE);
@@ -484,9 +491,14 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
 //                if (confirmar) {
                 if (index.get() == 0) {
 
+                    int codProdu=editor.getItem().getProducto().getCodigo();
+                    acumuladoTurno1=this.operacionEmpacadoraService.getEmpacado(1, ff, codProdu);
+                    
+                    pnh=acumulado-acumuladoTurno1;                    
+                    
                     System.out.println("Primer registro ");
                     editor.getItem().setAcumulado(acumulado);
-                    editor.getItem().setEmpacadoPorHora(acumulado);
+                    editor.getItem().setEmpacadoPorHora(pnh);
                     editor.getItem().setMinutoTrabajado(ClaseUtil.formatoNumero(acumulado / 60));
                     editor.getItem().setEditable(true);
                     editor.getItem().setNombrePaletizadora(paletizadora.getAbreviatura());
@@ -586,15 +598,16 @@ public class EmpacadoraView extends Composite<VerticalLayout> {
 
         HorizontalLayout actions = new HorizontalLayout(saveButton,
                 cancelButton);
+           actions.setWidth("90px");
 
         actions.setPadding(true);
 
         editColumn.setEditorComponent(actions);
 
-//        basicGrid.getColumns().forEach(col -> {
-//            col.setAutoWidth(true);
-//            col.setSortable(true);
-//        });
+        basicGrid.getColumns().forEach(col -> {
+            col.setAutoWidth(true);
+            col.setSortable(true);
+        });
         editor.addCancelListener(e -> {
 
         });

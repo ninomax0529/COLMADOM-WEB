@@ -95,11 +95,11 @@ public class Almacen implements Serializable {
     private String abreviatura;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacenSilo")
     private Collection<DetalleMedicionSilo> detalleMedicionSiloCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacenSilo")
-    private Collection<DetalleCementoEmpacadoPorSilo> detalleCementoEmpacadoPorSiloCollection;
     @JoinColumn(name = "tipo_equipo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private TipoEquipo tipoEquipo;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacenSilo")
+    private Collection<DetalleCementoEmpacadoPorSilo> detalleCementoEmpacadoPorSiloCollection;
 
     public Almacen() {
     }
@@ -252,6 +252,14 @@ public class Almacen implements Serializable {
         this.detalleMedicionSiloCollection = detalleMedicionSiloCollection;
     }
 
+    public TipoEquipo getTipoEquipo() {
+        return tipoEquipo;
+    }
+
+    public void setTipoEquipo(TipoEquipo tipoEquipo) {
+        this.tipoEquipo = tipoEquipo;
+    }
+
     @XmlTransient
     public Collection<DetalleCementoEmpacadoPorSilo> getDetalleCementoEmpacadoPorSiloCollection() {
         return detalleCementoEmpacadoPorSiloCollection;
@@ -259,14 +267,6 @@ public class Almacen implements Serializable {
 
     public void setDetalleCementoEmpacadoPorSiloCollection(Collection<DetalleCementoEmpacadoPorSilo> detalleCementoEmpacadoPorSiloCollection) {
         this.detalleCementoEmpacadoPorSiloCollection = detalleCementoEmpacadoPorSiloCollection;
-    }
-
-    public TipoEquipo getTipoEquipo() {
-        return tipoEquipo;
-    }
-
-    public void setTipoEquipo(TipoEquipo tipoEquipo) {
-        this.tipoEquipo = tipoEquipo;
     }
 
     @Override

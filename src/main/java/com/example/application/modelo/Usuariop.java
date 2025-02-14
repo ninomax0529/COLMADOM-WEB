@@ -77,15 +77,19 @@ public class Usuariop implements Serializable {
     @Column(name = "ultima_session")
     @Temporal(TemporalType.TIMESTAMP)
     private Date ultimaSession;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
+    private Collection<CementoDejadoEnPiso> cementoDejadoEnPisoCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "usaurio")
     private Collection<ProyecconDeVenta> proyecconDeVentaCollection;
     @JoinColumn(name = "rol", referencedColumnName = "codigo")
     @ManyToOne
     private Rolp rol;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
-    private Collection<OperacionEmpacadora> operacionEmpacadoraCollection;
     @OneToMany(mappedBy = "usuario")
     private Collection<CementoEmpacadoPorSilo> cementoEmpacadoPorSiloCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
+    private Collection<ResumenDespacho> resumenDespachoCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
+    private Collection<OperacionEmpacadora> operacionEmpacadoraCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
     private Collection<ControlDeFundaVacia> controlDeFundaVaciaCollection;
 
@@ -172,6 +176,15 @@ public class Usuariop implements Serializable {
     }
 
     @XmlTransient
+    public Collection<CementoDejadoEnPiso> getCementoDejadoEnPisoCollection() {
+        return cementoDejadoEnPisoCollection;
+    }
+
+    public void setCementoDejadoEnPisoCollection(Collection<CementoDejadoEnPiso> cementoDejadoEnPisoCollection) {
+        this.cementoDejadoEnPisoCollection = cementoDejadoEnPisoCollection;
+    }
+
+    @XmlTransient
     public Collection<ProyecconDeVenta> getProyecconDeVentaCollection() {
         return proyecconDeVentaCollection;
     }
@@ -189,21 +202,30 @@ public class Usuariop implements Serializable {
     }
 
     @XmlTransient
-    public Collection<OperacionEmpacadora> getOperacionEmpacadoraCollection() {
-        return operacionEmpacadoraCollection;
-    }
-
-    public void setOperacionEmpacadoraCollection(Collection<OperacionEmpacadora> operacionEmpacadoraCollection) {
-        this.operacionEmpacadoraCollection = operacionEmpacadoraCollection;
-    }
-
-    @XmlTransient
     public Collection<CementoEmpacadoPorSilo> getCementoEmpacadoPorSiloCollection() {
         return cementoEmpacadoPorSiloCollection;
     }
 
     public void setCementoEmpacadoPorSiloCollection(Collection<CementoEmpacadoPorSilo> cementoEmpacadoPorSiloCollection) {
         this.cementoEmpacadoPorSiloCollection = cementoEmpacadoPorSiloCollection;
+    }
+
+    @XmlTransient
+    public Collection<ResumenDespacho> getResumenDespachoCollection() {
+        return resumenDespachoCollection;
+    }
+
+    public void setResumenDespachoCollection(Collection<ResumenDespacho> resumenDespachoCollection) {
+        this.resumenDespachoCollection = resumenDespachoCollection;
+    }
+
+    @XmlTransient
+    public Collection<OperacionEmpacadora> getOperacionEmpacadoraCollection() {
+        return operacionEmpacadoraCollection;
+    }
+
+    public void setOperacionEmpacadoraCollection(Collection<OperacionEmpacadora> operacionEmpacadoraCollection) {
+        this.operacionEmpacadoraCollection = operacionEmpacadoraCollection;
     }
 
     @XmlTransient

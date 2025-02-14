@@ -127,6 +127,8 @@ public class OperacionEmpacadora implements Serializable {
     private Date fechaAnulado;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "operacionEmpacadora")
     private Collection<DetalleMovimientoProducto> detalleMovimientoProductoCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "operacionEmpacadora")
+    private Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection;
     @JoinColumn(name = "turno", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Turno turno;
@@ -136,8 +138,6 @@ public class OperacionEmpacadora implements Serializable {
     @JoinColumn(name = "estado", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private EstadoTurno estado;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "operacionEmpacadora")
-    private Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection;
 
     public OperacionEmpacadora() {
     }
@@ -333,6 +333,15 @@ public class OperacionEmpacadora implements Serializable {
         this.detalleMovimientoProductoCollection = detalleMovimientoProductoCollection;
     }
 
+    @XmlTransient
+    public Collection<DetalleOperacionEmpacadora> getDetalleOperacionEmpacadoraCollection() {
+        return detalleOperacionEmpacadoraCollection;
+    }
+
+    public void setDetalleOperacionEmpacadoraCollection(Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection) {
+        this.detalleOperacionEmpacadoraCollection = detalleOperacionEmpacadoraCollection;
+    }
+
     public Turno getTurno() {
         return turno;
     }
@@ -355,15 +364,6 @@ public class OperacionEmpacadora implements Serializable {
 
     public void setEstado(EstadoTurno estado) {
         this.estado = estado;
-    }
-
-    @XmlTransient
-    public Collection<DetalleOperacionEmpacadora> getDetalleOperacionEmpacadoraCollection() {
-        return detalleOperacionEmpacadoraCollection;
-    }
-
-    public void setDetalleOperacionEmpacadoraCollection(Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection) {
-        this.detalleOperacionEmpacadoraCollection = detalleOperacionEmpacadoraCollection;
     }
 
     @Override

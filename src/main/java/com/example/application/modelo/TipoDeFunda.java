@@ -27,11 +27,11 @@ import java.util.Collection;
  * @author Maximiliano
  */
 @Entity
-@Table(name = "tipo_equipo")
+@Table(name = "tipo_de_funda")
 @XmlRootElement
 @NamedQueries({
-    @NamedQuery(name = "TipoEquipo.findAll", query = "SELECT t FROM TipoEquipo t")})
-public class TipoEquipo implements Serializable {
+    @NamedQuery(name = "TipoDeFunda.findAll", query = "SELECT t FROM TipoDeFunda t")})
+public class TipoDeFunda implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -44,28 +44,19 @@ public class TipoEquipo implements Serializable {
     @Size(min = 1, max = 45)
     @Column(name = "descripcion")
     private String descripcion;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "produccion")
-    private boolean produccion;
-    @Column(name = "habilitado")
-    private Boolean habilitado;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoEquipo")
-    private Collection<Almacen> almacenCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoEquipo")
-    private Collection<Equipo> equipoCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoDeFunda")
+    private Collection<DetalleCementoDejadoEnPiso> detalleCementoDejadoEnPisoCollection;
 
-    public TipoEquipo() {
+    public TipoDeFunda() {
     }
 
-    public TipoEquipo(Integer codigo) {
+    public TipoDeFunda(Integer codigo) {
         this.codigo = codigo;
     }
 
-    public TipoEquipo(Integer codigo, String descripcion, boolean produccion) {
+    public TipoDeFunda(Integer codigo, String descripcion) {
         this.codigo = codigo;
         this.descripcion = descripcion;
-        this.produccion = produccion;
     }
 
     public Integer getCodigo() {
@@ -84,38 +75,13 @@ public class TipoEquipo implements Serializable {
         this.descripcion = descripcion;
     }
 
-    public boolean getProduccion() {
-        return produccion;
-    }
-
-    public void setProduccion(boolean produccion) {
-        this.produccion = produccion;
-    }
-
-    public Boolean getHabilitado() {
-        return habilitado;
-    }
-
-    public void setHabilitado(Boolean habilitado) {
-        this.habilitado = habilitado;
-    }
-
     @XmlTransient
-    public Collection<Almacen> getAlmacenCollection() {
-        return almacenCollection;
+    public Collection<DetalleCementoDejadoEnPiso> getDetalleCementoDejadoEnPisoCollection() {
+        return detalleCementoDejadoEnPisoCollection;
     }
 
-    public void setAlmacenCollection(Collection<Almacen> almacenCollection) {
-        this.almacenCollection = almacenCollection;
-    }
-
-    @XmlTransient
-    public Collection<Equipo> getEquipoCollection() {
-        return equipoCollection;
-    }
-
-    public void setEquipoCollection(Collection<Equipo> equipoCollection) {
-        this.equipoCollection = equipoCollection;
+    public void setDetalleCementoDejadoEnPisoCollection(Collection<DetalleCementoDejadoEnPiso> detalleCementoDejadoEnPisoCollection) {
+        this.detalleCementoDejadoEnPisoCollection = detalleCementoDejadoEnPisoCollection;
     }
 
     @Override
@@ -128,10 +94,10 @@ public class TipoEquipo implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof TipoEquipo)) {
+        if (!(object instanceof TipoDeFunda)) {
             return false;
         }
-        TipoEquipo other = (TipoEquipo) object;
+        TipoDeFunda other = (TipoDeFunda) object;
         if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
             return false;
         }
@@ -140,7 +106,7 @@ public class TipoEquipo implements Serializable {
 
     @Override
     public String toString() {
-        return "com.example.application.modelo.TipoEquipo[ codigo=" + codigo + " ]";
+        return "com.example.application.modelo.TipoDeFunda[ codigo=" + codigo + " ]";
     }
     
 }

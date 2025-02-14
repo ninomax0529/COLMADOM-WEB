@@ -55,11 +55,11 @@ public class Equipo implements Serializable {
     @Size(max = 10)
     @Column(name = "abreviatura")
     private String abreviatura;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "empacadora")
+    private Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection;
     @JoinColumn(name = "tipo_equipo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private TipoEquipo tipoEquipo;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "empacadora")
-    private Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection;
 
     public Equipo() {
     }
@@ -114,14 +114,6 @@ public class Equipo implements Serializable {
         this.abreviatura = abreviatura;
     }
 
-    public TipoEquipo getTipoEquipo() {
-        return tipoEquipo;
-    }
-
-    public void setTipoEquipo(TipoEquipo tipoEquipo) {
-        this.tipoEquipo = tipoEquipo;
-    }
-
     @XmlTransient
     public Collection<DetalleOperacionEmpacadora> getDetalleOperacionEmpacadoraCollection() {
         return detalleOperacionEmpacadoraCollection;
@@ -129,6 +121,14 @@ public class Equipo implements Serializable {
 
     public void setDetalleOperacionEmpacadoraCollection(Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection) {
         this.detalleOperacionEmpacadoraCollection = detalleOperacionEmpacadoraCollection;
+    }
+
+    public TipoEquipo getTipoEquipo() {
+        return tipoEquipo;
+    }
+
+    public void setTipoEquipo(TipoEquipo tipoEquipo) {
+        this.tipoEquipo = tipoEquipo;
     }
 
     @Override

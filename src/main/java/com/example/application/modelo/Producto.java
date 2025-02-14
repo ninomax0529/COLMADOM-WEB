@@ -50,7 +50,11 @@ public class Producto implements Serializable {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "producto")
     private Collection<DetalleMovimientoProducto> detalleMovimientoProductoCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "producto")
+    private Collection<DetalleResumenDespacho> detalleResumenDespachoCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "producto")
     private Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection;
+    @OneToMany(mappedBy = "producto")
+    private Collection<DetalleCementoDejadoEnPiso> detalleCementoDejadoEnPisoCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "producto")
     private Collection<DetalleProyeccionDeVenta> detalleProyeccionDeVentaCollection;
 
@@ -100,12 +104,30 @@ public class Producto implements Serializable {
     }
 
     @XmlTransient
+    public Collection<DetalleResumenDespacho> getDetalleResumenDespachoCollection() {
+        return detalleResumenDespachoCollection;
+    }
+
+    public void setDetalleResumenDespachoCollection(Collection<DetalleResumenDespacho> detalleResumenDespachoCollection) {
+        this.detalleResumenDespachoCollection = detalleResumenDespachoCollection;
+    }
+
+    @XmlTransient
     public Collection<DetalleOperacionEmpacadora> getDetalleOperacionEmpacadoraCollection() {
         return detalleOperacionEmpacadoraCollection;
     }
 
     public void setDetalleOperacionEmpacadoraCollection(Collection<DetalleOperacionEmpacadora> detalleOperacionEmpacadoraCollection) {
         this.detalleOperacionEmpacadoraCollection = detalleOperacionEmpacadoraCollection;
+    }
+
+    @XmlTransient
+    public Collection<DetalleCementoDejadoEnPiso> getDetalleCementoDejadoEnPisoCollection() {
+        return detalleCementoDejadoEnPisoCollection;
+    }
+
+    public void setDetalleCementoDejadoEnPisoCollection(Collection<DetalleCementoDejadoEnPiso> detalleCementoDejadoEnPisoCollection) {
+        this.detalleCementoDejadoEnPisoCollection = detalleCementoDejadoEnPisoCollection;
     }
 
     @XmlTransient

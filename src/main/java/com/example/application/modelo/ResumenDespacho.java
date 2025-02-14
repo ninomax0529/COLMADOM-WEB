@@ -19,6 +19,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import jakarta.validation.constraints.NotNull;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
@@ -30,11 +31,11 @@ import java.util.Date;
  * @author Maximiliano
  */
 @Entity
-@Table(name = "cemento_empacado_por_silo")
+@Table(name = "resumen_despacho")
 @XmlRootElement
 @NamedQueries({
-    @NamedQuery(name = "CementoEmpacadoPorSilo.findAll", query = "SELECT c FROM CementoEmpacadoPorSilo c")})
-public class CementoEmpacadoPorSilo implements Serializable {
+    @NamedQuery(name = "ResumenDespacho.findAll", query = "SELECT r FROM ResumenDespacho r")})
+public class ResumenDespacho implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -42,23 +43,33 @@ public class CementoEmpacadoPorSilo implements Serializable {
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @Column(name = "hora_medicion")
-    @Temporal(TemporalType.TIME)
-    private Date horaMedicion;
+    @Basic(optional = false)
+    @NotNull
     @Column(name = "fecha")
     @Temporal(TemporalType.DATE)
     private Date fecha;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "fecha_registro")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaRegistro;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "resumenDespacho")
+    private Collection<DetalleResumenDespacho> detalleResumenDespachoCollection;
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
-    @ManyToOne
+    @ManyToOne(optional = false)
     private Usuariop usuario;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "empaqueSilo")
-    private Collection<DetalleCementoEmpacadoPorSilo> detalleCementoEmpacadoPorSiloCollection;
 
-    public CementoEmpacadoPorSilo() {
+    public ResumenDespacho() {
     }
 
-    public CementoEmpacadoPorSilo(Integer codigo) {
+    public ResumenDespacho(Integer codigo) {
         this.codigo = codigo;
+    }
+
+    public ResumenDespacho(Integer codigo, Date fecha, Date fechaRegistro) {
+        this.codigo = codigo;
+        this.fecha = fecha;
+        this.fechaRegistro = fechaRegistro;
     }
 
     public Integer getCodigo() {
@@ -69,14 +80,6 @@ public class CementoEmpacadoPorSilo implements Serializable {
         this.codigo = codigo;
     }
 
-    public Date getHoraMedicion() {
-        return horaMedicion;
-    }
-
-    public void setHoraMedicion(Date horaMedicion) {
-        this.horaMedicion = horaMedicion;
-    }
-
     public Date getFecha() {
         return fecha;
     }
@@ -85,21 +88,29 @@ public class CementoEmpacadoPorSilo implements Serializable {
         this.fecha = fecha;
     }
 
+    public Date getFechaRegistro() {
+        return fechaRegistro;
+    }
+
+    public void setFechaRegistro(Date fechaRegistro) {
+        this.fechaRegistro = fechaRegistro;
+    }
+
+    @XmlTransient
+    public Collection<DetalleResumenDespacho> getDetalleResumenDespachoCollection() {
+        return detalleResumenDespachoCollection;
+    }
+
+    public void setDetalleResumenDespachoCollection(Collection<DetalleResumenDespacho> detalleResumenDespachoCollection) {
+        this.detalleResumenDespachoCollection = detalleResumenDespachoCollection;
+    }
+
     public Usuariop getUsuario() {
         return usuario;
     }
 
     public void setUsuario(Usuariop usuario) {
         this.usuario = usuario;
-    }
-
-    @XmlTransient
-    public Collection<DetalleCementoEmpacadoPorSilo> getDetalleCementoEmpacadoPorSiloCollection() {
-        return detalleCementoEmpacadoPorSiloCollection;
-    }
-
-    public void setDetalleCementoEmpacadoPorSiloCollection(Collection<DetalleCementoEmpacadoPorSilo> detalleCementoEmpacadoPorSiloCollection) {
-        this.detalleCementoEmpacadoPorSiloCollection = detalleCementoEmpacadoPorSiloCollection;
     }
 
     @Override
@@ -112,10 +123,10 @@ public class CementoEmpacadoPorSilo implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof CementoEmpacadoPorSilo)) {
+        if (!(object instanceof ResumenDespacho)) {
             return false;
         }
-        CementoEmpacadoPorSilo other = (CementoEmpacadoPorSilo) object;
+        ResumenDespacho other = (ResumenDespacho) object;
         if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
             return false;
         }
@@ -124,7 +135,7 @@ public class CementoEmpacadoPorSilo implements Serializable {
 
     @Override
     public String toString() {
-        return "com.example.application.modelo.CementoEmpacadoPorSilo[ codigo=" + codigo + " ]";
+        return "com.example.application.modelo.ResumenDespacho[ codigo=" + codigo + " ]";
     }
     
 }
