@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
     <!-- Project from https://start.vaadin.com/project/ef07e3e6-e413-434d-b345-f87ce8ea59f9 -->
     <groupId>com.example.application</groupId>
-    <artifactId>gestion-empaque</artifactId>
-    <name>gestion-empaque</name>
+    <artifactId>COLMADOM-WEB</artifactId>
+    <name>COLMADOM-WEB</name>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
