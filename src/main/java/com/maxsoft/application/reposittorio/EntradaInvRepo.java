@@ -4,7 +4,7 @@
  */
 package com.maxsoft.application.reposittorio;
 
-import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.EntradaInventario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +13,6 @@ import org.springframework.stereotype.Repository;
  * @author Maximiliano
  */
 @Repository
-public interface ArticuloRepo extends JpaRepository<Articulo, Integer>{
+public interface EntradaInvRepo  extends JpaRepository<EntradaInventario, Integer>{
     
 }

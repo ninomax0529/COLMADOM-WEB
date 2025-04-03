@@ -19,8 +19,6 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
@@ -31,7 +29,6 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "categoria")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Categoria.findAll", query = "SELECT c FROM Categoria c")})
 public class Categoria implements Serializable {
@@ -61,6 +58,8 @@ public class Categoria implements Serializable {
     private boolean habilitada;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "categoria")
     private Collection<SubCategoria> subCategoriaCollection;
+    @OneToMany(mappedBy = "categoria")
+    private Collection<Articulo> articuloCollection;
 
     public Categoria() {
     }
@@ -116,13 +115,20 @@ public class Categoria implements Serializable {
         this.habilitada = habilitada;
     }
 
-    @XmlTransient
     public Collection<SubCategoria> getSubCategoriaCollection() {
         return subCategoriaCollection;
     }
 
     public void setSubCategoriaCollection(Collection<SubCategoria> subCategoriaCollection) {
         this.subCategoriaCollection = subCategoriaCollection;
+    }
+
+    public Collection<Articulo> getArticuloCollection() {
+        return articuloCollection;
+    }
+
+    public void setArticuloCollection(Collection<Articulo> articuloCollection) {
+        this.articuloCollection = articuloCollection;
     }
 
     @Override

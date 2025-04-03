@@ -19,8 +19,6 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
@@ -31,7 +29,6 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "usuario")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Usuario.findAll", query = "SELECT u FROM Usuario u")})
 public class Usuario implements Serializable {
@@ -154,7 +151,6 @@ public class Usuario implements Serializable {
         this.fechaActualizacion = fechaActualizacion;
     }
 
-    @XmlTransient
     public Collection<Rol> getRolCollection() {
         return rolCollection;
     }

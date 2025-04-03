@@ -5,6 +5,7 @@
  */
 package com.maxsoft.application.util;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -119,6 +120,17 @@ public class ClaseUtil {
     
     public static void main(String[] args) {
 
+             String imagePath = "/imagen/img.jpg"; // Cambia esto por la ruta real
+
+        File imageFile = new File(imagePath);
+
+        if (!imageFile.exists()) {
+            System.err.println("Error: La imagen no se encuentra en la ruta especificada.");
+        } else {
+            System.out.println("Imagen encontrada, iniciando OCR...");
+
+        }
+        
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
         System.out.println("password : " + bCryptPasswordEncoder.encode("kelvin321."));
 //        LocalDateTime ltdThen = LocalDateTime.parse("2021-04-03T06:00:00");

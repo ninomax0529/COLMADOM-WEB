@@ -1,7 +1,9 @@
 package com.maxsoft.application.view.inventario;
 
-
 import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.DetalleEntradaInventario;
+import com.maxsoft.application.modelo.EntradaInventario;
+import com.maxsoft.application.reposittorio.EntradaInvRepo;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.vaadin.flow.component.Composite;
@@ -16,7 +18,6 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -45,13 +46,13 @@ public class ArticuloView extends Composite<VerticalLayout> {
 
     @Autowired
     ArticuloService inventarioService;
-  
-    Grid<Articulo> basicGrid;
+
+    Grid<DetalleEntradaInventario> basicGrid;
 
     DatePicker datePicker = new DatePicker(LocalDate.now());
 
-    List<Articulo> listaArticulo;
-    ListDataProvider<Articulo> dataProvider;
+    List<DetalleEntradaInventario> listaArticulo;
+    ListDataProvider<DetalleEntradaInventario> dataProvider;
     Button saveButtonActualizar;
 
     Integer invFinal = 0, diferencia = 0, invInicial = 0;
@@ -64,28 +65,63 @@ public class ArticuloView extends Composite<VerticalLayout> {
     private Div footeDivInvRotas;
 
     boolean editar = false;
+    @Autowired
+    EntradaInvRepo entradaInvRepo;
 
-    public ArticuloView(ArticuloService inventarioServiceArg) {
+    int i = 0;
+
+    public ArticuloView(ArticuloService inventarioServiceArg, EntradaInvRepo entradaInvRepoArg) {
 
         this.inventarioService = inventarioServiceArg;
-      
+        this.entradaInvRepo = entradaInvRepoArg;
+        basicGrid = new Grid<>(DetalleEntradaInventario.class, false);
+
+        listaArticulo = new ArrayList<>();
         HorizontalLayout layoutRow = new HorizontalLayout();
         HorizontalLayout layoutRow2 = new HorizontalLayout();
         VerticalLayout layoutRow3 = new VerticalLayout();
         datePicker.setLabel("Fecha");
+
+        basicGrid.setHeight("600px");
+
+        basicGrid.addColumn(DetalleEntradaInventario::getArticulo).setHeader("Item");
+        basicGrid.addColumn(DetalleEntradaInventario::getDescripcionArticulo).setHeader("Descripcion");
+//        basicGrid.addColumn(DetalleEntradaInventario::getPrecioCompra).setHeader("Precio");
+        basicGrid.setItems(listaArticulo);
 
         Button btnNuevo = new Button("Nuevo",
                 event -> {
 
                     try {
 
-                        buscar();
-                        nuevo();
+                        ConsultaArticulosDialog dialog = new ConsultaArticulosDialog(inventarioService, entrada -> {
+
+                            if (!(entrada == null)) {
+
+                                i++;
+                                DetalleEntradaInventario det = new DetalleEntradaInventario();
+
+                                det.setCodigo(entrada.getCodigo());
+                                det.setArticulo(entrada.getCodigo());
+                                det.setDescripcionArticulo(entrada.getDescripcion());
+                                listaArticulo.add(det);
+
+//                                basicGrid.setItems(listaArticulo);
+                                System.out.println("Articulo ingresó: " + entrada.getDescripcion());
+//                                basicGrid.getListDataView().refreshAll();
+                                basicGrid.getDataProvider().refreshAll(); // Refrescar el Grid sin perder la lista
+                            }
+
+                        });
+
+                        dialog.open();
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
 
                 });
+
         Button btnBuscar = new Button("Buscar",
                 event -> {
 
@@ -99,8 +135,6 @@ public class ArticuloView extends Composite<VerticalLayout> {
                     guardar();
 
                 });
-
-        basicGrid = new Grid();
 
         layoutRow3.setSizeFull();
         getContent().setWidth("100%");
@@ -140,8 +174,7 @@ public class ArticuloView extends Composite<VerticalLayout> {
         layoutRow2.setAlignItems(FlexComponent.Alignment.BASELINE);
         layoutRow2.add(datePicker);
 
-        configurarGrid();
-
+//        configurarGrid();
         layoutRow2.add(btnNuevo);
         layoutRow2.add(btnBuscar);
         layoutRow2.add(btnGuardar);
@@ -156,11 +189,23 @@ public class ArticuloView extends Composite<VerticalLayout> {
 
         try {
 
-    
             fecha = ClaseUtil.asDate(datePicker.getValue());
-  
-            listaArticulo.clear();
 
+            EntradaInventario entr = new EntradaInventario();
+
+            listaArticulo.stream().forEach(e -> {
+
+                e.setCodigo(null);
+                e.setEntrada(entr);
+
+            });
+
+            entr.setDetalleEntradaInventarioCollection(listaArticulo);
+            entr.setFecha(fecha);
+
+            this.entradaInvRepo.save(entr);
+
+            listaArticulo.clear();
 
             Notification.show("Registro actualizado exitosamente ", 3000, Notification.Position.MIDDLE);
 
@@ -177,7 +222,6 @@ public class ArticuloView extends Composite<VerticalLayout> {
         try {
 
             if (editar == false) {
-
 
                 dataProvider = new ListDataProvider<>(listaArticulo);
 
@@ -196,7 +240,6 @@ public class ArticuloView extends Composite<VerticalLayout> {
 
         try {
 
-
             dataProvider = new ListDataProvider<>(listaArticulo);
             basicGrid.setDataProvider(dataProvider);
             editar = true;
@@ -213,18 +256,18 @@ public class ArticuloView extends Composite<VerticalLayout> {
 
     private void configurarGrid() {
 
-        Binder<Articulo> binder = new Binder<>(Articulo.class);
-        Editor<Articulo> editor = basicGrid.getEditor();
+        Binder<DetalleEntradaInventario> binder = new Binder<>(DetalleEntradaInventario.class);
+        Editor<DetalleEntradaInventario> editor = basicGrid.getEditor();
         editor.setBinder(binder);
 
         basicGrid.setHeight("600px");
+
 //
 //        basicGrid.addColumn(DetalleCementoDejadoEnPiso::getNombreProducto).setHeader("Producto").setFooter("Total :");
 //        basicGrid.addColumn(DetalleCementoDejadoEnPiso::getCantidadAyer).setHeader("Ayer").setKey("ayer");
 //        basicGrid.addColumn(DetalleCementoDejadoEnPiso::getEntrada).setHeader("Entrada").setKey("entrada");
 //        basicGrid.addColumn(DetalleCementoDejadoEnPiso::getSalida).setHeader("Salida").setKey("salida");
 //        basicGrid.addColumn(DetalleCementoDejadoEnPiso::getCantidadHoy).setHeader("Hoy").setKey("hoy");
-
         TextField txtHoy = new TextField();
         TextField txtAyer = new TextField();
         TextField txtSalida = new TextField();
@@ -252,7 +295,7 @@ public class ArticuloView extends Composite<VerticalLayout> {
 
         updateFooterMovimiento();
 
-        Grid.Column<Articulo> editColumn = basicGrid.addComponentColumn(det -> {
+        Grid.Column<DetalleEntradaInventario> editColumn = basicGrid.addComponentColumn(det -> {
 
             Button editButton = new Button("Editar");
 
@@ -396,7 +439,6 @@ public class ArticuloView extends Composite<VerticalLayout> {
 //                totalSalida += det1.getSalida();
 //
 //            }
-
             footeDivempacada.setText(totalAyer.toString());
             footerDivRecibida.setText(totalHoy.toString());
             footeDivInvFisico.setText(totalEntrada.toString());

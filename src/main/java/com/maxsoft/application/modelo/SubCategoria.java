@@ -14,13 +14,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Date;
 
 /**
@@ -29,7 +30,6 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "sub_categoria")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "SubCategoria.findAll", query = "SELECT s FROM SubCategoria s")})
 public class SubCategoria implements Serializable {
@@ -62,6 +62,8 @@ public class SubCategoria implements Serializable {
     @JoinColumn(name = "categoria", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Categoria categoria;
+    @OneToMany(mappedBy = "subCategoria")
+    private Collection<Articulo> articuloCollection;
 
     public SubCategoria() {
     }
@@ -124,6 +126,14 @@ public class SubCategoria implements Serializable {
 
     public void setCategoria(Categoria categoria) {
         this.categoria = categoria;
+    }
+
+    public Collection<Articulo> getArticuloCollection() {
+        return articuloCollection;
+    }
+
+    public void setArticuloCollection(Collection<Articulo> articuloCollection) {
+        this.articuloCollection = articuloCollection;
     }
 
     @Override

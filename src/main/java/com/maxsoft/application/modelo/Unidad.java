@@ -18,8 +18,6 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
@@ -30,7 +28,6 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "unidad")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Unidad.findAll", query = "SELECT u FROM Unidad u")})
 public class Unidad implements Serializable {
@@ -59,6 +56,10 @@ public class Unidad implements Serializable {
     private boolean habilitada;
     @OneToMany(mappedBy = "unidad")
     private Collection<ArticuloAlmacen> articuloAlmacenCollection;
+    @OneToMany(mappedBy = "unidadEntrada")
+    private Collection<Articulo> articuloCollection;
+    @OneToMany(mappedBy = "unidadSalida")
+    private Collection<Articulo> articuloCollection1;
 
     public Unidad() {
     }
@@ -120,13 +121,28 @@ public class Unidad implements Serializable {
         this.habilitada = habilitada;
     }
 
-    @XmlTransient
     public Collection<ArticuloAlmacen> getArticuloAlmacenCollection() {
         return articuloAlmacenCollection;
     }
 
     public void setArticuloAlmacenCollection(Collection<ArticuloAlmacen> articuloAlmacenCollection) {
         this.articuloAlmacenCollection = articuloAlmacenCollection;
+    }
+
+    public Collection<Articulo> getArticuloCollection() {
+        return articuloCollection;
+    }
+
+    public void setArticuloCollection(Collection<Articulo> articuloCollection) {
+        this.articuloCollection = articuloCollection;
+    }
+
+    public Collection<Articulo> getArticuloCollection1() {
+        return articuloCollection1;
+    }
+
+    public void setArticuloCollection1(Collection<Articulo> articuloCollection1) {
+        this.articuloCollection1 = articuloCollection1;
     }
 
     @Override
