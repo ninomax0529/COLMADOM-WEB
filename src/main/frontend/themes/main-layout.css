@@ -1,0 +1,153 @@
+vaadin-scroller[slot="drawer"] {
+    padding: var(--lumo-space-s);
+}
+
+vaadin-side-nav-item vaadin-icon {
+    padding: 0;
+}
+
+[slot="drawer"]:is(header, footer) {
+    display: flex;
+    align-items: center;
+    gap: var(--lumo-space-s);
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+    min-height: var(--lumo-size-xl);
+    box-sizing: border-box;
+}
+
+[slot="drawer"]:is(header, footer):is(:empty) {
+    display: none;
+}
+
+.procesada{
+
+    background-color: #3A86FF;
+    color: #ffffff
+
+}
+
+
+.sinprocesar{
+
+    background-color: #66cc00;
+    color: #ffffff
+
+}
+
+.my-grid {
+  --lumo-primary-color: #007bff; /* Color principal */
+  --lumo-secondary-color: #6c757d; /* Color secundario */
+  --lumo-font-family: Arial, sans-serif; /* Fuente */
+}
+
+.my-grid .vaadin-grid-cell {
+  background-color: var(--lumo-base-color);
+}
+
+.my-grid .vaadin-grid-cell:nth-child(even) {
+  background-color: var(--lumo-contrast-5pct);
+}
+vaadin-side-nav-item vaadin-icon {
+  padding: 0;
+}
+
+/* Estilos para el pie de página */
+.custom-footer {
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    padding: 2px;
+    
+    background-color: #ffffff;
+    border-top: 2px solid #ddd;
+    color: #000000;
+    
+}
+
+/* Estilos para el pie de página */
+.custom-grid {
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    padding: 1px;
+    background-color: #ffffff;
+    border-top: 1px solid #ddd;
+    color: #000000;
+}
+
+/* Mejorar la apariencia general de la tabla */
+:host ::slotted(vaadin-grid) {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Fuente personalizada (opcional) */
+/* Puedes importar la fuente en tu index.html o a través de un @import en este CSS */
+/* @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap'); */
+
+/* Estilos generales para el grid */
+/* Estilos generales para el grid */
+.my-custom-grid {
+    font-family: 'Roboto', sans-serif;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Estilo para las celdas del grid */
+.my-custom-grid .vaadin-grid-cell {
+    padding: 12px 16px;
+    color: #555;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* Estilo para el encabezado */
+.my-custom-grid .vaadin-grid-header-cell {
+    background-color: #ffcc80;
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+    padding: 14px 16px;
+    border-bottom: 2px solid #ff9800;
+    text-align: center;
+}
+
+/* Estilo para filas alternadas */
+.my-custom-grid .vaadin-grid-row:nth-child(even) {
+    background-color: #fff8e1;
+}
+
+/* Efecto hover en las filas */
+.my-custom-grid .vaadin-grid-row:hover {
+    background-color: #fff3e0;
+    transition: background-color 0.3s ease;
+}
+
+/* Estilo para resaltar la fila específica (por ejemplo, la fila de "Carlos") */
+.my-custom-grid .highlight-row {
+    background-color: #e0f7fa !important; /* Fondo azul muy claro */
+    font-weight: bold;
+    color: #006064;
+}
+
+/* Estilo para resaltar la fila seleccionada en el grid */
+vaadin-grid::part(row)[selected] {
+    background-color: #dff0d8 !important;  /* Verde claro */
+}
+
+
+.my-custom-button {
+    background-color: #007bff; /* Azul */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 19px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.my-custom-button:hover {
+    background-color: #0000ff; /* Azul oscuro */
+}
