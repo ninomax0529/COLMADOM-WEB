@@ -16,6 +16,7 @@ import com.maxsoft.application.servicio.interfaces.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.FacturaDeVentaService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.ModuloPrincipal;
+import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
 import com.maxsoft.application.view.inventario.articulo.ConsultaArticuloDgView;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
@@ -31,12 +32,18 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.grid.HeaderRow;
+import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.grid.editor.Editor;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.provider.DataView;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -56,17 +63,11 @@ public class PuntoDeVentaView extends VerticalLayout {
     private ListDataProvider<Articulo> dataProviderArt;
     private Binder<DetalleFacturaDeVenta> binder = new Binder<>(DetalleFacturaDeVenta.class);
     Editor<DetalleFacturaDeVenta> editor = grid.getEditor();
-    private final Dialog consultaArticuloDialog = new Dialog();
-    private Grid<Articulo> gridArt = new Grid<>(Articulo.class, false);
-    private Articulo articulo;
-
-    DetalleEntradaInventario det;
-
     private TextField txtNumDoc = new TextField();
+    TextField txtBuscar = new TextField();
     private DatePicker dpFecha = new DatePicker();
     TextField txtCantidad = new TextField();
 
-    private Button btnGuardar = new Button("Guardar");
     private Button btnSalir;
     private Button btnArticulo = null;
     private Button btnAyuda = null;
@@ -75,6 +76,9 @@ public class PuntoDeVentaView extends VerticalLayout {
     private Button btnImprimir = null;
     private Button btnCancelar = null;
     private Button btnDescuento = null;
+    Button deleteButton = null;
+    Button btnEditar = null;
+    TextField filtroNombre = new TextField();
 
     ArticuloService articuloServicel;
 
@@ -96,7 +100,7 @@ public class PuntoDeVentaView extends VerticalLayout {
         btnSalir = new Button("SalirF12()", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
         btnAyuda = new Button("Ayuda(F1)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
         btnCobrar = new Button("Cobrar(F10)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
-        btnCliente = new Button("Cliente(F3)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
+        btnCliente = new Button("Cliente(F7)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
         btnDescuento = new Button("Descuento(F5)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
         btnCancelar = new Button("Cancelar(F9)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
 
@@ -136,7 +140,7 @@ public class PuntoDeVentaView extends VerticalLayout {
 
                     try {
 
-                        ConsultaArticuloDgView dialog = new ConsultaArticuloDgView(articuloServicel, entrada -> {
+                        ArticuloDialogoFilteringView dialog = new ArticuloDialogoFilteringView(articuloServicel, entrada -> {
 
                             if (!(entrada == null)) {
 
@@ -191,21 +195,21 @@ public class PuntoDeVentaView extends VerticalLayout {
         editarDetalle();
         configurarFormulario();
 
-        add(grid);
+        add(txtBuscar, grid);
 
     }
 
     private void configurarFormulario() {
 
         HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, btnArticulo, btnCliente,
-                btnDescuento, btnCobrar, btnImprimir,btnCancelar, btnSalir);
+                btnDescuento, btnCobrar, btnImprimir, btnCancelar, btnSalir);
 
         hlDatos.setAlignItems(Alignment.BASELINE);
 
         FormLayout formLayout = new FormLayout(hlDatos);
         btnAyuda.addClickShortcut(Key.F1);
         btnArticulo.addClickShortcut(Key.F2);
-        btnCliente.addClickShortcut(Key.F3);
+        btnCliente.addClickShortcut(Key.F7);
         btnCancelar.addClickShortcut(Key.F9);
         btnCobrar.addClickShortcut(Key.F10);
         btnImprimir.addClickShortcut(Key.F6);
@@ -241,6 +245,8 @@ public class PuntoDeVentaView extends VerticalLayout {
             factura.setDetalleFacturaDeVentaCollection(listDet);
             this.factService.guardar(factura);
             Notification.show("Factura guardada exitosamente", 3000, Notification.Position.TOP_CENTER);
+            listDet.clear();
+            grid.getDataProvider().refreshAll();
 
         } catch (Exception e) {
             Notification.show("Error guardando la factura ", 3000, Notification.Position.TOP_CENTER);
@@ -256,7 +262,10 @@ public class PuntoDeVentaView extends VerticalLayout {
 
         grid.setItems(listDet);
 
+        GridListDataView<DetalleFacturaDeVenta> dataView = grid.setItems(listDet);
+
         grid.addColumn(DetalleFacturaDeVenta::getDescripcionArticulo).setHeader("Articulo")
+                .setKey("articulo")
                 .setFooter("TOTAL ARTICULOS:");
 
 //        grid.addColumn(DetalleEntradaInventario::getDescripcionArticulo)
@@ -287,23 +296,95 @@ public class PuntoDeVentaView extends VerticalLayout {
 
         grid.addColumn(new ComponentRenderer<>(item -> {
 
-            Button deleteButton = new Button("🗑️ Eliminar", click -> {
+            HorizontalLayout actions = new HorizontalLayout();
+
+            btnEditar = new Button(new Button("(F4)", click -> {
+
+                editarDetalle();
+            }));
+
+            btnEditar.addClickListener(e -> {
+
+                if (editor.isOpen()) {
+                    editor.cancel();
+                }
+                grid.getEditor().editItem(item);
+
+            });
+
+            txtCantidad.setValue(Double.toString(item.getCantidad()));
+            txtCantidad.focus();
+
+            deleteButton = new Button("🗑️ (F3)", click -> {
                 listDet.remove(item);
                 grid.getDataProvider().refreshAll();
-                Notification.show("Articulo eliminado");
+                deleteButton.addClickShortcut(Key.F3);
+                txtBuscar.clear();
+                filtroNombre.clear();
+
+//                Notification.show("Articulo eliminado");
             });
 
             deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
-            return deleteButton;
+            deleteButton.addClickShortcut(Key.F3);
+            btnEditar.addClickShortcut(Key.DIGIT_1);
+
+            actions.add(btnEditar, deleteButton);
+
+            return actions;
+
         })).setHeader("Acciones").setAutoWidth(true);
 
-        editarDetalle();
+        dataView.addFilter(selectArticulo -> {
+
+            String searchTerm = txtBuscar.getValue().trim();
+
+            if (searchTerm.isEmpty()) {
+                return true;
+            }
+
+            boolean matchesDescripcion = matchesTerm(selectArticulo.getArticulo().getDescripcion(),
+                    searchTerm);
+            boolean matchesCodigo = matchesTerm(selectArticulo.getCodigo().toString(), searchTerm);
+            grid.select(selectArticulo);
+
+            return matchesDescripcion || matchesCodigo;
+        });
+
+//        Grid.Column<DetalleFacturaDeVenta> nombreColumn = grid.addColumn(DetalleFacturaDeVenta::getDescripcionArticulo)
+//                .setHeader("Nombre")
+//                .setSortable(true);
+        // Filtro en el header
+        HeaderRow filtroRow = grid.appendHeaderRow();
+
+        filtroNombre.setPlaceholder("Filtrar por nombre...");
+        filtroNombre.setClearButtonVisible(true);
+
+        filtroNombre.addValueChangeListener(event -> {
+
+            String filtroTexto = event.getValue().trim();
+            dataView.setFilter(persona
+                    -> filtroTexto.isEmpty() || persona.getDescripcionArticulo().toLowerCase().contains(filtroTexto.toLowerCase())
+            );
+        });
+
+        filtroRow.getCell(grid.getColumnByKey("articulo")).setComponent(filtroNombre);
+
+        txtBuscar.setWidth("50%");
+        txtBuscar.setPlaceholder("Buscar");
+        txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+        txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
+        txtBuscar.addValueChangeListener(e -> dataView.refreshAll());
+        txtBuscar.setClearButtonVisible(true);
+
     }
 
     private void editarDetalle() {
 
         editor = grid.getEditor();
         editor.setBuffered(true); // sin botón de guardar
+        binder = new Binder<>(DetalleFacturaDeVenta.class);
+        editor.setBinder(binder);
 
         TextField cantidadField = new TextField();
         cantidadField.setWidthFull();
@@ -357,6 +438,8 @@ public class PuntoDeVentaView extends VerticalLayout {
                     item.setTotal(total(item.getSubTotal(), item.getTotalDescuento(), item.getTotalItbis()));
 
                     grid.getListDataView().refreshAll();
+                    txtBuscar.clear();
+                    filtroNombre.clear();
                 }
 
             } catch (NumberFormatException ex) {
@@ -397,6 +480,10 @@ public class PuntoDeVentaView extends VerticalLayout {
         Double totalDesc = subTotal * desc;
 
         return ClaseUtil.FormatearDouble(totalDesc, 2);
+    }
+
+    private boolean matchesTerm(String value, String searchTerm) {
+        return value.toLowerCase().contains(searchTerm.toLowerCase());
     }
 
 }

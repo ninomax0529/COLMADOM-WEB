@@ -8,14 +8,13 @@ package com.maxsoft.application.view.inventario.entrada;
  *
  * @author maximilianoalmonte
  */
-import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.DetalleEntradaInventario;
 import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.EntradaDeInventarioService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
-import com.maxsoft.application.view.inventario.articulo.ConsultaArticuloDgView;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -27,14 +26,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.grid.editor.Editor;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.data.binder.Binder;
-import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
@@ -46,29 +46,21 @@ import java.util.List;
 public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
     private Grid<DetalleEntradaInventario> grid = new Grid<>(DetalleEntradaInventario.class, false);
-    private ListDataProvider<DetalleEntradaInventario> dataProvider = null;
-    private ListDataProvider<Articulo> dataProviderArt;
-    private Binder<DetalleEntradaInventario> binder = new Binder<>(DetalleEntradaInventario.class);
     Editor<DetalleEntradaInventario> editor = grid.getEditor();
-    private final Dialog consultaArticuloDialog = new Dialog();
-    private Grid<Articulo> gridArt = new Grid<>(Articulo.class, false);
-    private Articulo articulo;
-
-    DetalleEntradaInventario det;
 
     private TextField txtNumDoc = new TextField("Numero Entrada");
     private DatePicker dpFecha = new DatePicker("Fecha");
     TextField txtCantidad = new TextField();
+    TextField txtBuscar = new TextField();
 
     private Button btnGuardar = new Button("Guardar");
     private Button btnSalir = new Button("Salir");
-
+    Button btnNuevo = null; 
     ArticuloService articuloServicel;
 
     List<DetalleEntradaInventario> listDet = new ArrayList<>();
 
     HorizontalLayout botones = new HorizontalLayout();
-    TextField filterField = new TextField("Buscar artículo");
 
     private EntradaInventario entradaInv;
     EntradaDeInventarioService entradaInvService;
@@ -115,7 +107,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
                 });
 
-        Button btnNuevo = new Button("Agragar Ariculo",
+        btnNuevo = new Button("Ariculo(F2)",
                 event -> {
 
                     try {
@@ -163,7 +155,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
         editarDetalle();
         configurarFormulario();
 
-        add(btnNuevo, grid);
+        add(btnNuevo, txtBuscar, grid);
 
     }
 
@@ -171,6 +163,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
         HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, btnGuardar, btnSalir);
         hlDatos.setAlignItems(Alignment.BASELINE);
+        btnNuevo.addClickShortcut(Key.F2);
 
         FormLayout formLayout = new FormLayout(hlDatos);
 
@@ -202,6 +195,8 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
             entradaInv.setDetalleEntradaInventarioCollection(listDet);
             this.entradaInvService.guardar(entradaInv);
             Notification.show("Entrada guardada exitosamente", 3000, Notification.Position.TOP_CENTER);
+             listDet.clear();
+             grid.getDataProvider().refreshAll();
 
         } catch (Exception e) {
             Notification.show("Error guardando la entrada ", 3000, Notification.Position.TOP_CENTER);
@@ -216,6 +211,8 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
         grid.setWidthFull();
 
         grid.setItems(listDet);
+
+        GridListDataView<DetalleEntradaInventario> dataView = grid.setItems(listDet);
 
         grid.addColumn(DetalleEntradaInventario::getDescripcionArticulo).setHeader("Articulo")
                 .setFooter("TOTAL ARTICULOS:");
@@ -248,15 +245,39 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
         grid.addColumn(new ComponentRenderer<>(item -> {
 
-            Button deleteButton = new Button("🗑️ Eliminar", click -> {
+            Button deleteButton = new Button("🗑️ (F3) ", click -> {
                 listDet.remove(item);
                 grid.getDataProvider().refreshAll();
-                Notification.show("Articulo eliminado");
+                txtBuscar.clear();
             });
 
             deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
+            deleteButton.addClickShortcut(Key.F3);
             return deleteButton;
+            
         })).setHeader("Acciones").setAutoWidth(true);
+
+        dataView.addFilter(selectArticulo -> {
+
+            String searchTerm = txtBuscar.getValue().trim();
+
+            if (searchTerm.isEmpty()) {
+                return true;
+            }
+
+            boolean matchesDescripcion = matchesTerm(selectArticulo.getArticulo().getDescripcion(),
+                    searchTerm);
+            boolean matchesCodigo = matchesTerm(selectArticulo.getCodigo().toString(), searchTerm);
+            grid.select(selectArticulo);
+
+            return matchesDescripcion || matchesCodigo;
+        });
+
+        txtBuscar.setWidth("50%");
+        txtBuscar.setPlaceholder("Buscar");
+        txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+        txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
+        txtBuscar.addValueChangeListener(e -> dataView.refreshAll());
 
         editarDetalle();
     }
@@ -320,6 +341,10 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
             }
         });
 
+    }
+
+    private boolean matchesTerm(String value, String searchTerm) {
+        return value.toLowerCase().contains(searchTerm.toLowerCase());
     }
 
 }

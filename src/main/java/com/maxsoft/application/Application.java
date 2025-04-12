@@ -17,6 +17,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 //@ComponentScan(basePackages= {"com.maxsoft.application.*"})
+// lsof -i :8081
+// kill -9 <PID>
+
 @Theme(value = "gestion-colmadom")
 
 public class Application implements AppShellConfigurator {
