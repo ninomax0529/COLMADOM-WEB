@@ -11,6 +11,7 @@ package com.maxsoft.application.view.inventario.articulo;
 
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -66,7 +67,7 @@ public class ConsultaArticuloDgView extends Dialog {
 
         actualizarLista(articuloService, "");
 
-        closeButton = new Button("Cerrar", e -> {
+        closeButton = new Button("Aceptar", e -> {
 
 //            Set<Articulo> selectedItems = grid.getSelectedItems();
             Articulo selected = grid.asSingleSelect().getValue();
@@ -105,6 +106,7 @@ public class ConsultaArticuloDgView extends Dialog {
             dataProvider.setFilter(Articulo::getDescripcion, nombre -> nombre.toLowerCase().contains(filtroTexto));
         });
         
+        closeButton.addClickShortcut(Key.ENTER);
    
         // Configura un pequeño retraso para evitar filtros innecesarios
 //        filtro.set(300);  // 300 ms de espera para mejorar rendimiento

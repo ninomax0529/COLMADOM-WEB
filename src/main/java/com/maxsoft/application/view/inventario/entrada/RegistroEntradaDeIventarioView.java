@@ -14,7 +14,7 @@ import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.EntradaDeInventarioService;
 import com.maxsoft.application.util.ClaseUtil;
-import com.maxsoft.application.view.ModuloPrincipal;
+import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
 import com.maxsoft.application.view.inventario.articulo.ConsultaArticuloDgView;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
@@ -82,7 +82,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
         this.entradaInvService = entradaInvServiceArg;
         this.articuloServicel = articuloServiceArg;
 
-        btnSalir = new Button("Salir", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
+        btnSalir = new Button("Salir", e -> UI.getCurrent().navigate(EntradaDeIventarioView.class));
 
         btnGuardar = new Button("Guardar",
                 event -> {
@@ -120,7 +120,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
                     try {
 
-                        ConsultaArticuloDgView dialog = new ConsultaArticuloDgView(articuloServicel, entrada -> {
+                        ArticuloDialogoFilteringView dialog = new ArticuloDialogoFilteringView(articuloServicel, entrada -> {
 
                             if (!(entrada == null)) {
 

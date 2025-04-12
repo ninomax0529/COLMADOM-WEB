@@ -10,15 +10,12 @@ package com.maxsoft.application.view.inventario.articulo;
  */
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
-import com.maxsoft.application.view.inventario.entrada.RegistroEntradaDeIventarioView;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.grid.HeaderRow;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -34,8 +31,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 //@Route("grid-column-filtering")
-@Route(value = "inventario/articulos")
-public final class GridColumnFiltering extends Div {
+@Route(value = "consultaArticulos")
+public final class ArticuloDialogoFilteringView extends Dialog {
 
     /**
      * @return the articulo
@@ -44,14 +41,61 @@ public final class GridColumnFiltering extends Div {
 
     private Articulo articulo;
 
-    public GridColumnFiltering(ArticuloService articuloService) {
+    TextField searchField = new TextField();
+    private Button closeButton;
+
+    public ArticuloDialogoFilteringView(ArticuloService articuloService, DialogCallback dialogCallback) {
 
         this.articuloService = articuloService;
         // tag::snippet1[]
 
+         setSizeFull();
+//        setWidth("600px");
+//        setHeight("300");
+        setHeaderTitle("Consulta de Artículos");
+        Grid<Articulo> grid = new Grid<>(Articulo.class, false);
+
         setArticulo(new Articulo());
 
-        Grid<Articulo> grid = new Grid<>(Articulo.class, false);
+//        closeButton = new Button("", e -> {
+//
+//            Articulo selected = grid.asSingleSelect().getValue();
+//
+//            if (selected != null) {
+//
+//                setArticulo(grid.getSelectionModel().getFirstSelectedItem().get());
+//
+//                System.out.println("no es null");
+//                dialogCallback.onConfirm(getArticulo());
+//
+//                close();
+//
+//            } else {
+//                System.out.println(" es  null ");
+//
+//                close();
+//            }
+//
+//        });
+        searchField.addKeyPressListener(Key.ENTER, e -> {
+
+            Articulo selected = grid.asSingleSelect().getValue();
+
+            if (selected != null) {
+
+                setArticulo(grid.getSelectionModel().getFirstSelectedItem().get());
+
+                System.out.println("no es null");
+                dialogCallback.onConfirm(getArticulo());
+
+                close();
+
+            } else {
+                System.out.println(" es  null ");
+
+                close();
+            }
+        });
 
         grid.addColumn(Articulo::getCodigo).setHeader("Codigo");
         grid.addColumn(Articulo::getDescripcion).setHeader("Descripcion");
@@ -59,14 +103,14 @@ public final class GridColumnFiltering extends Div {
         List<Articulo> listArt = articuloService.getLista();
         GridListDataView<Articulo> dataView = grid.setItems(listArt);
 
-        TextField searchField = new TextField();
         searchField.setWidth("50%");
-        searchField.setPlaceholder("Search");
+        searchField.setPlaceholder("Buscar");
         searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
         searchField.setValueChangeMode(ValueChangeMode.EAGER);
         searchField.addValueChangeListener(e -> dataView.refreshAll());
 
         dataView.addFilter(person -> {
+            
             String searchTerm = searchField.getValue().trim();
 
             if (searchTerm.isEmpty()) {
@@ -80,10 +124,11 @@ public final class GridColumnFiltering extends Div {
             return matchesFullName || matchesEmail;
         });
 
-        VerticalLayout layout = new VerticalLayout(searchField, grid);
-        layout.setPadding(false);
+//        VerticalLayout layout = new VerticalLayout(grid);
+//        layout.setSizeFull();
+//        layout.setPadding(false);
 
-        add(layout);
+        add(searchField,grid);
     }
 
     private static Component createFilterHeader(String labelText,
@@ -179,6 +224,11 @@ public final class GridColumnFiltering extends Div {
      */
     public void setArticulo(Articulo articulo) {
         this.articulo = articulo;
+    }
+
+    public interface DialogCallback {
+
+        void onConfirm(Articulo input);
     }
 
 }

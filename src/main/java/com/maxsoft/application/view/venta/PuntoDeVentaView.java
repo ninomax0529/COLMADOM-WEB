@@ -17,6 +17,7 @@ import com.maxsoft.application.servicio.interfaces.FacturaDeVentaService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.inventario.articulo.ConsultaArticuloDgView;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -61,12 +62,19 @@ public class PuntoDeVentaView extends VerticalLayout {
 
     DetalleEntradaInventario det;
 
-    private TextField txtNumDoc = new TextField("Numero Entrada");
-    private DatePicker dpFecha = new DatePicker("Fecha");
+    private TextField txtNumDoc = new TextField();
+    private DatePicker dpFecha = new DatePicker();
     TextField txtCantidad = new TextField();
 
     private Button btnGuardar = new Button("Guardar");
     private Button btnSalir;
+    private Button btnArticulo = null;
+    private Button btnAyuda = null;
+    private Button btnCobrar = null;
+    private Button btnCliente = null;
+    private Button btnImprimir = null;
+    private Button btnCancelar = null;
+    private Button btnDescuento = null;
 
     ArticuloService articuloServicel;
 
@@ -85,12 +93,35 @@ public class PuntoDeVentaView extends VerticalLayout {
         this.factService = factServiceArg;
         this.articuloServicel = articuloServiceArg;
 
-        btnSalir = new Button("Salir", e -> UI.getCurrent().navigate(ModuloPrincipal.class) );
+        btnSalir = new Button("SalirF12()", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
+        btnAyuda = new Button("Ayuda(F1)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
+        btnCobrar = new Button("Cobrar(F10)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
+        btnCliente = new Button("Cliente(F3)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
+        btnDescuento = new Button("Descuento(F5)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
+        btnCancelar = new Button("Cancelar(F9)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
 
-        btnGuardar = new Button("Guardar",
+        btnImprimir = new Button("Imprimir(F6)",
                 event -> {
 
                     try {
+
+                        if (listDet.size() <= 0) {
+
+                            Notification.show("La factura no tiene detalle ",
+                                    3000, Notification.Position.TOP_CENTER);
+                            return;
+                        }
+
+                        for (DetalleFacturaDeVenta det2 : listDet) {
+
+                            if (det2.getCantidad() <= 0) {
+
+                                Notification.show("El articulo  " + det2.getDescripcionArticulo() + " tiene la cantidad en cero ",
+                                        4000, Notification.Position.TOP_CENTER);
+                                return;
+                            }
+
+                        }
 
                         guardar();
 
@@ -100,7 +131,7 @@ public class PuntoDeVentaView extends VerticalLayout {
 
                 });
 
-        Button btnNuevo = new Button("Agragar Ariculo",
+        btnArticulo = new Button("Producto(F2)",
                 event -> {
 
                     try {
@@ -130,9 +161,10 @@ public class PuntoDeVentaView extends VerticalLayout {
                                 det1.setTotalItbis(totalItbis(det1.getSubTotal(), det1.getTotalDescuento(), det1.getPorcientoItbis()));
 
                                 det1.setTotal(total(det1.getSubTotal(), det1.getTotalDescuento(), det1.getTotalItbis()));
-                             
+
                                 det1.setNombreAlmacen("General");
                                 det1.setNombreUnidad("Unidad");
+
                                 listDet.add(det1);
 
                                 System.out.println("Articulo ingresó: " + entrada.getDescripcion());
@@ -159,16 +191,27 @@ public class PuntoDeVentaView extends VerticalLayout {
         editarDetalle();
         configurarFormulario();
 
-        add(btnNuevo, grid);
+        add(grid);
 
     }
 
     private void configurarFormulario() {
 
-        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, btnGuardar, btnSalir);
+        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, btnArticulo, btnCliente,
+                btnDescuento, btnCobrar, btnImprimir,btnCancelar, btnSalir);
+
         hlDatos.setAlignItems(Alignment.BASELINE);
 
         FormLayout formLayout = new FormLayout(hlDatos);
+        btnAyuda.addClickShortcut(Key.F1);
+        btnArticulo.addClickShortcut(Key.F2);
+        btnCliente.addClickShortcut(Key.F3);
+        btnCancelar.addClickShortcut(Key.F9);
+        btnCobrar.addClickShortcut(Key.F10);
+        btnImprimir.addClickShortcut(Key.F6);
+        btnDescuento.addClickShortcut(Key.F5);
+        btnSalir.addClickShortcut(Key.F12);
+        btnArticulo.focus();
 
         add(formLayout, botones);
 
@@ -302,7 +345,7 @@ public class PuntoDeVentaView extends VerticalLayout {
                 }
 
                 if (item != null) {
-                    
+
                     item.setCantidad(cantidad);
 
                     item.setSubTotal(subTotal(cantidad, item.getPrecioVenta()));
@@ -312,7 +355,7 @@ public class PuntoDeVentaView extends VerticalLayout {
                     item.setTotalItbis(totalItbis(item.getSubTotal(), item.getTotalDescuento(), 18.00));
 
                     item.setTotal(total(item.getSubTotal(), item.getTotalDescuento(), item.getTotalItbis()));
-                    
+
                     grid.getListDataView().refreshAll();
                 }
 
@@ -334,7 +377,7 @@ public class PuntoDeVentaView extends VerticalLayout {
 
         Double total = (subTotal - totalDesc) + totalItbis;
 
-        System.out.println("Total "+subTotal+" "+totalDesc+ " "+totalItbis);
+        System.out.println("Total " + subTotal + " " + totalDesc + " " + totalItbis);
         return total;
     }
 
