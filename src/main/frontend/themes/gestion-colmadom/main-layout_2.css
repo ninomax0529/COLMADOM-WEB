@@ -61,3 +61,12 @@ body {
 .my-custom-button:hover {
     background-color: #0000ff; /* Azul oscuro */
 }
+
+.borde-horizontal {
+  border: 2px solid var(--lumo-primary-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background-color: var(--lumo-base-color);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

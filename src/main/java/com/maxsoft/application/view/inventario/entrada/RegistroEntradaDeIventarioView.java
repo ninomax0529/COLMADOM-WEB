@@ -55,7 +55,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
     private Button btnGuardar = new Button("Guardar");
     private Button btnSalir = new Button("Salir");
-    Button btnNuevo = null; 
+    Button btnNuevo = null;
     ArticuloService articuloServicel;
 
     List<DetalleEntradaInventario> listDet = new ArrayList<>();
@@ -195,8 +195,8 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
             entradaInv.setDetalleEntradaInventarioCollection(listDet);
             this.entradaInvService.guardar(entradaInv);
             Notification.show("Entrada guardada exitosamente", 3000, Notification.Position.TOP_CENTER);
-             listDet.clear();
-             grid.getDataProvider().refreshAll();
+            listDet.clear();
+            grid.getDataProvider().refreshAll();
 
         } catch (Exception e) {
             Notification.show("Error guardando la entrada ", 3000, Notification.Position.TOP_CENTER);
@@ -246,15 +246,20 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
         grid.addColumn(new ComponentRenderer<>(item -> {
 
             Button deleteButton = new Button("🗑️ (F3) ", click -> {
-                listDet.remove(item);
-                grid.getDataProvider().refreshAll();
-                txtBuscar.clear();
+
+                if (!txtBuscar.isEmpty()) {
+
+                    listDet.remove(item);
+                    grid.getDataProvider().refreshAll();
+                    txtBuscar.clear();
+                }
+
             });
 
             deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
             deleteButton.addClickShortcut(Key.F3);
             return deleteButton;
-            
+
         })).setHeader("Acciones").setAutoWidth(true);
 
         dataView.addFilter(selectArticulo -> {
