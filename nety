@@ -1,0 +1,7 @@
+
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver-dns-native-macos</artifactId> <!-- usa la misma versión que tus otras dependencias netty -->
+            <classifier>osx-aarch_64</classifier> <!-- o 'osx-x86_64' si estás en Intel -->
+            <scope>runtime</scope>
+        </dependency>
