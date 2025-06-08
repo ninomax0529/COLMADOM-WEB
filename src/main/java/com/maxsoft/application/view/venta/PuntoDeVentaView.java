@@ -49,6 +49,7 @@ import org.vaadin.lineawesome.LineAwesomeIconUrl;
 @PageTitle("Punto de Venta")
 @Route(value = "puntoDeVenta")
 //@Layout(value = "venta")
+//https://github.com/ninomax0529/vaadin-railway.git
 @Menu(order = 3, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 
 public class PuntoDeVentaView extends VerticalLayout {

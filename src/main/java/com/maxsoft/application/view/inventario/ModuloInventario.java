@@ -7,10 +7,11 @@ package com.maxsoft.application.view.inventario;
 import com.maxsoft.application.view.inventario.articulo.ArticuloView;
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.inventario.articulo.GridColumnFiltering;
+import com.maxsoft.application.view.inventario.articulo.RegistrarArticuloView;
 import com.maxsoft.application.view.inventario.entrada.EntradaDeIventarioView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
-import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -30,11 +31,14 @@ import org.vaadin.lineawesome.LineAwesomeIconUrl;
  */
 @PageTitle("Inventario")
 @Route("mdlInv")
+//@JsModule("./gestion-colmado/themes/views/inventario-view.css")
 @Layout(value = "inventario")
 @Menu(order = 1, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
+
 public class ModuloInventario extends AppLayout {
 
     public ModuloInventario() {
+    
         createHeader();
         createDrawer();
     }
@@ -43,7 +47,7 @@ public class ModuloInventario extends AppLayout {
 
         RouterLink linkArticulo = createLink(VaadinIcon.DASHBOARD, "Articulo", ArticuloView.class);
         RouterLink linkEntrada = createLink(VaadinIcon.FILE_TABLE, "Entrada Inventario ", EntradaDeIventarioView.class);
-//        RouterLink linkConsArtInv = createLink(VaadinIcon.FILE_TABLE, "Consulta Inventario ", ConsultaArticuloView.class);
+//        RouterLink linkRegistrarArticulo = createLink(VaadinIcon.FILE_TABLE, "Registrar Articulos ", RegistrarArticuloView.class);
         
           RouterLink linkConsArtInv1 = createLink(VaadinIcon.FILE_TABLE, "Filtro Inventario ", GridColumnFiltering.class);
 
@@ -80,8 +84,8 @@ public class ModuloInventario extends AppLayout {
         menuIcon.addClickListener(e -> toggleDrawer());
 
         // Título o logo de la aplicación
-        H1 logo = new H1("Inventario");
-        logo.getStyle().set("margin", "0");
+        H3 logo = new H3("Inventario");
+        logo.getStyle().set("margin", "1");
 
         // Espaciador flexible para empujar elementos a los extremos
         Span spacer = new Span();

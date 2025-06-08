@@ -15,6 +15,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import static java.time.temporal.ChronoUnit.DAYS;
 import java.util.Base64;
+import java.util.Calendar;
 import java.util.Date;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -94,9 +95,10 @@ public class ClaseUtil {
 
     /**
      * Configura las credenciales para autenticación básica.
+     *
      * @param username
      * @param password
-     * @return 
+     * @return
      */
     public static HttpHeaders configurarEncabezado(String username, String password) {
         String autorizacion = username + ":" + password;
@@ -106,6 +108,7 @@ public class ClaseUtil {
         headers.add("Authorization", "Basic " + encodeAutorizacion);
         return headers;
     }
+
     public static Date fechaAyer(Date fecha) {
 
         int diferenciaEnDias = 1;
@@ -116,13 +119,66 @@ public class ClaseUtil {
 
         return fechaAyer;
     }
-    
+
+    public static String getNombreDia(Date date) {
+        String nombreDia = "";
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        int month = 0;
+
+        try {
+
+            month = calendar.get(Calendar.DAY_OF_WEEK);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        switch (month) {
+
+            case 1: {
+
+                nombreDia = "Domingo";
+                break;
+            }
+
+            case 2: {
+                nombreDia = "Lunes";
+                break;
+            }
+            case 3: {
+                nombreDia = "Martes";
+                break;
+            }
+            case 4: {
+                nombreDia = "Miercoles";
+                break;
+            }
+            case 5: {
+                nombreDia = "Jueves";
+                break;
+            }
+            case 6: {
+                nombreDia = "Viernes";
+                break;
+            }
+
+            case 7: {
+                nombreDia = "Sabado";
+                break;
+            }
+
+        }
+        return nombreDia;
+    }
+
     public static void main(String[] args) {
 
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
         System.out.println("password : " + bCryptPasswordEncoder.encode("kelvin321."));
 //        LocalDateTime ltdThen = LocalDateTime.parse("2021-04-03T06:00:00");
 //        LocalDateTime ltdNow = LocalDateTime.parse("2021-05-05T11:00:00");
+
     
 
 ////        LocalDateTime ltdNow = LocalDateTime.now();

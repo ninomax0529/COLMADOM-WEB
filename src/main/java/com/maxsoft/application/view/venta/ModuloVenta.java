@@ -8,6 +8,7 @@ import com.maxsoft.application.view.ModuloPrincipal;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -79,8 +80,8 @@ public class ModuloVenta extends AppLayout {
         menuIcon.addClickListener(e -> toggleDrawer());
 
         // Título o logo de la aplicación
-        H1 logo = new H1("Venta");
-        logo.getStyle().set("margin", "0");
+        H3 logo = new H3("Venta");
+        logo.getStyle().set("margin", "1");
 
         // Espaciador flexible para empujar elementos a los extremos
         Span spacer = new Span();

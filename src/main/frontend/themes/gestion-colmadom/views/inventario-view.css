@@ -1,0 +1,274 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/Other/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : Jun 8, 2025, 4:10:10 AM
+    Author     : maximilianoalmonte
+*/
+
+/* Drawer personalizado */
+/* Drawer lateral */
+
+.inventario-view {
+  padding: 2px;
+  box-sizing: border-box;
+  display: block;
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  --cv-blue: 212 96% 54%;
+  --cv-purple: 259 97% 66%;
+  --cv-dropzone-border-color: hsl(var(--cv-blue) / 0.5);
+  --cv-dropzone-bg-color: hsl(var(--cv-blue) / 0.2);
+  --cv-droptarget-border-color: hsl(var(--cv-purple) / 1);
+  --cv-droptarget-bg-color: hsl(var(--cv-purple) / 0.4);
+  --cv-stripe-width: 1.5px;
+  --cv-stripe-gap: 9px;
+  --cv-stripe-color: hsl(var(--cv-blue) / 0.2);
+  --cv-layout-border-color: var(--lumo-contrast-40pct);
+  --cv-checkerboard-color1: hsl(0 0% 0% / 0.05);
+  --cv-checkerboard-color2: hsl(0 0% 100% / 0.05);
+  --cv-checkerboard-size: 16px;
+}
+
+.inventario-view[dragging] {
+  --cv-checkerboard-color1: hsl(var(--cv-blue) / 0.2);
+  --cv-checkerboard-color2: hsl(var(--cv-blue) / 0.1);
+  --cv-layout-border-color: var(--cv-dropzone-border-color);
+}
+
+.inventario-view .preview-container {
+  display: contents;
+}
+
+/* The root layout is not necessarily inside a flex box so width/height needs to be used */
+.inventario-view .preview-container > .layout[style*='align-self: stretch'] {
+  width: 100%;
+}
+.inventario-view .preview-container > .layout[style*='flex-grow: 1'] {
+  height: 100%;
+}
+
+/* Apply some default gap and padding to layouts that don't have inline styles for them while dragging. */
+.inventario-view[dragging] .layout:not([style*='gap:']) {
+  gap: 8px;
+}
+
+.empacadora-view[dragging] .layout:not([style*='padding:'], [empty]) {
+  padding: 8px;
+}
+
+.inventario-view .cover-overlay {
+  position: absolute;
+  border-radius: 1px;
+}
+
+.inventario-view:not([starting-drag]) .cover-overlay.editable-hovering {
+  outline: 2px solid hsl(var(--cv-blue) / 1);
+  outline-offset: -1px;
+}
+
+.inventario-view:not([starting-drag]) .cover-overlay.editable-editing {
+  outline: 1px solid hsl(var(--cv-blue) / 1);
+  outline-offset: -1px;
+  box-shadow: inset 0 0 0 2px var(--lumo-base-color);
+}
+
+.inventario-view .overlays,
+.inventario-view .drop-zones {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.inventario-view:not([dragging]) .drop-zones {
+  pointer-events: none;
+}
+
+.inventario-view .drop-zone {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 1px;
+  min-height: 10px;
+  min-width: 10px;
+}
+
+.inventario-view[dragging] .drop-zone:not([empty-layout]) {
+  outline: 1px dashed var(--cv-dropzone-border-color);
+  outline-offset: -2px;
+  background-color: var(--cv-dropzone-bg-color);
+}
+
+.inventario-view .drop-zone[remaining-space] {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--cv-stripe-color),
+    var(--cv-stripe-color) var(--cv-stripe-width),
+    transparent var(--cv-stripe-width),
+    transparent var(--cv-stripe-gap)
+  );
+}
+
+.inventario-view[dragging] .drop-zone[drag-over] {
+  background: var(--cv-droptarget-bg-color);
+  outline: 1px solid var(--cv-droptarget-border-color);
+  outline-offset: -1px;
+  box-shadow: inset 0 0 0 2px var(--lumo-base-color);
+}
+
+.drop-zone[empty-layout] {
+  z-index: -1;
+}
+
+.inventario-view:not([readonly]) .layout[empty],
+vaadin-form-layout[empty] {
+  border-radius: 1px;
+  background: repeating-conic-gradient(var(--cv-checkerboard-color1) 0% 25%, var(--cv-checkerboard-color2) 0% 50%) 50% /
+    var(--cv-checkerboard-size) var(--cv-checkerboard-size);
+  background-clip: content-box;
+  outline: 1px dashed var(--cv-layout-border-color);
+  outline-offset: -2px;
+}
+.empacadora-view[dragging]:not([readonly]) vaadin-form-layout[empty] {
+  background: transparent;
+}
+
+.inventario-view .layout[empty]::before {
+  content: '';
+  display: block;
+  min-width: 64px;
+  min-height: 32px;
+}
+
+.inventario-view[readonly] .drop-zones,
+.inventario-view[readonly] .overlays {
+  display: none;
+}
+
+.inventario-view[inline-editing] .drop-zones,
+.inventario-view[inline-editing] .overlays {
+  display: none;
+}
+.inventario-view .content-wrapper[contenteditable='true'] {
+  display: inline-block;
+  overflow: hidden;
+  width: 100%;
+}
+
+.inventario-view[dragging] vaadin-form-layout {
+  padding: 8px;
+}
+.inventario-view vaadin-form-layout[empty]::before {
+  content: '';
+  display: block;
+  min-width: 64px;
+  min-height: 32px;
+}
+
+.inventario-view[dragging] vaadin-form-layout:not([empty])::after {
+  content: '';
+  display: block;
+  min-width: 64px;
+  min-height: 32px;
+}
+
+/* Contenedor general */
+.inventario-container {
+  padding: 2rem;
+  background-color: #fdfefe;
+  height: 100%;
+}
+/*
+ Toolbar de botones 
+.buttons-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+ Botón Guardar: Éxito 
+vaadin-button.guardar {
+  background-color: var(--lumo-success-color);
+  color: white;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+vaadin-button.guardar:hover {
+  background-color: var(--lumo-success-color-50pct);
+}
+
+ Botón Nuevo: Primario 
+vaadin-button.nuevo {
+  background-color: var(--lumo-primary-color);
+  color: white;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+vaadin-button.nuevo:hover {
+  background-color: var(--lumo-primary-color-50pct);
+}
+
+ Botón Cancelar: Error / advertencia 
+vaadin-button.cancelar {
+  background-color: var(--lumo-error-color);
+  color: white;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+vaadin-button.cancelar:hover {
+  background-color: var(--lumo-error-color-50pct);
+}*/
+
+/* Toolbar */
+.buttons-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Tamaño compacto y esquinas redondeadas */
+vaadin-button.guardar,
+vaadin-button.nuevo,
+vaadin-button.cancelar {
+  font-size: 13px;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Guardar */
+vaadin-button.guardar {
+  background-color: var(--lumo-success-color);
+  color: white;
+}
+vaadin-button.guardar:hover {
+  background-color: var(--lumo-success-color-50pct);
+}
+
+/* Nuevo */
+vaadin-button.nuevo {
+  background-color: var(--lumo-primary-color);
+  color: white;
+}
+vaadin-button.nuevo:hover {
+  background-color: var(--lumo-primary-color-50pct);
+}
+
+/* Cancelar */
+vaadin-button.cancelar {
+  background-color: var(--lumo-error-color);
+  color: white;
+}
+vaadin-button.cancelar:hover {
+  background-color: var(--lumo-error-color-50pct);
+}
+

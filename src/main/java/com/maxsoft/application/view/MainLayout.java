@@ -5,6 +5,7 @@ import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.Footer;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Header;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.SvgIcon;
@@ -12,6 +13,7 @@ import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.Layout;
+import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.server.menu.MenuConfiguration;
 import com.vaadin.flow.server.menu.MenuEntry;
@@ -21,13 +23,15 @@ import java.util.List;
 /**
  * The main view is a top-level placeholder for other views.
  */
+@Route("/")
 @Layout(value = "modulo")
 @AnonymousAllowed
 public class MainLayout extends AppLayout {
 
-    private H1 viewTitle;
+    private H3 viewTitle;
 
     public MainLayout() {
+        
         setPrimarySection(Section.DRAWER);
         addDrawerContent();
         addHeaderContent();
@@ -40,17 +44,19 @@ public class MainLayout extends AppLayout {
         DrawerToggle toggle = new DrawerToggle();
         toggle.setAriaLabel("Menu toggle");
 
-        viewTitle = new H1();
+        viewTitle = new H3();
         viewTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);
 
         addToNavbar(true, toggle, viewTitle);
     }
 
     private void addDrawerContent() {
-        Span appName = new Span("  Modulos ");
+        Span appName = new Span("Modulos");
         appName.addClassNames(LumoUtility.FontWeight.SEMIBOLD, LumoUtility.FontSize.LARGE);
         Header header = new Header(appName);
-        header.addClassName("procesada");
+        header.setClassName("custom-footer");
+        
+//        header.addClassName("procesada");
 
         Scroller scroller = new Scroller(createNavigation());
 
