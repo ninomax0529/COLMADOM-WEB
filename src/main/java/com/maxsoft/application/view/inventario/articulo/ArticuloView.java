@@ -113,6 +113,7 @@ public class ArticuloView extends VerticalLayout {
             String searchTerm = txtBuscar.getValue().trim();
 
             if (searchTerm.isEmpty()) {
+                System.out.println("Ejemplo");
                 return true;
             }
 
