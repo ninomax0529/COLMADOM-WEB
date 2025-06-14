@@ -13,6 +13,7 @@ import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.EntradaDeInventarioService;
 import com.maxsoft.application.util.ClaseUtil;
+import com.maxsoft.application.view.componente.ToolBarBotonera;
 import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
@@ -52,15 +53,14 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
     private DatePicker dpFecha = new DatePicker("Fecha");
     TextField txtCantidad = new TextField();
     TextField txtBuscar = new TextField();
-
-    private Button btnGuardar = new Button("Guardar");
-    private Button btnSalir = new Button("Salir");
+    ToolBarBotonera botonera = new ToolBarBotonera(false, true, true);
+    FormLayout formLayout = new FormLayout();
     Button btnNuevo = null;
     ArticuloService articuloServicel;
 
     List<DetalleEntradaInventario> listDet = new ArrayList<>();
 
-    HorizontalLayout botones = new HorizontalLayout();
+    HorizontalLayout hlArticulo = new HorizontalLayout();
 
     private EntradaInventario entradaInv;
     EntradaDeInventarioService entradaInvService;
@@ -73,39 +73,36 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
         this.entradaInvService = entradaInvServiceArg;
         this.articuloServicel = articuloServiceArg;
+        
+        botonera.getGuardar().addClickListener(e -> {
+            // lógica de guardar
 
-        btnSalir = new Button("Salir", e -> UI.getCurrent().navigate(EntradaDeIventarioView.class));
+            if (listDet.size() <= 0) {
 
-        btnGuardar = new Button("Guardar",
-                event -> {
+                Notification.show("La entrada no tiene detalle ",
+                        3000, Notification.Position.TOP_CENTER);
+                return;
+            }
 
-                    try {
+            for (DetalleEntradaInventario det2 : listDet) {
 
-                        if (listDet.size() <= 0) {
+                if (det2.getCantidadRecibida() <= 0) {
 
-                            Notification.show("La entrada no tiene detalle ",
-                                    3000, Notification.Position.TOP_CENTER);
-                            return;
-                        }
+                    Notification.show("El articulo  " + det2.getDescripcionArticulo() + " tiene la cantidad en cero ",
+                            4000, Notification.Position.TOP_CENTER);
+                    return;
+                }
 
-                        for (DetalleEntradaInventario det2 : listDet) {
+            }
 
-                            if (det2.getCantidadRecibida() <= 0) {
+            guardar();
 
-                                Notification.show("El articulo  " + det2.getDescripcionArticulo() + " tiene la cantidad en cero ",
-                                        4000, Notification.Position.TOP_CENTER);
-                                return;
-                            }
+        });
 
-                        }
-
-                        guardar();
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                });
+        botonera.getCancelar().addClickListener(e -> {
+            // lógica de cancelar
+            UI.getCurrent().navigate(EntradaDeIventarioView.class);
+        });
 
         btnNuevo = new Button("Ariculo(F2)",
                 event -> {
@@ -146,6 +143,9 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
                 });
 
+        txtBuscar.setSizeFull();
+        hlArticulo.setSizeFull();
+         hlArticulo.add(txtBuscar,btnNuevo);
         grid.setItems(listDet);
 
         txtNumDoc.setEnabled(false);
@@ -154,20 +154,20 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
         configurarGridDetalle();
         editarDetalle();
         configurarFormulario();
+        
+        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha,botonera);
+        hlDatos.setAlignItems(Alignment.BASELINE);
 
-        add(btnNuevo, txtBuscar, grid);
+        add(hlDatos, hlArticulo, grid);
 
     }
 
     private void configurarFormulario() {
 
-        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, btnGuardar, btnSalir);
-        hlDatos.setAlignItems(Alignment.BASELINE);
+//        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha);
+//        hlDatos.setAlignItems(Alignment.BASELINE);
         btnNuevo.addClickShortcut(Key.F2);
-
-        FormLayout formLayout = new FormLayout(hlDatos);
-
-        add(formLayout, botones);
+//        formLayout.add(hlDatos);
 
     }
 
@@ -217,9 +217,6 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
         grid.addColumn(DetalleEntradaInventario::getDescripcionArticulo).setHeader("Articulo")
                 .setFooter("TOTAL ARTICULOS:");
 
-//        grid.addColumn(DetalleEntradaInventario::getDescripcionArticulo)
-//                .setHeader("Descripcion")
-//                .setKey("descripcion");
         grid.addColumn(DetalleEntradaInventario::getCantidadRecibida)
                 .setHeader("Cantidad")
                 .setKey("cantidad");
@@ -279,7 +276,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
         });
 
         txtBuscar.setWidth("50%");
-        txtBuscar.setPlaceholder("Buscar");
+        txtBuscar.setPlaceholder("Filtrar");
         txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
         txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
         txtBuscar.addValueChangeListener(e -> dataView.refreshAll());

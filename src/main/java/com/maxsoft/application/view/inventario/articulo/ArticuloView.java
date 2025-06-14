@@ -126,7 +126,7 @@ public class ArticuloView extends VerticalLayout {
         });
 
 //        configurarFormulario();
-//        actualizarLista();
+        actualizarLista();
     }
 
     private void configurarGrid() {

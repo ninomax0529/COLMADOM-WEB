@@ -12,6 +12,7 @@ import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.DetalleEntradaInventario;
 import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.servicio.interfaces.EntradaDeInventarioService;
+import com.maxsoft.application.view.componente.ToolBarBotonera;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -33,6 +34,7 @@ public class EntradaDeIventarioView extends VerticalLayout {
     private final EntradaDeInventarioService entradaService;
     private final Grid<EntradaInventario> grid = new Grid<>(EntradaInventario.class, false);
     private Grid<DetalleEntradaInventario> gridDetalle = new Grid<>(DetalleEntradaInventario.class, false);
+    ToolBarBotonera botonera = new ToolBarBotonera(true, false, false);
 
     List<DetalleEntradaInventario> listDet;
 
@@ -51,6 +53,8 @@ public class EntradaDeIventarioView extends VerticalLayout {
     public EntradaDeIventarioView(EntradaDeInventarioService entradaServiceArg) {
 
         setSizeFull();
+        setSpacing(false);
+
         this.entradaService = entradaServiceArg;
         TabSheet tabs = new TabSheet();
         tabs.setSizeFull();
@@ -58,15 +62,13 @@ public class EntradaDeIventarioView extends VerticalLayout {
         tabs.add("Entrada", grid);
         tabs.add("Detalle", gridDetalle);
 
-        Button btnIrAVista2 = new Button("Nuevo", e
-                -> UI.getCurrent().navigate(RegistroEntradaDeIventarioView.class)
-        );
-//
-//         tabs.addSelectedChangeListener(c -> {
-//            tabs.getTabAt(1).setLabel("Detalle");
-//            listDet.clear();
-//             gridDetalle.setItems(listDet);
-//        });
+        botonera.getNuevo().addClickListener(e -> {
+            // lógica de nuevo
+
+          UI.getCurrent().navigate(RegistroEntradaDeIventarioView.class);
+
+        });
+
 
         grid.addItemDoubleClickListener(c -> {
 
@@ -80,7 +82,7 @@ public class EntradaDeIventarioView extends VerticalLayout {
         configurarGrid();
         configurarGridDetalle();
 
-        add(btnIrAVista2, tabs);
+        add(botonera, tabs);
 
     }
 
