@@ -49,12 +49,12 @@ public class ModuloInventario extends AppLayout {
         RouterLink linkEntrada = createLink(VaadinIcon.FILE_TABLE, "Entrada Inventario ", EntradaDeIventarioView.class);
 //        RouterLink linkRegistrarArticulo = createLink(VaadinIcon.FILE_TABLE, "Registrar Articulos ", RegistrarArticuloView.class);
         
-          RouterLink linkConsArtInv1 = createLink(VaadinIcon.FILE_TABLE, "Filtro Inventario ", GridColumnFiltering.class);
+//          RouterLink linkConsArtInv1 = createLink(VaadinIcon.FILE_TABLE, "Filtro Inventario ", GridColumnFiltering.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
 ////
 //        // Layout vertical que contiene los enlaces del menú
-        VerticalLayout menuLayout = new VerticalLayout(linkArticulo, linkEntrada,linkConsArtInv1,linkModulo);
+        VerticalLayout menuLayout = new VerticalLayout(linkArticulo, linkEntrada,linkModulo);
 
         menuLayout.setPadding(false);
         menuLayout.setSpacing(false);

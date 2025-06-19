@@ -37,19 +37,18 @@ import com.vaadin.flow.router.HasUrlParameter;
 
 public class RegistrarArticuloView extends VerticalLayout implements HasUrlParameter<String> {
 
-    private final ArticuloService articuloService;
-    private final UnidadDeVentaService unidaService;
-    private Binder<Articulo> binder = new Binder<>(Articulo.class);
+    final ArticuloService articuloService;
+    final UnidadDeVentaService unidaService;
+    Binder<Articulo> binder = new Binder<>(Articulo.class);
 
-    private TextField txtDescripcion = new TextField("Descripcion");
-    private NumberField txtPrecioCompra = new NumberField("Precio de Compra Unitario");
-    private NumberField txtPrecioVenta = new NumberField("Precio de Venta Unitario");
-    private IntegerField txtCodigo = new IntegerField("Codigo");
-    private RadioButtonGroup<UnidadDeVenta> rdbGrupo = new RadioButtonGroup<>();
+    TextField txtDescripcion = new TextField("Descripcion");
+    NumberField txtPrecioCompra = new NumberField("Precio de Compra Unitario");
+    NumberField txtPrecioVenta = new NumberField("Precio de Venta Unitario");
+    IntegerField txtCodigo = new IntegerField("Codigo");
+    RadioButtonGroup<UnidadDeVenta> rdbGrupo = new RadioButtonGroup<>();
     ToolBarBotonera botonera = new ToolBarBotonera(false, true, true);
     FormLayout formLayout = new FormLayout();
 
-    RadioButtonGroup<String> categoriaGroup = new RadioButtonGroup<>();
     ArticuloDaoService articuloDaoService;
 
     private Articulo articuloActual;
@@ -62,6 +61,8 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
 
         this.articuloService = articuloServiceArg;
         this.unidaService = UnidadDeVentaServiceArg;
+//       articuloActual=new Articulo();
+               
         setSizeFull();
         setSpacing(false);
 
@@ -119,7 +120,7 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
         articuloService.guardar(articuloActual);
         Notification.show("Artículo guardado", 2000, Notification.Position.TOP_CENTER);
         articuloActual = new Articulo();
-//        limpiarFormulario();
+        limpiarFormulario();
 
     }
 

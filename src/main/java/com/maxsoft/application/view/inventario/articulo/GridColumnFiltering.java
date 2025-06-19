@@ -75,6 +75,7 @@ public final class GridColumnFiltering extends Div {
 
             boolean matchesFullName = matchesTerm(person.getDescripcion(),
                     searchTerm);
+
             boolean matchesEmail = matchesTerm(person.getCodigo().toString(), searchTerm);
 
             return matchesFullName || matchesEmail;
@@ -86,75 +87,75 @@ public final class GridColumnFiltering extends Div {
         add(layout);
     }
 
-    private static Component createFilterHeader(String labelText,
-            Consumer<String> filterChangeConsumer) {
-
-        NativeLabel label = new NativeLabel(labelText);
-
-        label.getStyle().set("padding-top", "var(--lumo-space-m)")
-                .set("font-size", "var(--lumo-font-size-xs)");
-
-        TextField textField = new TextField();
-        textField.setValueChangeMode(ValueChangeMode.EAGER);
-        textField.setClearButtonVisible(true);
-        textField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
-        textField.setWidthFull();
-        textField.getStyle().set("max-width", "100%");
-
-        textField.addValueChangeListener(
-                e -> filterChangeConsumer.accept(e.getValue()));
-        VerticalLayout layout = new VerticalLayout(label, textField);
-        layout.getThemeList().clear();
-
-        layout.getThemeList().add("spacing-xs");
-
-        return layout;
-    }
-
-    private static class PersonFilter {
-
-        private final GridListDataView<Articulo> dataView;
-
-        private String fullName;
-        private String email;
-        private String profession;
-
-        public PersonFilter(GridListDataView<Articulo> dataView) {
-            this.dataView = dataView;
-            this.dataView.addFilter(this::test);
-        }
-
-        public void setFullName(String fullName) {
-            this.fullName = fullName;
-            this.dataView.refreshAll();
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-            this.dataView.refreshAll();
-        }
-
-        public void setProfession(String profession) {
-            this.profession = profession;
-            this.dataView.refreshAll();
-        }
-
-        public boolean test(Articulo person) {
-
-            boolean matchesFullName = matches(person.getDescripcion(), fullName);
-
-            boolean matchesEmail = matches(person.getCodigo().toString(), email);
-            boolean matchesProfession = matches(person.getDescripcion(),
-                    profession);
-
-            return matchesFullName && matchesEmail && matchesProfession;
-        }
-
-        private boolean matches(String value, String searchTerm) {
-            return searchTerm == null || searchTerm.isEmpty()
-                    || value.toLowerCase().contains(searchTerm.toLowerCase());
-        }
-    }
+//    private static Component createFilterHeader(String labelText,
+//            Consumer<String> filterChangeConsumer) {
+//
+//        NativeLabel label = new NativeLabel(labelText);
+//
+//        label.getStyle().set("padding-top", "var(--lumo-space-m)")
+//                .set("font-size", "var(--lumo-font-size-xs)");
+//
+//        TextField textField = new TextField();
+//        textField.setValueChangeMode(ValueChangeMode.EAGER);
+//        textField.setClearButtonVisible(true);
+//        textField.addThemeVariants(TextFieldVariant.LUMO_SMALL);
+//        textField.setWidthFull();
+//        textField.getStyle().set("max-width", "100%");
+//
+//        textField.addValueChangeListener(
+//                e -> filterChangeConsumer.accept(e.getValue()));
+//        VerticalLayout layout = new VerticalLayout(label, textField);
+//        layout.getThemeList().clear();
+//
+//        layout.getThemeList().add("spacing-xs");
+//
+//        return layout;
+//    }
+//
+//    private static class PersonFilter {
+//
+//        private final GridListDataView<Articulo> dataView;
+//
+//        private String fullName;
+//        private String email;
+//        private String profession;
+//
+//        public PersonFilter(GridListDataView<Articulo> dataView) {
+//            this.dataView = dataView;
+//            this.dataView.addFilter(this::test);
+//        }
+//
+//        public void setFullName(String fullName) {
+//            this.fullName = fullName;
+//            this.dataView.refreshAll();
+//        }
+//
+//        public void setEmail(String email) {
+//            this.email = email;
+//            this.dataView.refreshAll();
+//        }
+//
+//        public void setProfession(String profession) {
+//            this.profession = profession;
+//            this.dataView.refreshAll();
+//        }
+//
+//        public boolean test(Articulo person) {
+//
+//            boolean matchesFullName = matches(person.getDescripcion(), fullName);
+//
+//            boolean matchesEmail = matches(person.getCodigo().toString(), email);
+//            boolean matchesProfession = matches(person.getDescripcion(),
+//                    profession);
+//
+//            return matchesFullName && matchesEmail && matchesProfession;
+//        }
+//
+//        private boolean matches(String value, String searchTerm) {
+//            return searchTerm == null || searchTerm.isEmpty()
+//                    || value.toLowerCase().contains(searchTerm.toLowerCase());
+//        }
+//    }
 
     private static Renderer<Articulo> createPersonRenderer() {
         return LitRenderer.<Articulo>of(
