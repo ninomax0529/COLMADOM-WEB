@@ -32,7 +32,7 @@ public class CobroView extends Dialog {
     public CobroView(double total) {
         this.total = total;
 
-        setHeaderTitle("Resumen de Cobro");
+        setHeaderTitle("Resumen de Cobros");
 
         VerticalLayout layout = new VerticalLayout();
         layout.setSpacing(true);

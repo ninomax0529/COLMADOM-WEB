@@ -65,7 +65,7 @@ public class PuntoDeVentaView extends VerticalLayout {
     TextField txtTotal = new TextField("Total a Cobrar");
     TextField txtDecuento = new TextField("Descuento");
     TextField txtItbis = new TextField("Itbis");
-    TextField txtTotalArt = new TextField("Total Articulo");
+//    TextField txtTotalArt = new TextField("Total Articulo");
 
     private Button btnSalir;
     private Button btnArticulo = null;
