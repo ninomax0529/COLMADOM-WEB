@@ -46,7 +46,7 @@ public class Application implements AppShellConfigurator {
         System.out.println("Free Memory in allocated: " + freeMemory / 1024 / 1024 + " MB");
         System.out.println("Used Memory: " + (allocatedMemory - freeMemory) / 1024 / 1024 + " MB");
         
-        System.out.println("Prueba: " );
+        System.out.println("Prueba 1: " );
 
     }
 
