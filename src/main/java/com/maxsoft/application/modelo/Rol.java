@@ -20,15 +20,17 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.Date;
 
 /**
  *
- * @author Maximiliano
+ * @author maximilianoalmonte
  */
 @Entity
 @Table(name = "rol")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Rol.findAll", query = "SELECT r FROM Rol r")})
 public class Rol implements Serializable {

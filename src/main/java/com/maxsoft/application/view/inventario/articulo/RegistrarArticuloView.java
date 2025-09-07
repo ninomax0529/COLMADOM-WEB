@@ -44,6 +44,7 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
     TextField txtDescripcion = new TextField("Descripcion");
     NumberField txtPrecioCompra = new NumberField("Precio de Compra Unitario");
     NumberField txtPrecioVenta = new NumberField("Precio de Venta Unitario");
+      NumberField txtExistencia = new NumberField("Existencia");
     IntegerField txtCodigo = new IntegerField("Codigo");
     RadioButtonGroup<UnidadDeVenta> rdbGrupo = new RadioButtonGroup<>();
     ToolBarBotonera botonera = new ToolBarBotonera(false, true, true);
@@ -90,7 +91,7 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
 
         txtCodigo.setEnabled(false);
         txtCodigo.setWidth("100px");
-        HorizontalLayout hbPrecio = new HorizontalLayout(txtPrecioCompra, txtPrecioVenta);
+        HorizontalLayout hbPrecio = new HorizontalLayout(txtPrecioCompra, txtPrecioVenta,txtExistencia);
         HorizontalLayout hlArt = new HorizontalLayout(txtCodigo, txtDescripcion);
         hlArt.addAndExpand(txtDescripcion);
 
@@ -100,10 +101,9 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
         binder.bind(txtDescripcion, Articulo::getDescripcion, Articulo::setDescripcion);
         binder.bind(txtPrecioCompra, Articulo::getPrecioCompra, Articulo::setPrecioCompra);
         binder.bind(txtPrecioVenta, Articulo::getPrecioVenta, Articulo::setPrecioVenta);
+         binder.bind(txtExistencia, Articulo::getExistencia, Articulo::setExistencia);
         binder.bind(rdbGrupo, Articulo::getUnidadDeVenta, Articulo::setUnidadDeVenta);
 
-//        botonera.getGuardar().addClickListener(event -> guardarArticulo());
-//        botonera.getCancelar().addClickListener(event -> limpiarFormulario());
         add(formLayout);
 
     }
@@ -116,7 +116,7 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
 
     private void guardarArticulo() {
 
-        articuloActual.setExistencia(0.00);
+      
         articuloService.guardar(articuloActual);
         Notification.show("Artículo guardado", 2000, Notification.Position.TOP_CENTER);
         articuloActual = new Articulo();

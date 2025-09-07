@@ -21,16 +21,19 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author Maximiliano
+ * @author maximilianoalmonte
  */
 @Entity
 @Table(name = "factura_de_venta")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "FacturaDeVenta.findAll", query = "SELECT f FROM FacturaDeVenta f")})
 public class FacturaDeVenta implements Serializable {
@@ -45,16 +48,16 @@ public class FacturaDeVenta implements Serializable {
     private Integer numeroDocumento;
     @Column(name = "tipo_documento")
     private Integer tipoDocumento;
+    @Column(name = "secuencia_documento")
+    private Integer secuenciaDocumento;
     @Column(name = "tipo_ncf")
     private Integer tipoNcf;
     @Size(max = 25)
     @Column(name = "ncf")
     private String ncf;
     @Size(max = 200)
-    @Column(name = "cliente")
-    private String cliente;
     @Column(name = "nombre_cliente")
-    private Integer nombreCliente;
+    private String nombreCliente;
     @Column(name = "tipo_venta")
     private Integer tipoVenta;
     @Column(name = "fecha")
@@ -75,6 +78,8 @@ public class FacturaDeVenta implements Serializable {
     @Column(name = "fecha_anulada")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaAnulada;
+    @Column(name = "usuario")
+    private Integer usuario;
     @Size(max = 80)
     @Column(name = "nombre_usuario")
     private String nombreUsuario;
@@ -98,12 +103,9 @@ public class FacturaDeVenta implements Serializable {
     private Double totalAbonado;
     @Column(name = "total_pendiente")
     private Double totalPendiente;
-    @JoinColumn(name = "secuencia_documento", referencedColumnName = "codigo")
+    @JoinColumn(name = "cliente", referencedColumnName = "codigo")
     @ManyToOne
-    private SecuenciaDocumento secuenciaDocumento;
-    @JoinColumn(name = "usuario", referencedColumnName = "codigo")
-    @ManyToOne
-    private Usuario usuario;
+    private Cliente cliente;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
 
@@ -138,6 +140,14 @@ public class FacturaDeVenta implements Serializable {
         this.tipoDocumento = tipoDocumento;
     }
 
+    public Integer getSecuenciaDocumento() {
+        return secuenciaDocumento;
+    }
+
+    public void setSecuenciaDocumento(Integer secuenciaDocumento) {
+        this.secuenciaDocumento = secuenciaDocumento;
+    }
+
     public Integer getTipoNcf() {
         return tipoNcf;
     }
@@ -154,19 +164,11 @@ public class FacturaDeVenta implements Serializable {
         this.ncf = ncf;
     }
 
-    public String getCliente() {
-        return cliente;
-    }
-
-    public void setCliente(String cliente) {
-        this.cliente = cliente;
-    }
-
-    public Integer getNombreCliente() {
+    public String getNombreCliente() {
         return nombreCliente;
     }
 
-    public void setNombreCliente(Integer nombreCliente) {
+    public void setNombreCliente(String nombreCliente) {
         this.nombreCliente = nombreCliente;
     }
 
@@ -224,6 +226,14 @@ public class FacturaDeVenta implements Serializable {
 
     public void setFechaAnulada(Date fechaAnulada) {
         this.fechaAnulada = fechaAnulada;
+    }
+
+    public Integer getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Integer usuario) {
+        this.usuario = usuario;
     }
 
     public String getNombreUsuario() {
@@ -306,22 +316,15 @@ public class FacturaDeVenta implements Serializable {
         this.totalPendiente = totalPendiente;
     }
 
-    public SecuenciaDocumento getSecuenciaDocumento() {
-        return secuenciaDocumento;
+    public Cliente getCliente() {
+        return cliente;
     }
 
-    public void setSecuenciaDocumento(SecuenciaDocumento secuenciaDocumento) {
-        this.secuenciaDocumento = secuenciaDocumento;
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
     }
 
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
-
+    @XmlTransient
     public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
         return detalleFacturaDeVentaCollection;
     }

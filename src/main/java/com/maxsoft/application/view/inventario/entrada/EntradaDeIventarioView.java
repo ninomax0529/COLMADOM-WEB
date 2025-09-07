@@ -65,10 +65,9 @@ public class EntradaDeIventarioView extends VerticalLayout {
         botonera.getNuevo().addClickListener(e -> {
             // lógica de nuevo
 
-          UI.getCurrent().navigate(RegistroEntradaDeIventarioView.class);
+            UI.getCurrent().navigate(RegistroEntradaDeIventarioView.class);
 
         });
-
 
         grid.addItemDoubleClickListener(c -> {
 
@@ -114,13 +113,15 @@ public class EntradaDeIventarioView extends VerticalLayout {
 
         gridDetalle.setHeight("620px");
         gridDetalle.setWidthFull();
-
-        gridDetalle.addColumn(DetalleEntradaInventario::getDescripcionArticulo).setHeader("Articulo")
-                .setFooter("TOTAL ARTICULOS:");
+//
+//        gridDetalle.addColumn(
+//                DetalleEntradaInventario::getArticulo).setHeader("Articulo")
+//                .setFooter("TOTAL ARTICULOS:");
 
         gridDetalle.addColumn(DetalleEntradaInventario::getDescripcionArticulo)
                 .setHeader("Descripcion")
-                .setKey("descripcion");
+                .setKey("descripcion")
+                .setFooter("TOTAL:");
 
         gridDetalle.addColumn(DetalleEntradaInventario::getCantidadRecibida)
                 .setHeader("Cantidad")

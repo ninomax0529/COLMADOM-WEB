@@ -9,9 +9,7 @@ package com.maxsoft.application.view.inventario.articulo;
  * @author maximilianoalmonte
  */
 import com.maxsoft.application.modelo.Articulo;
-import com.maxsoft.application.servicio.ArticuloDaoService;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
-import com.maxsoft.application.servicio.interfaces.UnidadDeVentaService;
 import com.maxsoft.application.util.NavigationContext;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
 import com.vaadin.flow.component.UI;
@@ -37,7 +35,7 @@ import java.util.stream.Collectors;
 
 public class ArticuloView extends VerticalLayout {
 
-     ArticuloService articuloService;
+    ArticuloService articuloService;
 
     Grid<Articulo> grid = new Grid<>(Articulo.class, false);
     List<Articulo> listaArt = new ArrayList<>();
@@ -47,9 +45,8 @@ public class ArticuloView extends VerticalLayout {
     @Autowired
     public ArticuloView(ArticuloService articuloServiceArg) {
 
-
         this.articuloService = articuloServiceArg;
-      
+
         setSizeFull();
         setSpacing(false);
 
@@ -76,6 +73,7 @@ public class ArticuloView extends VerticalLayout {
         grid.addColumn(Articulo::getDescripcion).setHeader("Descripcion").setAutoWidth(true);
         grid.addColumn(Articulo::getPrecioCompra).setHeader("Precio.Compra").setAutoWidth(true);
         grid.addColumn(Articulo::getPrecioVenta).setHeader("Precio.Venta").setAutoWidth(true);
+         grid.addColumn(Articulo::getExistencia).setHeader("Existencia").setAutoWidth(true);
         grid.addColumn(Articulo::getUnidadDeVenta).setHeader("Unidad").setAutoWidth(true);
 
         grid.setSizeFull();

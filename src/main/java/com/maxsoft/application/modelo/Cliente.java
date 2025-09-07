@@ -5,7 +5,6 @@
 package com.maxsoft.application.modelo;
 
 import jakarta.persistence.Basic;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -17,7 +16,6 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
@@ -30,11 +28,11 @@ import java.util.Date;
  * @author maximilianoalmonte
  */
 @Entity
-@Table(name = "usuario")
+@Table(name = "cliente")
 @XmlRootElement
 @NamedQueries({
-    @NamedQuery(name = "Usuario.findAll", query = "SELECT u FROM Usuario u")})
-public class Usuario implements Serializable {
+    @NamedQuery(name = "Cliente.findAll", query = "SELECT c FROM Cliente c")})
+public class Cliente implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -42,48 +40,46 @@ public class Usuario implements Serializable {
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @Size(max = 100)
+    @Size(max = 150)
     @Column(name = "nombre")
     private String nombre;
-    @Size(max = 100)
-    @Column(name = "tipo_usuario")
-    private String tipoUsuario;
-    @Size(max = 25)
-    @Column(name = "usuario")
-    private String usuario;
-    @Size(max = 80)
-    @Column(name = "contrasena")
-    private String contrasena;
+    @Size(max = 20)
+    @Column(name = "cedula")
+    private String cedula;
+    @Size(max = 15)
+    @Column(name = "celular")
+    private String celular;
+    @Size(max = 200)
+    @Column(name = "direccion")
+    private String direccion;
+    @Size(max = 150)
+    @Column(name = "lugar_de_trabajo")
+    private String lugarDeTrabajo;
+    @Size(max = 90)
+    @Column(name = "actualizado_por")
+    private String actualizadoPor;
+    @Size(max = 45)
+    @Column(name = "referencia")
+    private String referencia;
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
-    @Size(max = 50)
+    @Size(max = 90)
     @Column(name = "creado_por")
     private String creadoPor;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "habilitado")
-    private boolean habilitado;
     @Column(name = "fecha_actualizacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaActualizacion;
-    @OneToMany(mappedBy = "usuario")
-    private Collection<Documento> documentoCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
-    private Collection<Rol> rolCollection;
-    @OneToMany(mappedBy = "usuario")
-    private Collection<EntradaInventario> entradaInventarioCollection;
+    @Column(name = "habilitado")
+    private Boolean habilitado;
+    @OneToMany(mappedBy = "cliente")
+    private Collection<FacturaDeVenta> facturaDeVentaCollection;
 
-    public Usuario() {
+    public Cliente() {
     }
 
-    public Usuario(Integer codigo) {
+    public Cliente(Integer codigo) {
         this.codigo = codigo;
-    }
-
-    public Usuario(Integer codigo, boolean habilitado) {
-        this.codigo = codigo;
-        this.habilitado = habilitado;
     }
 
     public Integer getCodigo() {
@@ -102,28 +98,52 @@ public class Usuario implements Serializable {
         this.nombre = nombre;
     }
 
-    public String getTipoUsuario() {
-        return tipoUsuario;
+    public String getCedula() {
+        return cedula;
     }
 
-    public void setTipoUsuario(String tipoUsuario) {
-        this.tipoUsuario = tipoUsuario;
+    public void setCedula(String cedula) {
+        this.cedula = cedula;
     }
 
-    public String getUsuario() {
-        return usuario;
+    public String getCelular() {
+        return celular;
     }
 
-    public void setUsuario(String usuario) {
-        this.usuario = usuario;
+    public void setCelular(String celular) {
+        this.celular = celular;
     }
 
-    public String getContrasena() {
-        return contrasena;
+    public String getDireccion() {
+        return direccion;
     }
 
-    public void setContrasena(String contrasena) {
-        this.contrasena = contrasena;
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
+    }
+
+    public String getLugarDeTrabajo() {
+        return lugarDeTrabajo;
+    }
+
+    public void setLugarDeTrabajo(String lugarDeTrabajo) {
+        this.lugarDeTrabajo = lugarDeTrabajo;
+    }
+
+    public String getActualizadoPor() {
+        return actualizadoPor;
+    }
+
+    public void setActualizadoPor(String actualizadoPor) {
+        this.actualizadoPor = actualizadoPor;
+    }
+
+    public String getReferencia() {
+        return referencia;
+    }
+
+    public void setReferencia(String referencia) {
+        this.referencia = referencia;
     }
 
     public Date getFechaCreacion() {
@@ -142,14 +162,6 @@ public class Usuario implements Serializable {
         this.creadoPor = creadoPor;
     }
 
-    public boolean getHabilitado() {
-        return habilitado;
-    }
-
-    public void setHabilitado(boolean habilitado) {
-        this.habilitado = habilitado;
-    }
-
     public Date getFechaActualizacion() {
         return fechaActualizacion;
     }
@@ -158,31 +170,21 @@ public class Usuario implements Serializable {
         this.fechaActualizacion = fechaActualizacion;
     }
 
-    @XmlTransient
-    public Collection<Documento> getDocumentoCollection() {
-        return documentoCollection;
+    public Boolean getHabilitado() {
+        return habilitado;
     }
 
-    public void setDocumentoCollection(Collection<Documento> documentoCollection) {
-        this.documentoCollection = documentoCollection;
-    }
-
-    @XmlTransient
-    public Collection<Rol> getRolCollection() {
-        return rolCollection;
-    }
-
-    public void setRolCollection(Collection<Rol> rolCollection) {
-        this.rolCollection = rolCollection;
+    public void setHabilitado(Boolean habilitado) {
+        this.habilitado = habilitado;
     }
 
     @XmlTransient
-    public Collection<EntradaInventario> getEntradaInventarioCollection() {
-        return entradaInventarioCollection;
+    public Collection<FacturaDeVenta> getFacturaDeVentaCollection() {
+        return facturaDeVentaCollection;
     }
 
-    public void setEntradaInventarioCollection(Collection<EntradaInventario> entradaInventarioCollection) {
-        this.entradaInventarioCollection = entradaInventarioCollection;
+    public void setFacturaDeVentaCollection(Collection<FacturaDeVenta> facturaDeVentaCollection) {
+        this.facturaDeVentaCollection = facturaDeVentaCollection;
     }
 
     @Override
@@ -195,10 +197,10 @@ public class Usuario implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Usuario)) {
+        if (!(object instanceof Cliente)) {
             return false;
         }
-        Usuario other = (Usuario) object;
+        Cliente other = (Cliente) object;
         if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
             return false;
         }
@@ -207,7 +209,7 @@ public class Usuario implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Usuario[ codigo=" + codigo + " ]";
+        return "com.maxsoft.application.modelo.Cliente[ codigo=" + codigo + " ]";
     }
     
 }

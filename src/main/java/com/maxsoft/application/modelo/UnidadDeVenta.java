@@ -16,15 +16,18 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 
 /**
  *
- * @author Maximiliano
+ * @author maximilianoalmonte
  */
 @Entity
 @Table(name = "unidad_de_venta")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "UnidadDeVenta.findAll", query = "SELECT u FROM UnidadDeVenta u")})
 public class UnidadDeVenta implements Serializable {
@@ -71,6 +74,7 @@ public class UnidadDeVenta implements Serializable {
         this.nombre = nombre;
     }
 
+    @XmlTransient
     public Collection<Articulo> getArticuloCollection() {
         return articuloCollection;
     }

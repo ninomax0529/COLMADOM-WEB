@@ -20,16 +20,19 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author Maximiliano
+ * @author maximilianoalmonte
  */
 @Entity
 @Table(name = "secuencia_documento")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "SecuenciaDocumento.findAll", query = "SELECT s FROM SecuenciaDocumento s")})
 public class SecuenciaDocumento implements Serializable {
@@ -67,8 +70,6 @@ public class SecuenciaDocumento implements Serializable {
     private String creadoPor;
     @OneToMany(mappedBy = "secuenciaDocumento")
     private Collection<Documento> documentoCollection;
-    @OneToMany(mappedBy = "secuenciaDocumento")
-    private Collection<FacturaDeVenta> facturaDeVentaCollection;
     @OneToMany(mappedBy = "secuenciaDocumento")
     private Collection<EntradaInventario> entradaInventarioCollection;
     @JoinColumn(name = "tipo_documento", referencedColumnName = "codigo")
@@ -153,6 +154,7 @@ public class SecuenciaDocumento implements Serializable {
         this.creadoPor = creadoPor;
     }
 
+    @XmlTransient
     public Collection<Documento> getDocumentoCollection() {
         return documentoCollection;
     }
@@ -161,14 +163,7 @@ public class SecuenciaDocumento implements Serializable {
         this.documentoCollection = documentoCollection;
     }
 
-    public Collection<FacturaDeVenta> getFacturaDeVentaCollection() {
-        return facturaDeVentaCollection;
-    }
-
-    public void setFacturaDeVentaCollection(Collection<FacturaDeVenta> facturaDeVentaCollection) {
-        this.facturaDeVentaCollection = facturaDeVentaCollection;
-    }
-
+    @XmlTransient
     public Collection<EntradaInventario> getEntradaInventarioCollection() {
         return entradaInventarioCollection;
     }

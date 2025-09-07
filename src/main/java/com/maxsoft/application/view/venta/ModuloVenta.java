@@ -5,9 +5,11 @@
 package com.maxsoft.application.view.venta;
 
 import com.maxsoft.application.view.ModuloPrincipal;
+import com.maxsoft.application.view.venta.cajaChica.CajaChicaView;
+import com.maxsoft.application.view.venta.cliente.ClienteView;
+import com.maxsoft.application.view.venta.factura.FacturaDeVentaView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -40,9 +42,9 @@ public class ModuloVenta extends AppLayout {
 
     private void createDrawer() {
 
-        RouterLink linkArticulo = createLink(VaadinIcon.DASHBOARD, "Cliente", ClienteView.class);
-//        RouterLink linkAbrirTurno = createLink(VaadinIcon.FILE_TABLE, "Abrir Turnos ", AbrirTurnoView.class);
-//        RouterLink linkCerrarTurno = createLink(VaadinIcon.COG, "Cerrar Turnos ", CerrarTurnosView.class);
+        RouterLink linkCliente = createLink(VaadinIcon.DASHBOARD, "Cliente", ClienteView.class);
+        RouterLink linkFacturaVenta = createLink(VaadinIcon.FILE_TABLE, "Factura Venta", FacturaDeVentaView.class);
+        RouterLink linkCajaChica = createLink(VaadinIcon.COG, "Caja Chica ", CajaChicaView.class);
 //        RouterLink linkMovimientoSilo = createLink(VaadinIcon.COG, "Silos", MovimientoSiloView.class);
 //        RouterLink linkInventario = createLink(VaadinIcon.COG, "Inventario de Productos ", InventarioDeProductoView.class);
 //        RouterLink linkFundasVacia = createLink(VaadinIcon.COG, "Fundas Vacias ", ControlFundaVaciaView.class);
@@ -50,7 +52,7 @@ public class ModuloVenta extends AppLayout {
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
 ////
 //        // Layout vertical que contiene los enlaces del menú
-        VerticalLayout menuLayout = new VerticalLayout(linkArticulo,linkModulo);
+        VerticalLayout menuLayout = new VerticalLayout(linkCliente,linkFacturaVenta,linkCajaChica,linkModulo);
 
         menuLayout.setPadding(false);
         menuLayout.setSpacing(false);
@@ -93,7 +95,7 @@ public class ModuloVenta extends AppLayout {
 
         // Layout horizontal que agrupa los componentes del header
         HorizontalLayout header = new HorizontalLayout(menuIcon, logo, spacer, userIcon);
-        header.setWidth("90%");
+        header.setWidth("100%");
         header.setAlignItems(Alignment.CENTER);
         header.addClassName("header");
 

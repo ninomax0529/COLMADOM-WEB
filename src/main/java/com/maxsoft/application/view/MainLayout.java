@@ -35,13 +35,15 @@ public class MainLayout extends AppLayout {
         addDrawerContent();
         addHeaderContent();
       
-     
+      
         
     }
 
     private void addHeaderContent() {
         DrawerToggle toggle = new DrawerToggle();
         toggle.setAriaLabel("Menu toggle");
+        
+                
 
         viewTitle = new H3();
         viewTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.NONE);

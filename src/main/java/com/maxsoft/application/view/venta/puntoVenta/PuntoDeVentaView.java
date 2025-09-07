@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.maxsoft.application.view.venta;
+package com.maxsoft.application.view.venta.puntoVenta;
 
 /**
  *
@@ -15,6 +15,7 @@ import com.maxsoft.application.servicio.interfaces.FacturaDeVentaService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
+import com.maxsoft.application.view.venta.CobroView;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
@@ -78,7 +79,7 @@ public class PuntoDeVentaView extends VerticalLayout {
     Button deleteButton = null;
     Button btnEditar = null;
     TextField filtroNombre = new TextField();
-    H3 lbNumDoc = new H3("Num.Factura");
+    H3 lbNumDoc = new H3("Factura");
 
     FormLayout formLayout = new FormLayout();
     GridListDataView<DetalleFacturaDeVenta> dataView = null;
@@ -133,7 +134,7 @@ public class PuntoDeVentaView extends VerticalLayout {
 
         btnAyuda = new Button("Ayuda(F1)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
 
-        btnCobrar = new Button("Cobrar(F10)", e ->cobrar());
+        btnCobrar = new Button("Cobrar(F10)", e -> cobrar());
 
         btnCliente = new Button("Cliente(F7)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
 
@@ -284,7 +285,8 @@ public class PuntoDeVentaView extends VerticalLayout {
 
         grid.addColumn(DetalleFacturaDeVenta::getDescripcionArticulo).setHeader("Articulo")
                 .setKey("articulo")
-                .setFooter("TOTAL:");
+//                .setFooter("TOTAL:")
+                ;
 
         grid.addColumn(DetalleFacturaDeVenta::getCantidad)
                 .setHeader("Cantidad")
@@ -298,9 +300,9 @@ public class PuntoDeVentaView extends VerticalLayout {
                 .setHeader("SubTotal")
                 .setKey("subTotal");
 
-        grid.addColumn(DetalleFacturaDeVenta::getTotal)
-                .setHeader("Total")
-                .setKey("total");
+        grid.addColumn(DetalleFacturaDeVenta::getExistenciaActual)
+                .setHeader("Existencia")
+                .setKey("existencia");
 
         grid.getColumns().forEach(col -> {
             col.setAutoWidth(true);
@@ -412,7 +414,7 @@ public class PuntoDeVentaView extends VerticalLayout {
 
                 if (cantidad <= 0) {
 
-                    Notification.show("La cantidad no puede ser menor que cero ", 3000, Notification.Position.MIDDLE);
+                    Notification.show("La cantidad no puede ser menor O igual a cero ", 3000, Notification.Position.MIDDLE);
                     cantidad = 0.00;
                     return;
                 }
@@ -445,7 +447,10 @@ public class PuntoDeVentaView extends VerticalLayout {
 
     private Double subTotal(Double cant, Double precio) {
 
-        return cant * precio;
+        Double sutTotal = cant * precio;
+
+        return ClaseUtil.FormatearDouble(sutTotal, 2);
+
     }
 
     private Double total(Double subTotal, Double totalDesc, Double totalItbis) {
@@ -453,7 +458,7 @@ public class PuntoDeVentaView extends VerticalLayout {
         Double total = (subTotal - totalDesc) + totalItbis;
 
         System.out.println("Total " + subTotal + " " + totalDesc + " " + totalItbis);
-        return total;
+        return ClaseUtil.FormatearDouble(total, 2);
     }
 
     private Double totalItbis(Double subTotal, Double descuento, Double itbis) {
@@ -482,21 +487,22 @@ public class PuntoDeVentaView extends VerticalLayout {
 
         try {
 
-            ArticuloDialogoFilteringView dialog = new ArticuloDialogoFilteringView(articuloServicel, entrada -> {
+            ArticuloDialogoFilteringView dialog = new ArticuloDialogoFilteringView(articuloServicel, articulo -> {
 
-                if (!(entrada == null)) {
+                if (!(articulo == null)) {
 
                     DetalleFacturaDeVenta det1 = new DetalleFacturaDeVenta();
 
-                    det1.setCodigo(entrada.getCodigo());//Colocarlo anull cuando le asignemo el encabezada
+                    det1.setCodigo(articulo.getCodigo());//Colocarlo anull cuando le asignemo el encabezada
 
-                    det1.setArticulo(entrada);
+                    det1.setArticulo(articulo);
 
-                    det1.setDescripcionArticulo(entrada.getDescripcion());
+                    det1.setDescripcionArticulo(articulo.getDescripcion());
 
                     det1.setCantidad(1.00);
+                    det1.setExistenciaActual(articulo.getExistencia());
 
-                    det1.setPrecioVenta(entrada.getPrecioVenta());
+                    det1.setPrecioVenta(articulo.getPrecioVenta());
 
                     det1.setSubTotal(subTotal(1.00, det1.getPrecioVenta()));
                     det1.setPorcientoDescuento(10.00);
@@ -513,7 +519,7 @@ public class PuntoDeVentaView extends VerticalLayout {
 
                     listDet.add(det1);
 
-                    System.out.println("Articulo ingresó: " + entrada.getDescripcion());
+                    System.out.println("Articulo ingresó: " + articulo.getDescripcion());
 //            
                     grid.getDataProvider().refreshAll(); // Refrescar el Grid sin perder la lista
                 }

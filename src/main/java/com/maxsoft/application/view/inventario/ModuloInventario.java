@@ -6,8 +6,6 @@ package com.maxsoft.application.view.inventario;
 
 import com.maxsoft.application.view.inventario.articulo.ArticuloView;
 import com.maxsoft.application.view.ModuloPrincipal;
-import com.maxsoft.application.view.inventario.articulo.GridColumnFiltering;
-import com.maxsoft.application.view.inventario.articulo.RegistrarArticuloView;
 import com.maxsoft.application.view.inventario.entrada.EntradaDeIventarioView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;

@@ -11,6 +11,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
@@ -28,11 +29,11 @@ import java.util.Date;
  * @author maximilianoalmonte
  */
 @Entity
-@Table(name = "sub_categoria")
+@Table(name = "movimiento_caja_chica")
 @XmlRootElement
 @NamedQueries({
-    @NamedQuery(name = "SubCategoria.findAll", query = "SELECT s FROM SubCategoria s")})
-public class SubCategoria implements Serializable {
+    @NamedQuery(name = "MovimientoCajaChica.findAll", query = "SELECT m FROM MovimientoCajaChica m")})
+public class MovimientoCajaChica implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -42,40 +43,46 @@ public class SubCategoria implements Serializable {
     private Integer codigo;
     @Basic(optional = false)
     @NotNull
-    @Size(min = 1, max = 45)
-    @Column(name = "nombre")
-    private String nombre;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "fecha_creacion")
+    @Column(name = "fecha")
     @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaCreacion;
+    private Date fecha;
     @Basic(optional = false)
     @NotNull
-    @Size(min = 1, max = 50)
-    @Column(name = "creada_por")
-    private String creadaPor;
+    @Size(min = 1, max = 15)
+    @Column(name = "tipo")
+    private String tipo;
     @Basic(optional = false)
     @NotNull
-    @Column(name = "habilitada")
-    private boolean habilitada;
-    @JoinColumn(name = "categoria", referencedColumnName = "codigo")
+    @Column(name = "monto")
+    private double monto;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "metodo_pago")
+    private String metodoPago;
+    @Basic(optional = false)
+    @NotNull
+    @Lob
+    @Size(min = 1, max = 65535)
+    @Column(name = "descripcion")
+    private String descripcion;
+    @JoinColumn(name = "caja_chica", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
-    private Categoria categoria;
+    private CajaChica cajaChica;
 
-    public SubCategoria() {
+    public MovimientoCajaChica() {
     }
 
-    public SubCategoria(Integer codigo) {
+    public MovimientoCajaChica(Integer codigo) {
         this.codigo = codigo;
     }
 
-    public SubCategoria(Integer codigo, String nombre, Date fechaCreacion, String creadaPor, boolean habilitada) {
+    public MovimientoCajaChica(Integer codigo, Date fecha, String tipo, double monto, String metodoPago, String descripcion) {
         this.codigo = codigo;
-        this.nombre = nombre;
-        this.fechaCreacion = fechaCreacion;
-        this.creadaPor = creadaPor;
-        this.habilitada = habilitada;
+        this.fecha = fecha;
+        this.tipo = tipo;
+        this.monto = monto;
+        this.metodoPago = metodoPago;
+        this.descripcion = descripcion;
     }
 
     public Integer getCodigo() {
@@ -86,44 +93,52 @@ public class SubCategoria implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getNombre() {
-        return nombre;
+    public Date getFecha() {
+        return fecha;
     }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
+    public void setFecha(Date fecha) {
+        this.fecha = fecha;
     }
 
-    public Date getFechaCreacion() {
-        return fechaCreacion;
+    public String getTipo() {
+        return tipo;
     }
 
-    public void setFechaCreacion(Date fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
     }
 
-    public String getCreadaPor() {
-        return creadaPor;
+    public double getMonto() {
+        return monto;
     }
 
-    public void setCreadaPor(String creadaPor) {
-        this.creadaPor = creadaPor;
+    public void setMonto(double monto) {
+        this.monto = monto;
     }
 
-    public boolean getHabilitada() {
-        return habilitada;
+    public String getMetodoPago() {
+        return metodoPago;
     }
 
-    public void setHabilitada(boolean habilitada) {
-        this.habilitada = habilitada;
+    public void setMetodoPago(String metodoPago) {
+        this.metodoPago = metodoPago;
     }
 
-    public Categoria getCategoria() {
-        return categoria;
+    public String getDescripcion() {
+        return descripcion;
     }
 
-    public void setCategoria(Categoria categoria) {
-        this.categoria = categoria;
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public CajaChica getCajaChica() {
+        return cajaChica;
+    }
+
+    public void setCajaChica(CajaChica cajaChica) {
+        this.cajaChica = cajaChica;
     }
 
     @Override
@@ -136,10 +151,10 @@ public class SubCategoria implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof SubCategoria)) {
+        if (!(object instanceof MovimientoCajaChica)) {
             return false;
         }
-        SubCategoria other = (SubCategoria) object;
+        MovimientoCajaChica other = (MovimientoCajaChica) object;
         if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
             return false;
         }
@@ -148,7 +163,7 @@ public class SubCategoria implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.SubCategoria[ codigo=" + codigo + " ]";
+        return "com.maxsoft.application.modelo.MovimientoCajaChica[ codigo=" + codigo + " ]";
     }
     
 }
