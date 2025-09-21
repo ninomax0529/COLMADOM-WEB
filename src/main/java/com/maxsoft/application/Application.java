@@ -27,6 +27,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 //@Push()
 @Push(value = PushMode.AUTOMATIC, transport = Transport.WEBSOCKET_XHR) // Puedes usar solo @Push si quieres default
 public class Application implements AppShellConfigurator {
+     
+    //para  buscar libreria duplicadas : mvn dependency:tree > deps.txt
+    // mvn versions:display-dependency-updates
+    // mvn clean
+
+
 
     public static void main(String[] args) {
 

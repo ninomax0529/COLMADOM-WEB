@@ -45,7 +45,7 @@ public class ModuloInventario extends AppLayout {
 
         RouterLink linkArticulo = createLink(VaadinIcon.DASHBOARD, "Articulo", ArticuloView.class);
         RouterLink linkEntrada = createLink(VaadinIcon.FILE_TABLE, "Entrada Inventario ", EntradaDeIventarioView.class);
-//        RouterLink linkRegistrarArticulo = createLink(VaadinIcon.FILE_TABLE, "Registrar Articulos ", RegistrarArticuloView.class);
+        
         
 //          RouterLink linkConsArtInv1 = createLink(VaadinIcon.FILE_TABLE, "Filtro Inventario ", GridColumnFiltering.class);
 

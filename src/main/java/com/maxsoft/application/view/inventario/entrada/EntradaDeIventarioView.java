@@ -37,16 +37,6 @@ public class EntradaDeIventarioView extends VerticalLayout {
     ToolBarBotonera botonera = new ToolBarBotonera(true, false, false);
 
     List<DetalleEntradaInventario> listDet;
-
-    private TextField nombre = new TextField("Nombre");
-    private NumberField precio = new NumberField("Precio");
-    private NumberField stock = new NumberField("Stock");
-
-    private Button guardar = new Button("Guardar");
-    private Button cancelar = new Button("Cancelar");
-    private Button nuevo = new Button("Nuevo");
-
-    private Articulo articuloActual;
     List<EntradaInventario> listaEntInv;
 
     @Autowired

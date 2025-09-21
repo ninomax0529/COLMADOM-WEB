@@ -45,6 +45,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
 @PageTitle("Punto de Venta")
@@ -491,6 +492,22 @@ public class PuntoDeVentaView extends VerticalLayout {
 
                 if (!(articulo == null)) {
 
+                   boolean existe=existeArticulo(listDet, articulo.getCodigo());
+                   
+                   if(existe){
+                       
+                       listDet.forEach((var d)->{
+                           
+                         if(Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())){
+                             d.setCantidad(d.getCantidad()+1);
+                             grid.getDataProvider().refreshAll();
+                            
+                         }
+                           
+                       });
+                       return;
+                   }
+                    
                     DetalleFacturaDeVenta det1 = new DetalleFacturaDeVenta();
 
                     det1.setCodigo(articulo.getCodigo());//Colocarlo anull cuando le asignemo el encabezada
@@ -540,5 +557,15 @@ public class PuntoDeVentaView extends VerticalLayout {
         dialog.open();
 
     }
+    
 
+    public static boolean existeArticulo(List<DetalleFacturaDeVenta> lista, int art) {
+        return lista.stream()
+                .anyMatch(n -> n.getArticulo().getCodigo() == art);
+    }
+
+    
 }
+
+
+

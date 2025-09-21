@@ -10,6 +10,7 @@ package com.maxsoft.application.view.inventario.articulo;
  */
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
+import com.maxsoft.application.view.componente.FiltroDataView;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -33,22 +34,29 @@ public final class ArticuloDialogoFilteringView extends Dialog {
 
     private Articulo articulo;
 
-    TextField txtBuscar = new TextField();
+    List<Articulo> listArt;
+    Grid<Articulo> grid = new Grid<>(Articulo.class, false);
+    GridListDataView<Articulo> dataView;
+    FiltroDataView<Articulo> filtroDataView;
 
+//    TextField txtBuscar = new TextField();
     public ArticuloDialogoFilteringView(ArticuloService articuloService, DialogCallback dialogCallback) {
 
         this.articuloService = articuloService;
 
-        txtBuscar.focus();
+//        txtBuscar.focus();
         setSizeFull();
+        listArt = articuloService.getLista();
 
         setHeaderTitle("Consulta de Artículos");
-        Grid<Articulo> grid = new Grid<>(Articulo.class, false);
+
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
 
         setArticulo(new Articulo());
+        dataView = grid.setItems(listArt);
+        filtroDataView = new FiltroDataView<Articulo>(dataView);
 
-        txtBuscar.addKeyPressListener(Key.ENTER, e -> {
+        filtroDataView.getTxtBuscar().addKeyPressListener(Key.ENTER, e -> {
 
             Articulo selected = grid.asSingleSelect().getValue();
 
@@ -71,26 +79,23 @@ public final class ArticuloDialogoFilteringView extends Dialog {
         grid.addColumn(Articulo::getCodigo).setHeader("Codigo");
         grid.addColumn(Articulo::getDescripcion).setHeader("Descripcion");
 
-        List<Articulo> listArt = articuloService.getLista();
-        GridListDataView<Articulo> dataView = grid.setItems(listArt);
-
-        txtBuscar.setWidth("50%");
-        txtBuscar.setPlaceholder("Buscar");
-        txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
-        txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
-        txtBuscar.addValueChangeListener(e -> dataView.refreshAll());
-
+//        txtBuscar.setWidth("50%");
+//        txtBuscar.setPlaceholder("Buscar");
+//        txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+//        txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
+//        txtBuscar.addValueChangeListener(e -> dataView.refreshAll());
         dataView.addFilter(selectArticulo -> {
 
-            String searchTerm = txtBuscar.getValue().trim();
+            String searchTerm = filtroDataView.getTxtBuscar().getValue().trim();
 
             if (searchTerm.isEmpty()) {
                 return true;
             }
 
-            boolean matchesDescripcion = matchesTerm(selectArticulo.getDescripcion(),
+            boolean matchesDescripcion = filtroDataView.matchesTerm(selectArticulo.getDescripcion(),
                     searchTerm);
-            boolean matchesCodigo = matchesTerm(selectArticulo.getCodigo().toString(), searchTerm);
+
+            boolean matchesCodigo = filtroDataView.matchesTerm(selectArticulo.getCodigo().toString(), searchTerm);
             grid.select(selectArticulo);
 
             return matchesDescripcion || matchesCodigo;
@@ -99,13 +104,12 @@ public final class ArticuloDialogoFilteringView extends Dialog {
 //        VerticalLayout layout = new VerticalLayout(grid);
 //        layout.setSizeFull();
 //        layout.setPadding(false);
-        add(txtBuscar, grid);
+        add(filtroDataView.getTxtBuscar(), grid);
     }
 
-    private boolean matchesTerm(String value, String searchTerm) {
-        return value.toLowerCase().contains(searchTerm.toLowerCase());
-    }
-
+//    private boolean matchesTerm(String value, String searchTerm) {
+//        return value.toLowerCase().contains(searchTerm.toLowerCase());
+//    }
     public Articulo getArticulo() {
         return articulo;
     }

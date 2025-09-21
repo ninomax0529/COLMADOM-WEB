@@ -9,12 +9,14 @@ package com.maxsoft.application.view.inventario.entrada;
  * @author maximilianoalmonte
  */
 import com.maxsoft.application.modelo.DetalleEntradaInventario;
+import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.EntradaDeInventarioService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
 import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
+import static com.maxsoft.application.view.venta.puntoVenta.PuntoDeVentaView.existeArticulo;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
@@ -40,6 +42,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @PageTitle("Registro Entrada de Inventario")
 @Route(value = "inventario/registroEntrada")
@@ -73,7 +76,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
         this.entradaInvService = entradaInvServiceArg;
         this.articuloServicel = articuloServiceArg;
-        
+
         botonera.getGuardar().addClickListener(e -> {
             // lógica de guardar
 
@@ -109,16 +112,32 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
                     try {
 
-                        ArticuloDialogoFilteringView dialog = new ArticuloDialogoFilteringView(articuloServicel, entrada -> {
+                        ArticuloDialogoFilteringView dialog = new ArticuloDialogoFilteringView(articuloServicel, articulo -> {
 
-                            if (!(entrada == null)) {
+                            if (!(articulo == null)) {
+
+                                boolean existe = existeArticulo(listDet, articulo.getCodigo());
+
+                                if (existe) {
+
+                                    listDet.forEach((var d) -> {
+
+                                        if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
+                                            d.setCantidadRecibida(d.getCantidadRecibida()+ 1);
+                                            grid.getDataProvider().refreshAll();
+
+                                        }
+
+                                    });
+                                    return;
+                                }
 
                                 i++;
                                 DetalleEntradaInventario det1 = new DetalleEntradaInventario();
 
-                                det1.setCodigo(entrada.getCodigo());//Colocarlo anull cuando le asignemo el encabezada
-                                det1.setArticulo(entrada);
-                                det1.setDescripcionArticulo(entrada.getDescripcion());
+                                det1.setCodigo(articulo.getCodigo());//Colocarlo anull cuando le asignemo el encabezada
+                                det1.setArticulo(articulo);
+                                det1.setDescripcionArticulo(articulo.getDescripcion());
                                 det1.setCantidadPedida(0.00);
                                 det1.setCantidadRecibida(0.00);
                                 det1.setCantidadPendiente(0.00);
@@ -128,8 +147,6 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
                                 det1.setNombreUnidad("Unidad");
                                 listDet.add(det1);
 
-                                System.out.println("Articulo ingresó: " + entrada.getDescripcion());
-//            
                                 grid.getDataProvider().refreshAll(); // Refrescar el Grid sin perder la lista
                             }
 
@@ -145,7 +162,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
         txtBuscar.setSizeFull();
         hlArticulo.setSizeFull();
-         hlArticulo.add(txtBuscar,btnNuevo);
+        hlArticulo.add(txtBuscar, btnNuevo);
         grid.setItems(listDet);
 
         txtNumDoc.setEnabled(false);
@@ -154,8 +171,8 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
         configurarGridDetalle();
         editarDetalle();
         configurarFormulario();
-        
-        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha,botonera);
+
+        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, botonera);
         hlDatos.setAlignItems(Alignment.BASELINE);
 
         add(hlDatos, hlArticulo, grid);
@@ -347,6 +364,11 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
     private boolean matchesTerm(String value, String searchTerm) {
         return value.toLowerCase().contains(searchTerm.toLowerCase());
+    }
+
+    public static boolean existeArticulo(List<DetalleEntradaInventario> lista, int art) {
+        return lista.stream()
+                .anyMatch(n -> n.getArticulo().getCodigo() == art);
     }
 
 }
