@@ -5,6 +5,7 @@
 package com.maxsoft.application.modelo;
 
 import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -63,6 +64,8 @@ public class Unidad implements Serializable {
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @OneToMany(mappedBy = "unidad")
     private Collection<ArticuloAlmacen> articuloAlmacenCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "unidad")
+    private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
 
     public Unidad() {
     }
@@ -149,6 +152,15 @@ public class Unidad implements Serializable {
 
     public void setArticuloAlmacenCollection(Collection<ArticuloAlmacen> articuloAlmacenCollection) {
         this.articuloAlmacenCollection = articuloAlmacenCollection;
+    }
+
+    @XmlTransient
+    public Collection<DetalleSalidaInventario> getDetalleSalidaInventarioCollection() {
+        return detalleSalidaInventarioCollection;
+    }
+
+    public void setDetalleSalidaInventarioCollection(Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection) {
+        this.detalleSalidaInventarioCollection = detalleSalidaInventarioCollection;
     }
 
     @Override

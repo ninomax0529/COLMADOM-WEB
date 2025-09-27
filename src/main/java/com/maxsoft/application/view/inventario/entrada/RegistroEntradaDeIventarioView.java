@@ -9,14 +9,13 @@ package com.maxsoft.application.view.inventario.entrada;
  * @author maximilianoalmonte
  */
 import com.maxsoft.application.modelo.DetalleEntradaInventario;
-import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.EntradaDeInventarioService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
+import com.maxsoft.application.view.dialogo.ConfirmDialog;
 import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
-import static com.maxsoft.application.view.venta.puntoVenta.PuntoDeVentaView.existeArticulo;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
@@ -261,12 +260,27 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
             Button deleteButton = new Button("🗑️ (F3) ", click -> {
 
-                if (!txtBuscar.isEmpty()) {
+                
+                 ConfirmDialog dialog = new ConfirmDialog(
+                        "¿Seguro que quiere eliminar el articulo -> " + item.getDescripcionArticulo(),
+                        () -> {
 
-                    listDet.remove(item);
-                    grid.getDataProvider().refreshAll();
-                    txtBuscar.clear();
-                }
+                            listDet.remove(item);
+                            grid.getDataProvider().refreshAll();
+                            if (!txtBuscar.isEmpty()) {
+
+                                listDet.remove(item);
+                                grid.getDataProvider().refreshAll();
+                                txtBuscar.clear();
+                            }
+
+                        },
+                        () -> {
+
+                        }
+                );
+
+                dialog.open();
 
             });
 

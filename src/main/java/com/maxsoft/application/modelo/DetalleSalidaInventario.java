@@ -10,6 +10,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
@@ -20,7 +22,7 @@ import java.io.Serializable;
 
 /**
  *
- * @author Maximiliano
+ * @author maximilianoalmonte
  */
 @Entity
 @Table(name = "detalle_salida_inventario")
@@ -37,47 +39,35 @@ public class DetalleSalidaInventario implements Serializable {
     private Integer codigo;
     @Basic(optional = false)
     @NotNull
-    @Column(name = "salida_inventario")
-    private int salidaInventario;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "articulo")
-    private int articulo;
-    @Basic(optional = false)
-    @NotNull
     @Size(min = 1, max = 200)
     @Column(name = "descripcion_articulo")
     private String descripcionArticulo;
     @Basic(optional = false)
     @NotNull
-    @Column(name = "unidad")
-    private int unidad;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "cantidad")
     private double cantidad;
-    @Basic(optional = false)
-    @NotNull
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "existencia")
-    private double existencia;
-    @Basic(optional = false)
-    @NotNull
+    private Double existencia;
     @Column(name = "precio")
-    private double precio;
-    @Basic(optional = false)
-    @NotNull
+    private Double precio;
     @Column(name = "valor")
-    private double valor;
-    @Basic(optional = false)
-    @NotNull
+    private Double valor;
     @Column(name = "existencia_anterior")
-    private double existenciaAnterior;
-    @Basic(optional = false)
-    @NotNull
+    private Double existenciaAnterior;
     @Column(name = "cantidad_solicitada")
-    private double cantidadSolicitada;
+    private Double cantidadSolicitada;
     @Column(name = "almacen")
     private Integer almacen;
+    @JoinColumn(name = "articulo", referencedColumnName = "codigo")
+    @ManyToOne(optional = false)
+    private Articulo articulo;
+    @JoinColumn(name = "salida_inventario", referencedColumnName = "codigo")
+    @ManyToOne(optional = false)
+    private SalidaInventario salidaInventario;
+    @JoinColumn(name = "unidad", referencedColumnName = "codigo")
+    @ManyToOne(optional = false)
+    private Unidad unidad;
 
     public DetalleSalidaInventario() {
     }
@@ -86,18 +76,10 @@ public class DetalleSalidaInventario implements Serializable {
         this.codigo = codigo;
     }
 
-    public DetalleSalidaInventario(Integer codigo, int salidaInventario, int articulo, String descripcionArticulo, int unidad, double cantidad, double existencia, double precio, double valor, double existenciaAnterior, double cantidadSolicitada) {
+    public DetalleSalidaInventario(Integer codigo, String descripcionArticulo, double cantidad) {
         this.codigo = codigo;
-        this.salidaInventario = salidaInventario;
-        this.articulo = articulo;
         this.descripcionArticulo = descripcionArticulo;
-        this.unidad = unidad;
         this.cantidad = cantidad;
-        this.existencia = existencia;
-        this.precio = precio;
-        this.valor = valor;
-        this.existenciaAnterior = existenciaAnterior;
-        this.cantidadSolicitada = cantidadSolicitada;
     }
 
     public Integer getCodigo() {
@@ -108,36 +90,12 @@ public class DetalleSalidaInventario implements Serializable {
         this.codigo = codigo;
     }
 
-    public int getSalidaInventario() {
-        return salidaInventario;
-    }
-
-    public void setSalidaInventario(int salidaInventario) {
-        this.salidaInventario = salidaInventario;
-    }
-
-    public int getArticulo() {
-        return articulo;
-    }
-
-    public void setArticulo(int articulo) {
-        this.articulo = articulo;
-    }
-
     public String getDescripcionArticulo() {
         return descripcionArticulo;
     }
 
     public void setDescripcionArticulo(String descripcionArticulo) {
         this.descripcionArticulo = descripcionArticulo;
-    }
-
-    public int getUnidad() {
-        return unidad;
-    }
-
-    public void setUnidad(int unidad) {
-        this.unidad = unidad;
     }
 
     public double getCantidad() {
@@ -148,43 +106,43 @@ public class DetalleSalidaInventario implements Serializable {
         this.cantidad = cantidad;
     }
 
-    public double getExistencia() {
+    public Double getExistencia() {
         return existencia;
     }
 
-    public void setExistencia(double existencia) {
+    public void setExistencia(Double existencia) {
         this.existencia = existencia;
     }
 
-    public double getPrecio() {
+    public Double getPrecio() {
         return precio;
     }
 
-    public void setPrecio(double precio) {
+    public void setPrecio(Double precio) {
         this.precio = precio;
     }
 
-    public double getValor() {
+    public Double getValor() {
         return valor;
     }
 
-    public void setValor(double valor) {
+    public void setValor(Double valor) {
         this.valor = valor;
     }
 
-    public double getExistenciaAnterior() {
+    public Double getExistenciaAnterior() {
         return existenciaAnterior;
     }
 
-    public void setExistenciaAnterior(double existenciaAnterior) {
+    public void setExistenciaAnterior(Double existenciaAnterior) {
         this.existenciaAnterior = existenciaAnterior;
     }
 
-    public double getCantidadSolicitada() {
+    public Double getCantidadSolicitada() {
         return cantidadSolicitada;
     }
 
-    public void setCantidadSolicitada(double cantidadSolicitada) {
+    public void setCantidadSolicitada(Double cantidadSolicitada) {
         this.cantidadSolicitada = cantidadSolicitada;
     }
 
@@ -194,6 +152,30 @@ public class DetalleSalidaInventario implements Serializable {
 
     public void setAlmacen(Integer almacen) {
         this.almacen = almacen;
+    }
+
+    public Articulo getArticulo() {
+        return articulo;
+    }
+
+    public void setArticulo(Articulo articulo) {
+        this.articulo = articulo;
+    }
+
+    public SalidaInventario getSalidaInventario() {
+        return salidaInventario;
+    }
+
+    public void setSalidaInventario(SalidaInventario salidaInventario) {
+        this.salidaInventario = salidaInventario;
+    }
+
+    public Unidad getUnidad() {
+        return unidad;
+    }
+
+    public void setUnidad(Unidad unidad) {
+        this.unidad = unidad;
     }
 
     @Override

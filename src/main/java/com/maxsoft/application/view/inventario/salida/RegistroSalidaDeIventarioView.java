@@ -8,15 +8,15 @@ package com.maxsoft.application.view.inventario.salida;
  *
  * @author maximilianoalmonte
  */
-
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
 import com.maxsoft.application.modelo.SalidaInventario;
-import com.maxsoft.application.modelo.Usuario;
+import com.maxsoft.application.modelo.Unidad;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.EntradaDeInventarioService;
 import com.maxsoft.application.servicio.interfaces.SalidaInventarioService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
+import com.maxsoft.application.view.dialogo.ConfirmDialog;
 import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
@@ -93,7 +93,7 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
                 if (det2.getCantidad() <= 0) {
 
-                    Notification.show("El articulo  " + det2.getDescripcionArticulo()+ " tiene la cantidad en cero ",
+                    Notification.show("El articulo  " + det2.getDescripcionArticulo() + " tiene la cantidad en cero ",
                             4000, Notification.Position.TOP_CENTER);
                     return;
                 }
@@ -122,17 +122,13 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
                                 DetalleSalidaInventario det1 = new DetalleSalidaInventario();
 
                                 det1.setCodigo(articulo.getCodigo());//Colocarlo anull cuando le asignemo el encabezada
-                                det1.setArticulo(articulo.getCodigo());
+                                det1.setArticulo(articulo);
                                 det1.setDescripcionArticulo(articulo.getDescripcion());
 
                                 det1.setCantidad(articulo.getExistencia());
-//                                det1.setCantidadRecibida(0.00);
-//                                det1.setCantidadPendiente(0.00);
-//                                det1.setExistenciaActual(0.00);
-//                                det1.setNuevaExistencia(0.00);
-//                                det1.setNombreAlmacen("General");
-//                                det1.setNombreUnidad(articulo.getNombreEmbase());
-//                                det1.setUnidad(articulo.getUnidada());
+                                det1.setExistencia(0.00);
+
+                                det1.setUnidad(new Unidad(1));
                                 listDet.add(det1);
 
                                 System.out.println("Articulo ingresó: " + articulo.getDescripcion());
@@ -187,21 +183,20 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
             salidaInv = new SalidaInventario();
             salidaInv.setFecha(fecha);
-            salidaInv.setFecha(new Date());
             salidaInv.setFechaRegistro(new Date());
 //            salidaInv.setNombreUsuario("Administrador");
-            salidaInv.setUsuario(new Usuario(i));
+//            salidaInv.setUsuario(new Usuario(1));
 //            salidaInv.setNombreUsuario("admin");
 
 //            entradaInventario.setTipoDocumento(1);
 //            entradaInventario.setSecuenciaDocumento(new SecuenciaDocumento(i));
             listDet.stream().forEach(e -> {
 
-//                e.setSalidaInventario(salidaInv);
+                e.setSalidaInventario(salidaInv);
                 e.setCodigo(null);
             });
 
-//            salidaInv.setDetalleSalidaInventarioCollection(listDet);
+            salidaInv.setDetalleSalidaInventarioCollection(listDet);
             this.salidaInvService.guardar(salidaInv);
             Notification.show("Salida guardada exitosamente", 3000, Notification.Position.TOP_CENTER);
             listDet.clear();
@@ -256,12 +251,26 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
             Button deleteButton = new Button("🗑️ (F3) ", click -> {
 
-                if (!txtBuscar.isEmpty()) {
+                ConfirmDialog dialog = new ConfirmDialog(
+                        "¿Seguro que quiere eliminar el articulo -> " + item.getDescripcionArticulo(),
+                        () -> {
 
-                    listDet.remove(item);
-                    grid.getDataProvider().refreshAll();
-                    txtBuscar.clear();
-                }
+                            listDet.remove(item);
+                            grid.getDataProvider().refreshAll();
+                            if (!txtBuscar.isEmpty()) {
+
+                                listDet.remove(item);
+                                grid.getDataProvider().refreshAll();
+                                txtBuscar.clear();
+                            }
+
+                        },
+                        () -> {
+
+                        }
+                );
+
+                dialog.open();
 
             });
 
@@ -278,13 +287,13 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
             if (searchTerm.isEmpty()) {
                 return true;
             }
-//
-//            boolean matchesDescripcion = matchesTerm(selectArticulo.get(),
-//                    searchTerm);
+
+            boolean matchesDescripcion = matchesTerm(selectArticulo.getDescripcionArticulo(),
+                    searchTerm);
             boolean matchesCodigo = matchesTerm(selectArticulo.getCodigo().toString(), searchTerm);
             grid.select(selectArticulo);
 
-            return  matchesCodigo;
+            return matchesDescripcion;
         });
 
         txtBuscar.setWidth("50%");

@@ -14,6 +14,7 @@ import com.maxsoft.application.servicio.interfaces.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.FacturaDeVentaService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.ModuloPrincipal;
+import com.maxsoft.application.view.dialogo.ConfirmDialog;
 import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
 import com.maxsoft.application.view.venta.CobroView;
 import com.vaadin.flow.component.Key;
@@ -333,17 +334,37 @@ public class PuntoDeVentaView extends VerticalLayout {
             txtCantidad.setValue(Double.toString(item.getCantidad()));
 
             deleteButton = new Button("🗑️ (F3)", click -> {
+                
+                  ConfirmDialog dialog = new ConfirmDialog(
+                        "¿Seguro que quiere eliminar el articulo -> " + item.getDescripcionArticulo(),
+                        () -> {
 
-                if (!txtBuscar.isEmpty()) {
+                            listDet.remove(item);
+                            grid.getDataProvider().refreshAll();
+                            if (!txtBuscar.isEmpty()) {
 
-                    listDet.remove(item);
-                    grid.getDataProvider().refreshAll();
-                    deleteButton.addClickShortcut(Key.F3);
-                    txtBuscar.clear();
-                    filtroNombre.clear();
-                }
+                                listDet.remove(item);
+                                grid.getDataProvider().refreshAll();
+                                txtBuscar.clear();
+                            }
 
-//                Notification.show("Articulo eliminado");
+                        },
+                        () -> {
+
+                        }
+                );
+
+                dialog.open();
+
+//                if (!txtBuscar.isEmpty()) {
+//
+//                    listDet.remove(item);
+//                    grid.getDataProvider().refreshAll();
+//                    deleteButton.addClickShortcut(Key.F3);
+//                    txtBuscar.clear();
+//                    filtroNombre.clear();
+//                }
+
             });
 
             deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);

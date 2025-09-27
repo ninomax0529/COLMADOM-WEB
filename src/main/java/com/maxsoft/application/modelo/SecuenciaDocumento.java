@@ -37,6 +37,12 @@ import java.util.Date;
     @NamedQuery(name = "SecuenciaDocumento.findAll", query = "SELECT s FROM SecuenciaDocumento s")})
 public class SecuenciaDocumento implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Column(name = "numero")
@@ -56,28 +62,21 @@ public class SecuenciaDocumento implements Serializable {
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
+    @Column(name = "fecha_actualizacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaActualizacion;
     @Size(max = 50)
     @Column(name = "creado_por")
     private String creadoPor;
     @OneToMany(mappedBy = "secuenciaDocumento")
-    private Collection<SalidaInventario> salidaInventarioCollection;
-
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
-    @Column(name = "fecha_actualizacion")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaActualizacion;
-    @OneToMany(mappedBy = "secuenciaDocumento")
     private Collection<Documento> documentoCollection;
-    @OneToMany(mappedBy = "secuenciaDocumento")
-    private Collection<EntradaInventario> entradaInventarioCollection;
     @JoinColumn(name = "tipo_documento", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private TipoDocumento tipoDocumento;
+    @OneToMany(mappedBy = "secuenciaDocumento")
+    private Collection<SalidaInventario> salidaInventarioCollection;
+    @OneToMany(mappedBy = "secuenciaDocumento")
+    private Collection<EntradaInventario> entradaInventarioCollection;
 
     public SecuenciaDocumento() {
     }
@@ -99,82 +98,6 @@ public class SecuenciaDocumento implements Serializable {
 
     public void setCodigo(Integer codigo) {
         this.codigo = codigo;
-    }
-
-
-    public Date getFechaCreacion() {
-        return fechaCreacion;
-    }
-
-    public void setFechaCreacion(Date fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
-
-    public Date getFechaActualizacion() {
-        return fechaActualizacion;
-    }
-
-    public void setFechaActualizacion(Date fechaActualizacion) {
-        this.fechaActualizacion = fechaActualizacion;
-    }
-
-    public String getCreadoPor() {
-        return creadoPor;
-    }
-
-    public void setCreadoPor(String creadoPor) {
-        this.creadoPor = creadoPor;
-    }
-
-    @XmlTransient
-    public Collection<Documento> getDocumentoCollection() {
-        return documentoCollection;
-    }
-
-    public void setDocumentoCollection(Collection<Documento> documentoCollection) {
-        this.documentoCollection = documentoCollection;
-    }
-
-    @XmlTransient
-    public Collection<EntradaInventario> getEntradaInventarioCollection() {
-        return entradaInventarioCollection;
-    }
-
-    public void setEntradaInventarioCollection(Collection<EntradaInventario> entradaInventarioCollection) {
-        this.entradaInventarioCollection = entradaInventarioCollection;
-    }
-
-    public TipoDocumento getTipoDocumento() {
-        return tipoDocumento;
-    }
-
-    public void setTipoDocumento(TipoDocumento tipoDocumento) {
-        this.tipoDocumento = tipoDocumento;
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 0;
-        hash += (codigo != null ? codigo.hashCode() : 0);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof SecuenciaDocumento)) {
-            return false;
-        }
-        SecuenciaDocumento other = (SecuenciaDocumento) object;
-        if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString() {
-        return "com.maxsoft.application.modelo.SecuenciaDocumento[ codigo=" + codigo + " ]";
     }
 
     public int getNumero() {
@@ -209,7 +132,46 @@ public class SecuenciaDocumento implements Serializable {
         this.sufijo = sufijo;
     }
 
+    public Date getFechaCreacion() {
+        return fechaCreacion;
+    }
 
+    public void setFechaCreacion(Date fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+    }
+
+    public Date getFechaActualizacion() {
+        return fechaActualizacion;
+    }
+
+    public void setFechaActualizacion(Date fechaActualizacion) {
+        this.fechaActualizacion = fechaActualizacion;
+    }
+
+    public String getCreadoPor() {
+        return creadoPor;
+    }
+
+    public void setCreadoPor(String creadoPor) {
+        this.creadoPor = creadoPor;
+    }
+
+    @XmlTransient
+    public Collection<Documento> getDocumentoCollection() {
+        return documentoCollection;
+    }
+
+    public void setDocumentoCollection(Collection<Documento> documentoCollection) {
+        this.documentoCollection = documentoCollection;
+    }
+
+    public TipoDocumento getTipoDocumento() {
+        return tipoDocumento;
+    }
+
+    public void setTipoDocumento(TipoDocumento tipoDocumento) {
+        this.tipoDocumento = tipoDocumento;
+    }
 
     @XmlTransient
     public Collection<SalidaInventario> getSalidaInventarioCollection() {
@@ -218,6 +180,40 @@ public class SecuenciaDocumento implements Serializable {
 
     public void setSalidaInventarioCollection(Collection<SalidaInventario> salidaInventarioCollection) {
         this.salidaInventarioCollection = salidaInventarioCollection;
+    }
+
+    @XmlTransient
+    public Collection<EntradaInventario> getEntradaInventarioCollection() {
+        return entradaInventarioCollection;
+    }
+
+    public void setEntradaInventarioCollection(Collection<EntradaInventario> entradaInventarioCollection) {
+        this.entradaInventarioCollection = entradaInventarioCollection;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 0;
+        hash += (codigo != null ? codigo.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        // TODO: Warning - this method won't work in the case the id fields are not set
+        if (!(object instanceof SecuenciaDocumento)) {
+            return false;
+        }
+        SecuenciaDocumento other = (SecuenciaDocumento) object;
+        if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "com.maxsoft.application.modelo.SecuenciaDocumento[ codigo=" + codigo + " ]";
     }
     
 }

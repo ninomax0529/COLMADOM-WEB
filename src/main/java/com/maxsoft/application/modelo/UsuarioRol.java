@@ -22,7 +22,7 @@ import java.io.Serializable;
 
 /**
  *
- * @author Maximiliano
+ * @author maximilianoalmonte
  */
 @Entity
 @Table(name = "usuario_rol")

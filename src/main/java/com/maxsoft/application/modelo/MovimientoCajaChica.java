@@ -58,7 +58,7 @@ public class MovimientoCajaChica implements Serializable {
     @Basic(optional = false)
     @NotNull
     @Column(name = "metodo_pago")
-    private String metodoPago;
+    private double metodoPago;
     @Basic(optional = false)
     @NotNull
     @Lob
@@ -76,7 +76,7 @@ public class MovimientoCajaChica implements Serializable {
         this.codigo = codigo;
     }
 
-    public MovimientoCajaChica(Integer codigo, Date fecha, String tipo, double monto, String metodoPago, String descripcion) {
+    public MovimientoCajaChica(Integer codigo, Date fecha, String tipo, double monto, double metodoPago, String descripcion) {
         this.codigo = codigo;
         this.fecha = fecha;
         this.tipo = tipo;
@@ -117,11 +117,11 @@ public class MovimientoCajaChica implements Serializable {
         this.monto = monto;
     }
 
-    public String getMetodoPago() {
+    public double getMetodoPago() {
         return metodoPago;
     }
 
-    public void setMetodoPago(String metodoPago) {
+    public void setMetodoPago(double metodoPago) {
         this.metodoPago = metodoPago;
     }
 

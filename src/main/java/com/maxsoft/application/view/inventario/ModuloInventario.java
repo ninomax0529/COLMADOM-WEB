@@ -7,6 +7,7 @@ package com.maxsoft.application.view.inventario;
 import com.maxsoft.application.view.inventario.articulo.ArticuloView;
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.inventario.entrada.EntradaDeIventarioView;
+import com.maxsoft.application.view.inventario.salida.SalidaDeIventarioView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.html.H3;
@@ -36,7 +37,7 @@ import org.vaadin.lineawesome.LineAwesomeIconUrl;
 public class ModuloInventario extends AppLayout {
 
     public ModuloInventario() {
-    
+
         createHeader();
         createDrawer();
     }
@@ -45,14 +46,13 @@ public class ModuloInventario extends AppLayout {
 
         RouterLink linkArticulo = createLink(VaadinIcon.DASHBOARD, "Articulo", ArticuloView.class);
         RouterLink linkEntrada = createLink(VaadinIcon.FILE_TABLE, "Entrada Inventario ", EntradaDeIventarioView.class);
-        
-        
-//          RouterLink linkConsArtInv1 = createLink(VaadinIcon.FILE_TABLE, "Filtro Inventario ", GridColumnFiltering.class);
+        RouterLink linkSalida = createLink(VaadinIcon.FILE_TABLE, "Salida Inventario ", SalidaDeIventarioView.class);
 
+//          RouterLink linkConsArtInv1 = createLink(VaadinIcon.FILE_TABLE, "Filtro Inventario ", GridColumnFiltering.class);
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
-////
+        ////
 //        // Layout vertical que contiene los enlaces del menú
-        VerticalLayout menuLayout = new VerticalLayout(linkArticulo, linkEntrada,linkModulo);
+        VerticalLayout menuLayout = new VerticalLayout(linkArticulo, linkEntrada, linkSalida, linkModulo);
 
         menuLayout.setPadding(false);
         menuLayout.setSpacing(false);

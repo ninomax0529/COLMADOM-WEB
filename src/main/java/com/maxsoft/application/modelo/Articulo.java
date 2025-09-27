@@ -165,6 +165,8 @@ public class Articulo implements Serializable {
     @JoinColumn(name = "unidad_de_venta", referencedColumnName = "codigo")
     @ManyToOne
     private UnidadDeVenta unidadDeVenta;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
+    private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
 
     public Articulo() {
     }
@@ -546,6 +548,15 @@ public class Articulo implements Serializable {
 
     public void setUnidadDeVenta(UnidadDeVenta unidadDeVenta) {
         this.unidadDeVenta = unidadDeVenta;
+    }
+
+    @XmlTransient
+    public Collection<DetalleSalidaInventario> getDetalleSalidaInventarioCollection() {
+        return detalleSalidaInventarioCollection;
+    }
+
+    public void setDetalleSalidaInventarioCollection(Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection) {
+        this.detalleSalidaInventarioCollection = detalleSalidaInventarioCollection;
     }
 
     @Override

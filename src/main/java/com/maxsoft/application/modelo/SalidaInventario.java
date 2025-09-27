@@ -5,6 +5,7 @@
 package com.maxsoft.application.modelo;
 
 import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,18 +15,21 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author Maximiliano
+ * @author maximilianoalmonte
  */
 @Entity
 @Table(name = "salida_inventario")
@@ -49,8 +53,8 @@ public class SalidaInventario implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaRegistro;
     @Size(max = 45)
-    @Column(name = "comentario")
-    private String comentario;
+    @Column(name = "observacion")
+    private String observacion;
     @Column(name = "fecha_contabilizacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaContabilizacion;
@@ -63,11 +67,6 @@ public class SalidaInventario implements Serializable {
     private Integer tipoSalida;
     @Basic(optional = false)
     @NotNull
-    @Size(min = 1, max = 80)
-    @Column(name = "proyecto")
-    private String proyecto;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "anulada")
     private boolean anulada;
     @Column(name = "fecha_anulada")
@@ -75,10 +74,6 @@ public class SalidaInventario implements Serializable {
     private Date fechaAnulada;
     @Column(name = "anulada_por")
     private Integer anuladaPor;
-    @Column(name = "almacen")
-    private Integer almacen;
-    @Column(name = "unidad_de_negocio")
-    private Integer unidadDeNegocio;
     @Column(name = "numero")
     private Integer numero;
     @JoinColumn(name = "secuencia_documento", referencedColumnName = "codigo")
@@ -87,6 +82,8 @@ public class SalidaInventario implements Serializable {
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
     @ManyToOne
     private Usuario usuario;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "salidaInventario")
+    private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
 
     public SalidaInventario() {
     }
@@ -95,9 +92,8 @@ public class SalidaInventario implements Serializable {
         this.codigo = codigo;
     }
 
-    public SalidaInventario(Integer codigo, String proyecto, boolean anulada) {
+    public SalidaInventario(Integer codigo, boolean anulada) {
         this.codigo = codigo;
-        this.proyecto = proyecto;
         this.anulada = anulada;
     }
 
@@ -133,12 +129,12 @@ public class SalidaInventario implements Serializable {
         this.fechaRegistro = fechaRegistro;
     }
 
-    public String getComentario() {
-        return comentario;
+    public String getObservacion() {
+        return observacion;
     }
 
-    public void setComentario(String comentario) {
-        this.comentario = comentario;
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
     }
 
     public Date getFechaContabilizacion() {
@@ -173,14 +169,6 @@ public class SalidaInventario implements Serializable {
         this.tipoSalida = tipoSalida;
     }
 
-    public String getProyecto() {
-        return proyecto;
-    }
-
-    public void setProyecto(String proyecto) {
-        this.proyecto = proyecto;
-    }
-
     public boolean getAnulada() {
         return anulada;
     }
@@ -205,22 +193,6 @@ public class SalidaInventario implements Serializable {
         this.anuladaPor = anuladaPor;
     }
 
-    public Integer getAlmacen() {
-        return almacen;
-    }
-
-    public void setAlmacen(Integer almacen) {
-        this.almacen = almacen;
-    }
-
-    public Integer getUnidadDeNegocio() {
-        return unidadDeNegocio;
-    }
-
-    public void setUnidadDeNegocio(Integer unidadDeNegocio) {
-        this.unidadDeNegocio = unidadDeNegocio;
-    }
-
     public Integer getNumero() {
         return numero;
     }
@@ -243,6 +215,15 @@ public class SalidaInventario implements Serializable {
 
     public void setUsuario(Usuario usuario) {
         this.usuario = usuario;
+    }
+
+    @XmlTransient
+    public Collection<DetalleSalidaInventario> getDetalleSalidaInventarioCollection() {
+        return detalleSalidaInventarioCollection;
+    }
+
+    public void setDetalleSalidaInventarioCollection(Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection) {
+        this.detalleSalidaInventarioCollection = detalleSalidaInventarioCollection;
     }
 
     @Override

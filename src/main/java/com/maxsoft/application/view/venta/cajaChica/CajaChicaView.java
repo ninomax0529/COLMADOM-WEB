@@ -157,7 +157,7 @@ public class CajaChicaView extends VerticalLayout {
     mov.setTipo(tipo);
     mov.setMonto(montoMovimiento.getValue());
     mov.setDescripcion(descripcionMovimiento.getValue());
-    mov.setMetodoPago(metodoPagoMovimiento.getValue());
+//    mov.setMetodoPago(metodoPagoMovimiento.getValue());
     mov.setCajaChica(cajaActual);
 
     // Guardar en BD
