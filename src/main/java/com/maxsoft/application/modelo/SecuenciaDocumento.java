@@ -37,12 +37,6 @@ import java.util.Date;
     @NamedQuery(name = "SecuenciaDocumento.findAll", query = "SELECT s FROM SecuenciaDocumento s")})
 public class SecuenciaDocumento implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Column(name = "numero")
@@ -62,12 +56,21 @@ public class SecuenciaDocumento implements Serializable {
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
-    @Column(name = "fecha_actualizacion")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaActualizacion;
     @Size(max = 50)
     @Column(name = "creado_por")
     private String creadoPor;
+    @OneToMany(mappedBy = "secuenciaDocumento")
+    private Collection<SalidaInventario> salidaInventarioCollection;
+
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
+    @Column(name = "fecha_actualizacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaActualizacion;
     @OneToMany(mappedBy = "secuenciaDocumento")
     private Collection<Documento> documentoCollection;
     @OneToMany(mappedBy = "secuenciaDocumento")
@@ -98,37 +101,6 @@ public class SecuenciaDocumento implements Serializable {
         this.codigo = codigo;
     }
 
-    public int getNumero() {
-        return numero;
-    }
-
-    public void setNumero(int numero) {
-        this.numero = numero;
-    }
-
-    public String getPrefijo() {
-        return prefijo;
-    }
-
-    public void setPrefijo(String prefijo) {
-        this.prefijo = prefijo;
-    }
-
-    public int getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(int usuario) {
-        this.usuario = usuario;
-    }
-
-    public String getSufijo() {
-        return sufijo;
-    }
-
-    public void setSufijo(String sufijo) {
-        this.sufijo = sufijo;
-    }
 
     public Date getFechaCreacion() {
         return fechaCreacion;
@@ -203,6 +175,49 @@ public class SecuenciaDocumento implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.SecuenciaDocumento[ codigo=" + codigo + " ]";
+    }
+
+    public int getNumero() {
+        return numero;
+    }
+
+    public void setNumero(int numero) {
+        this.numero = numero;
+    }
+
+    public String getPrefijo() {
+        return prefijo;
+    }
+
+    public void setPrefijo(String prefijo) {
+        this.prefijo = prefijo;
+    }
+
+    public int getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(int usuario) {
+        this.usuario = usuario;
+    }
+
+    public String getSufijo() {
+        return sufijo;
+    }
+
+    public void setSufijo(String sufijo) {
+        this.sufijo = sufijo;
+    }
+
+
+
+    @XmlTransient
+    public Collection<SalidaInventario> getSalidaInventarioCollection() {
+        return salidaInventarioCollection;
+    }
+
+    public void setSalidaInventarioCollection(Collection<SalidaInventario> salidaInventarioCollection) {
+        this.salidaInventarioCollection = salidaInventarioCollection;
     }
     
 }

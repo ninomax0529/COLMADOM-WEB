@@ -36,12 +36,6 @@ import java.util.Date;
     @NamedQuery(name = "Usuario.findAll", query = "SELECT u FROM Usuario u")})
 public class Usuario implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Size(max = 100)
     @Column(name = "nombre")
     private String nombre;
@@ -54,9 +48,6 @@ public class Usuario implements Serializable {
     @Size(max = 80)
     @Column(name = "contrasena")
     private String contrasena;
-    @Column(name = "fecha_creacion")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaCreacion;
     @Size(max = 50)
     @Column(name = "creado_por")
     private String creadoPor;
@@ -64,6 +55,20 @@ public class Usuario implements Serializable {
     @NotNull
     @Column(name = "habilitado")
     private boolean habilitado;
+    @OneToMany(mappedBy = "usuario")
+    private Collection<SalidaInventario> salidaInventarioCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
+    private Collection<UsuarioRol> usuarioRolCollection;
+
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
+    @Column(name = "fecha_creacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaCreacion;
     @Column(name = "fecha_actualizacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaActualizacion;
@@ -94,13 +99,6 @@ public class Usuario implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
 
     public String getTipoUsuario() {
         return tipoUsuario;
@@ -110,21 +108,6 @@ public class Usuario implements Serializable {
         this.tipoUsuario = tipoUsuario;
     }
 
-    public String getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(String usuario) {
-        this.usuario = usuario;
-    }
-
-    public String getContrasena() {
-        return contrasena;
-    }
-
-    public void setContrasena(String contrasena) {
-        this.contrasena = contrasena;
-    }
 
     public Date getFechaCreacion() {
         return fechaCreacion;
@@ -142,13 +125,6 @@ public class Usuario implements Serializable {
         this.creadoPor = creadoPor;
     }
 
-    public boolean getHabilitado() {
-        return habilitado;
-    }
-
-    public void setHabilitado(boolean habilitado) {
-        this.habilitado = habilitado;
-    }
 
     public Date getFechaActualizacion() {
         return fechaActualizacion;
@@ -208,6 +184,60 @@ public class Usuario implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.Usuario[ codigo=" + codigo + " ]";
+    }
+
+
+
+    @XmlTransient
+    public Collection<UsuarioRol> getUsuarioRolCollection() {
+        return usuarioRolCollection;
+    }
+
+    public void setUsuarioRolCollection(Collection<UsuarioRol> usuarioRolCollection) {
+        this.usuarioRolCollection = usuarioRolCollection;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+
+    public String getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(String usuario) {
+        this.usuario = usuario;
+    }
+
+    public String getContrasena() {
+        return contrasena;
+    }
+
+    public void setContrasena(String contrasena) {
+        this.contrasena = contrasena;
+    }
+
+
+    public boolean getHabilitado() {
+        return habilitado;
+    }
+
+    public void setHabilitado(boolean habilitado) {
+        this.habilitado = habilitado;
+    }
+
+    @XmlTransient
+    public Collection<SalidaInventario> getSalidaInventarioCollection() {
+        return salidaInventarioCollection;
+    }
+
+    public void setSalidaInventarioCollection(Collection<SalidaInventario> salidaInventarioCollection) {
+        this.salidaInventarioCollection = salidaInventarioCollection;
     }
     
 }

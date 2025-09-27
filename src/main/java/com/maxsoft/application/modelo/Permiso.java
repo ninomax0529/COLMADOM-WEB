@@ -5,7 +5,6 @@
 package com.maxsoft.application.modelo;
 
 import jakarta.persistence.Basic;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -13,37 +12,25 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
-@Table(name = "tipo_documento")
+@Table(name = "permiso")
 @XmlRootElement
 @NamedQueries({
-    @NamedQuery(name = "TipoDocumento.findAll", query = "SELECT t FROM TipoDocumento t")})
-public class TipoDocumento implements Serializable {
-
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 45)
-    @Column(name = "nombre")
-    private String nombre;
-    @Size(max = 50)
-    @Column(name = "creado_por")
-    private String creadoPor;
+    @NamedQuery(name = "Permiso.findAll", query = "SELECT p FROM Permiso p")})
+public class Permiso implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -51,24 +38,36 @@ public class TipoDocumento implements Serializable {
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @Column(name = "modulo")
-    private Integer modulo;
+    @Basic(optional = false)
+    @NotNull
+    @Size(min = 1, max = 20)
+    @Column(name = "nombre")
+    private String nombre;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "habilitado")
+    private boolean habilitado;
+    @Basic(optional = false)
+    @NotNull
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoDocumento")
-    private Collection<SecuenciaDocumento> secuenciaDocumentoCollection;
+    @Column(name = "fecha_actualizacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaActualizacion;
 
-    public TipoDocumento() {
+    public Permiso() {
     }
 
-    public TipoDocumento(Integer codigo) {
+    public Permiso(Integer codigo) {
         this.codigo = codigo;
     }
 
-    public TipoDocumento(Integer codigo, String nombre) {
+    public Permiso(Integer codigo, String nombre, boolean habilitado, Date fechaCreacion) {
         this.codigo = codigo;
         this.nombre = nombre;
+        this.habilitado = habilitado;
+        this.fechaCreacion = fechaCreacion;
     }
 
     public Integer getCodigo() {
@@ -79,13 +78,20 @@ public class TipoDocumento implements Serializable {
         this.codigo = codigo;
     }
 
-
-    public Integer getModulo() {
-        return modulo;
+    public String getNombre() {
+        return nombre;
     }
 
-    public void setModulo(Integer modulo) {
-        this.modulo = modulo;
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public boolean getHabilitado() {
+        return habilitado;
+    }
+
+    public void setHabilitado(boolean habilitado) {
+        this.habilitado = habilitado;
     }
 
     public Date getFechaCreacion() {
@@ -96,21 +102,12 @@ public class TipoDocumento implements Serializable {
         this.fechaCreacion = fechaCreacion;
     }
 
-    public String getCreadoPor() {
-        return creadoPor;
+    public Date getFechaActualizacion() {
+        return fechaActualizacion;
     }
 
-    public void setCreadoPor(String creadoPor) {
-        this.creadoPor = creadoPor;
-    }
-
-    @XmlTransient
-    public Collection<SecuenciaDocumento> getSecuenciaDocumentoCollection() {
-        return secuenciaDocumentoCollection;
-    }
-
-    public void setSecuenciaDocumentoCollection(Collection<SecuenciaDocumento> secuenciaDocumentoCollection) {
-        this.secuenciaDocumentoCollection = secuenciaDocumentoCollection;
+    public void setFechaActualizacion(Date fechaActualizacion) {
+        this.fechaActualizacion = fechaActualizacion;
     }
 
     @Override
@@ -123,10 +120,10 @@ public class TipoDocumento implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof TipoDocumento)) {
+        if (!(object instanceof Permiso)) {
             return false;
         }
-        TipoDocumento other = (TipoDocumento) object;
+        Permiso other = (Permiso) object;
         if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
             return false;
         }
@@ -135,16 +132,7 @@ public class TipoDocumento implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.TipoDocumento[ codigo=" + codigo + " ]";
+        return "com.maxsoft.application.modelo.Permiso[ codigo=" + codigo + " ]";
     }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
     
 }
