@@ -34,6 +34,7 @@ import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.grid.editor.Editor;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Hr;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -279,41 +280,39 @@ public class PuntoDeVentaView extends VerticalLayout {
     private void configurarGridDetalle() {
 
         grid.setHeight("90%");
-        grid.setWidth("90%");
+        grid.setWidthFull();
 
         grid.setItems(listDet);
 
         dataView = grid.setItems(listDet);
 
-        grid.addColumn(DetalleFacturaDeVenta::getDescripcionArticulo).setHeader("Articulo")
-                .setKey("articulo")
-//                .setFooter("TOTAL:")
-                ;
+        grid.addColumn(DetalleFacturaDeVenta::getDescripcionArticulo)
+                .setHeader("Articulo")
+                .setKey("articulo").setAutoWidth(true);
 
         grid.addColumn(DetalleFacturaDeVenta::getCantidad)
                 .setHeader("Cantidad")
-                .setKey("cantidad");
+                .setKey("cantidad").setWidth("30px");
 
         grid.addColumn(DetalleFacturaDeVenta::getPrecioVenta)
                 .setHeader("Precio")
-                .setKey("precio");
+                .setKey("precio").setWidth("30px");
 
         grid.addColumn(DetalleFacturaDeVenta::getSubTotal)
                 .setHeader("SubTotal")
-                .setKey("subTotal");
+                .setKey("subTotal").setWidth("30px");
 
         grid.addColumn(DetalleFacturaDeVenta::getExistenciaActual)
                 .setHeader("Existencia")
-                .setKey("existencia");
+                .setKey("existencia").setWidth("30px");
 
-        grid.getColumns().forEach(col -> {
-            col.setAutoWidth(true);
-            col.setSortable(true);
-        });
-
+//        grid.getColumns().forEach(col -> {
+//            col.setAutoWidth(true);
+//            col.setSortable(true);
+//        });
         grid.getColumnByKey("cantidad").setEditorComponent(txtCantidad);
 
-        grid.addColumn(new ComponentRenderer<>(item -> {
+        grid.addComponentColumn(item -> {
 
             HorizontalLayout actions = new HorizontalLayout();
 
@@ -334,8 +333,8 @@ public class PuntoDeVentaView extends VerticalLayout {
             txtCantidad.setValue(Double.toString(item.getCantidad()));
 
             deleteButton = new Button("🗑️ (F3)", click -> {
-                
-                  ConfirmDialog dialog = new ConfirmDialog(
+
+                ConfirmDialog dialog = new ConfirmDialog(
                         "¿Seguro que quiere eliminar el articulo -> " + item.getDescripcionArticulo(),
                         () -> {
 
@@ -356,26 +355,19 @@ public class PuntoDeVentaView extends VerticalLayout {
 
                 dialog.open();
 
-//                if (!txtBuscar.isEmpty()) {
-//
-//                    listDet.remove(item);
-//                    grid.getDataProvider().refreshAll();
-//                    deleteButton.addClickShortcut(Key.F3);
-//                    txtBuscar.clear();
-//                    filtroNombre.clear();
-//                }
-
             });
 
             deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
             deleteButton.addClickShortcut(Key.F3);
-            btnEditar.addClickShortcut(Key.DIGIT_1);
+//            btnEditar.addClickShortcut(Key.F4);
 
-            actions.add(btnEditar, deleteButton);
+            actions.add(deleteButton, new CantidadStepper(item, grid));
+//            actions.setAlignItems(Alignment.CENTER);
+//            actions.setMargin(true);
 
             return actions;
 
-        })).setHeader("Acciones").setAutoWidth(true);
+        }).setHeader("Acciones").setAutoWidth(true);
 
         dataView.addFilter(selectArticulo -> {
 
@@ -404,6 +396,7 @@ public class PuntoDeVentaView extends VerticalLayout {
 
         TextField cantidadField = new TextField();
         cantidadField.setWidthFull();
+        cantidadField.focus();
 
         grid.getColumnByKey("cantidad").setEditorComponent(cantidadField);
 
@@ -440,6 +433,7 @@ public class PuntoDeVentaView extends VerticalLayout {
                     cantidad = 0.00;
                     return;
                 }
+//                if (!txtBuscar.isEmpty()) {
 
                 if (item != null) {
 
@@ -458,6 +452,7 @@ public class PuntoDeVentaView extends VerticalLayout {
                     filtroNombre.clear();
                 }
 
+//                }
             } catch (NumberFormatException ex) {
                 Notification.show(" Ingrese un número válido ", 2000, Notification.Position.MIDDLE);
 
@@ -513,22 +508,33 @@ public class PuntoDeVentaView extends VerticalLayout {
 
                 if (!(articulo == null)) {
 
-                   boolean existe=existeArticulo(listDet, articulo.getCodigo());
-                   
-                   if(existe){
-                       
-                       listDet.forEach((var d)->{
+                    boolean existe = existeArticulo(listDet, articulo.getCodigo());
+
+                    if (existe) {
+
+                        listDet.forEach((var d) -> {
+
+                            if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
+                                
+                                d.setCantidad(d.getCantidad() + 1);
+
+                                d.setSubTotal(subTotal(d.getCantidad(), d.getPrecioVenta()));
+
+                                d.setTotalDescuento(totalDescuento(d.getSubTotal(), d.getPorcientoDescuento()));
+
+                                d.setTotalItbis(totalItbis(d.getSubTotal(), d.getTotalDescuento(), 18.00));
+
+                                d.setTotal(total(d.getSubTotal(), d.getTotalDescuento(), d.getTotalItbis()));
+
+                                grid.getListDataView().refreshAll();
                            
-                         if(Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())){
-                             d.setCantidad(d.getCantidad()+1);
-                             grid.getDataProvider().refreshAll();
-                            
-                         }
-                           
-                       });
-                       return;
-                   }
-                    
+
+                            }
+
+                        });
+                        return;
+                    }
+
                     DetalleFacturaDeVenta det1 = new DetalleFacturaDeVenta();
 
                     det1.setCodigo(articulo.getCodigo());//Colocarlo anull cuando le asignemo el encabezada
@@ -578,15 +584,79 @@ public class PuntoDeVentaView extends VerticalLayout {
         dialog.open();
 
     }
-    
 
     public static boolean existeArticulo(List<DetalleFacturaDeVenta> lista, int art) {
         return lista.stream()
                 .anyMatch(n -> n.getArticulo().getCodigo() == art);
     }
 
-    
+    // Componente Stepper personalizado
+    public class CantidadStepper extends HorizontalLayout {
+
+        private final DetalleFacturaDeVenta detFactLocal;
+        private final Grid<DetalleFacturaDeVenta> grid;
+        private final Span lblCantidad;
+
+        public CantidadStepper(DetalleFacturaDeVenta detFact, Grid<DetalleFacturaDeVenta> grid) {
+            this.detFactLocal = detFact;
+            this.grid = grid;
+            this.lblCantidad = new Span(String.valueOf(detFact.getCantidad()));
+
+            Button btnMenos = new Button("➖", e -> disminuir());
+            Button btnMas = new Button("➕", e -> aumentar());
+            btnMas.setWidth("20px");
+            btnMenos.setWidth("20px");
+            HorizontalLayout hl = new HorizontalLayout();
+            hl.setAlignItems(Alignment.END);
+            hl.add(btnMenos, btnMas);
+            hl.setWidth("50%");
+
+            add(hl);
+            setAlignItems(Alignment.CENTER);
+            setPadding(false);
+        }
+
+        private void aumentar() {
+
+            detFactLocal.setCantidad(detFactLocal.getCantidad() + 1);
+            lblCantidad.setText(String.valueOf(detFactLocal.getCantidad()));
+
+            detFactLocal.setSubTotal(subTotal(detFactLocal.getCantidad(), detFactLocal.getPrecioVenta()));
+
+            detFactLocal.setTotalDescuento(totalDescuento(detFactLocal.getSubTotal(), detFactLocal.getPorcientoDescuento()));
+
+            detFactLocal.setTotalItbis(totalItbis(detFactLocal.getSubTotal(), detFactLocal.getTotalDescuento(), 18.00));
+
+            detFactLocal.setTotal(total(detFactLocal.getSubTotal(), detFactLocal.getTotalDescuento(), detFactLocal.getTotalItbis()));
+
+            grid.getListDataView().refreshAll();
+            txtBuscar.clear();
+            filtroNombre.clear();
+
+            grid.getDataProvider().refreshItem(detFactLocal);
+        }
+
+        private void disminuir() {
+
+            if (detFactLocal.getCantidad() > 0) {
+
+                detFactLocal.setCantidad(detFactLocal.getCantidad() - 1);
+                lblCantidad.setText(String.valueOf(detFactLocal.getCantidad()));
+
+                detFactLocal.setSubTotal(subTotal(detFactLocal.getCantidad(), detFactLocal.getPrecioVenta()));
+
+                detFactLocal.setTotalDescuento(totalDescuento(detFactLocal.getSubTotal(), detFactLocal.getPorcientoDescuento()));
+
+                detFactLocal.setTotalItbis(totalItbis(detFactLocal.getSubTotal(), detFactLocal.getTotalDescuento(), 18.00));
+
+                detFactLocal.setTotal(total(detFactLocal.getSubTotal(), detFactLocal.getTotalDescuento(), detFactLocal.getTotalItbis()));
+
+                grid.getListDataView().refreshAll();
+                txtBuscar.clear();
+                filtroNombre.clear();
+
+                grid.getDataProvider().refreshItem(detFactLocal);
+            }
+        }
+    }
 }
-
-
-

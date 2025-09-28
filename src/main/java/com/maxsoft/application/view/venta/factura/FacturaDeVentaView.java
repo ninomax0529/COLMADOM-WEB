@@ -8,13 +8,10 @@ package com.maxsoft.application.view.venta.factura;
  *
  * @author maximilianoalmonte
  */
-import com.maxsoft.application.modelo.Cliente;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.servicio.interfaces.FacturaDeVentaService;
-import com.maxsoft.application.view.componente.FiltroAvanzado;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -47,25 +44,9 @@ public class FacturaDeVentaView extends VerticalLayout {
         this.facturaService = entradaServiceArg;
         TabSheet tabs = new TabSheet();
         tabs.setSizeFull();
-        
-//         GridListDataView<FacturaDeVenta> dataView = grid.setItems(facturaService.getLista());
-//// Crear el filtro avanzado
-//        FiltroAvanzado<FacturaDeVenta> filtro = new FiltroAvanzado<>(dataView);
-                
-// Agregar filtros por nombre y cédula
-//        filtro.addFiltro("Codigo", FacturaDeVenta::getCodigo);
-//        filtro.addFiltro("Fecha", FacturaDeVenta::getFecha);
 
         tabs.add("Factura", grid);
         tabs.add("Detalle", gridDetalle);
-//
-//        botonera.getNuevo().addClickListener(e -> {
-//            // lógica de nuevo
-//
-//          UI.getCurrent().navigate(RegistroEntradaDeIventarioView.class);
-//
-//        });
-
 
         grid.addItemDoubleClickListener(c -> {
 
@@ -112,29 +93,35 @@ public class FacturaDeVentaView extends VerticalLayout {
         gridDetalle.setHeight("620px");
         gridDetalle.setWidthFull();
 
-//        gridDetalle.addColumn(DetalleFacturaDeVenta::getCodigo).setHeader("Codigo")
-//                .setFooter("TOTAL ARTICULOS:");
+//        gridDetalle.addColumn(DetalleFacturaDeVenta::getArticulo).setHeader("Codigo")
+//                .setFooter("TOTAL:");
 
         gridDetalle.addColumn(DetalleFacturaDeVenta::getDescripcionArticulo)
                 .setHeader("Descripcion")
                 .setKey("descripcion")
-                 .setFooter("TOTAL:");
+                 .setFooter("TOTAL:")
+                ;
 
         gridDetalle.addColumn(DetalleFacturaDeVenta::getCantidad)
                 .setHeader("Cantidad")
-                .setKey("cantidad");
-
-        gridDetalle.addColumn(DetalleFacturaDeVenta::getNuevaExistencia)
-                .setHeader("Existencia")
-                .setKey("existencia");
-
-        gridDetalle.addColumn(DetalleFacturaDeVenta::getExistenciaActual)
-                .setHeader("Nueva Existencia")
-                .setKey("nuevaexistencia");
+                .setKey("cantidad");        
 
         gridDetalle.addColumn(DetalleFacturaDeVenta::getNombreUnidad)
                 .setHeader("Unidad")
                 .setKey("unidad");
+
+        gridDetalle.addColumn(DetalleFacturaDeVenta::getPrecioVenta)
+                .setHeader("Precio")
+                .setKey("precio");
+
+        gridDetalle.addColumn(DetalleFacturaDeVenta::getSubTotal)
+                .setHeader("Sub Total")
+                .setKey("subTotal");
+        
+         gridDetalle.addColumn(DetalleFacturaDeVenta::getTotal)
+                .setHeader("Total")
+                .setKey("total");
+
 
         gridDetalle.getColumns().forEach(col -> {
             col.setAutoWidth(true);
