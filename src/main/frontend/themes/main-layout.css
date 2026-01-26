@@ -182,3 +182,8 @@ vaadin-grid::part(row)[selected] {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+
+.devolucion-ok input {
+    color: var(--lumo-success-text-color);
+    font-weight: bold;
+}
