@@ -26,8 +26,10 @@ public class ConfirmDialog extends Dialog {
         setCloseOnOutsideClick(false);
 
         H3 messageLabel = new H3(message);
+       
 
         confirmButton = new Button("SI", event -> {
+            
             onConfirm.run();
             close();
         });
@@ -39,6 +41,7 @@ public class ConfirmDialog extends Dialog {
             close();
         });
 
+         confirmButton.focus();
         HorizontalLayout buttons = new HorizontalLayout(confirmButton, cancelButton);
         VerticalLayout content = new VerticalLayout(messageLabel, buttons);
         add(content);

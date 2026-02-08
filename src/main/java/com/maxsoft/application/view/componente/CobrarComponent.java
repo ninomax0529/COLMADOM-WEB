@@ -21,13 +21,26 @@ public class CobrarComponent extends VerticalLayout {
     public CobrarComponent() {
         configurarCampos();
         configurarEventos();
+        setAlignItems(Alignment.START);
 
-        add(                      
+        add(
                 montoACobrar,
                 montoRecibido,
                 montoADevolver
         );
 
+        montoRecibido.addValueChangeListener(e -> {
+
+            BigDecimal value = e.getValue();
+            if (value != null && value.compareTo(BigDecimal.ZERO) <= 0) {
+                montoRecibido.setInvalid(true);
+                montoRecibido.setErrorMessage("Solo números positivos");
+            } else {
+                montoRecibido.setInvalid(false);
+            }
+        });
+
+        montoRecibido.focus();
         setPadding(true);
         setSpacing(true);
         addClassNames("pos-header");
@@ -56,6 +69,7 @@ public class CobrarComponent extends VerticalLayout {
         montoADevolver.addClassName("monto-devolucion-pos");
         montoRecibido.addClassName("monto-recibido-pos");
 
+
     }
 
     private void configurarEventos() {
@@ -64,15 +78,15 @@ public class CobrarComponent extends VerticalLayout {
     }
 
     private void recalcular() {
-        
+
         BigDecimal recibido = valorSeguro(montoRecibido.getValue());
         BigDecimal cobrar = valorSeguro(montoACobrar.getValue());
 
-        if(cobrar.doubleValue()>0){
-              montoRecibido.setReadOnly(false);
+        if (cobrar.doubleValue() > 0) {
+            montoRecibido.setReadOnly(false);
 
         }
-        
+
         boolean valido = cobrar.signum() > 0 && recibido.compareTo(cobrar) >= 0;
 
         BigDecimal devolver = valido
@@ -90,7 +104,6 @@ public class CobrarComponent extends VerticalLayout {
             estadoValidezListener.accept(valido);
         }
     }
-
 
     private BigDecimal valorSeguro(BigDecimal valor) {
         return valor != null ? valor : BigDecimal.ZERO;
@@ -121,5 +134,9 @@ public class CobrarComponent extends VerticalLayout {
     public void setMontoACobrar(BigDecimal monto) {
         montoACobrar.setValue(monto != null ? monto : BigDecimal.ZERO);
         recalcular(); // clave: recalcular al setear desde fuera
+    }
+
+    public BigDecimalField getBigMontoRecibido() {
+        return montoRecibido;
     }
 }

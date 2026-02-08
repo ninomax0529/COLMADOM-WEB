@@ -17,9 +17,11 @@ import com.maxsoft.application.util.SonidoUtil;
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.componente.CobrarComponent;
 import com.maxsoft.application.view.componente.ComponenetePos;
+import com.maxsoft.application.view.componente.RelojDigitalComponent;
 import com.maxsoft.application.view.dialogo.ConfirmDialog;
 import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
 import com.maxsoft.application.view.venta.CobroView;
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
@@ -32,20 +34,27 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.grid.editor.Editor;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Menu;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -71,8 +80,6 @@ public class PuntoDeVentaView extends VerticalLayout {
     TextField txtTotal = new TextField("Total a Cobrar");
     TextField txtDecuento = new TextField("Descuento");
     TextField txtItbis = new TextField("Itbis");
-//    TextField txtTotalArt = new TextField("Total Articulo");
-
     private Button btnSalir;
     private Button btnArticulo = null;
     private Button btnAyuda = null;
@@ -90,7 +97,7 @@ public class PuntoDeVentaView extends VerticalLayout {
     FormLayout formLayout = new FormLayout();
     GridListDataView<DetalleFacturaDeVenta> dataView = null;
     CobrarComponent cobrarComponent = new CobrarComponent();
-    ComponenetePos componente=new ComponenetePos();
+    ComponenetePos componente = new ComponenetePos();
 
     ArticuloService articuloServicel;
 
@@ -98,6 +105,8 @@ public class PuntoDeVentaView extends VerticalLayout {
 
     VerticalLayout vlBotones = new VerticalLayout();
     HorizontalLayout hlContenniido = new HorizontalLayout();
+
+    RelojDigitalComponent reloj = new RelojDigitalComponent();
 
     private FacturaDeVenta factura;
     FacturaDeVentaService factService;
@@ -108,7 +117,60 @@ public class PuntoDeVentaView extends VerticalLayout {
             ArticuloService articuloServiceArg) {
 
         setSizeFull();
+
+        H1 tituloPrincipal = new H1("PUNTO DE VENTA");
+        tituloPrincipal.getStyle()
+                .set("margin", "0")
+                .set("font-size", "20px")
+                .set("font-weight", "800")
+                .set("color", "white");
+
+        HorizontalLayout header = new HorizontalLayout();
+        header.setWidthFull();
+        header.setAlignItems(FlexComponent.Alignment.CENTER);
+        header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+
+        header.getStyle()
+                .set("background", "#111827")
+                .set("padding", "15px 23px")
+                .set("border-radius", "20px")
+                .set("box-shadow", "0 10px 25px rgba(0,0,0,0.5)");
+
+        header.add(tituloPrincipal,reloj);
+
         ////        setSpacing(true);
+        H2 tituloGrid = new H2("Detalle de la Factura ");
+        tituloGrid.setWidthFull();
+//        
+        tituloGrid.addClassName("pos-cambio-label");
+
+        tituloGrid.getStyle()
+                .set("margin", "3px")
+                .set("padding", "0px 0px 0px 2px")
+                .set("font-size", "20px")
+                .set("background", "linear-gradient(70deg,#22c55e,#10a34a)")
+                .set("border-radius", "0px");
+
+//        VerticalLayout gridContainer = new VerticalLayout(tituloGrid, grid);
+//        gridContainer.setPadding(false);
+//        gridContainer.setSpacing(true);
+//        gridContainer.setSizeFull();
+        Div linea = new Div();
+        linea.getStyle()
+                .set("height", "4px")
+                .set("width", "60px")
+                .set("background", "linear-gradient(90deg,#22c55e,#16a34a)")
+                .set("border-radius", "10px");
+        linea.setWidth("100%");
+
+//        VerticalLayout header = new VerticalLayout(tituloGrid, linea);
+        header.setSpacing(false);
+        header.setPadding(false);
+
+        VerticalLayout gridContainer = new VerticalLayout(tituloGrid, grid);
+        gridContainer.setSizeFull();
+        gridContainer.setSpacing(false);
+        gridContainer.setPadding(false);
 
         this.factService = factServiceArg;
         this.articuloServicel = articuloServiceArg;
@@ -117,43 +179,54 @@ public class PuntoDeVentaView extends VerticalLayout {
         configurarGridDetalle();
         editarDetalle();
 
+        hlContenniido.setAlignItems(Alignment.START);
         hlContenniido.setWidth("90%");
         hlContenniido.setHeightFull();
         hlContenniido.setAlignItems(Alignment.START);
-        hlContenniido.setAlignSelf(Alignment.AUTO, grid);
+        hlContenniido.setAlignSelf(Alignment.AUTO, gridContainer);
 
         hlContenniido.setSpacing(false);
-        vlBotones.setWidth("22px");
+        vlBotones.setWidth("40px");
         vlBotones.setPadding(true);
         vlBotones.setMargin(false);
+        vlBotones.setAlignItems(Alignment.START);
 //        vlBotones.addClassNames("pos-ticket");
 //        addClassNames("pos-ticket");
-        
 
-        hlContenniido.add(grid, vlBotones);
-        add(formLayout, hlContenniido);
+        hlContenniido.add(gridContainer, vlBotones);
+        add(header, linea, hlContenniido);
 
         btnCobrar.setEnabled(false);
 
         btnCobrar.addClassName("btn-cobrar");
         btnCancelar.addClassName("btn-cancelar");
         btnSalir.addClassNames("btn-salir");
+        btnArticulo.addClassNames("btn-salir");
 
-//        cobrarComponent.setEstadoValidezListener(valido -> {
-//            btnCobrar.setEnabled(valido);
-//            if (valido) {
-//                btnCobrar.focus();
-//            }
-//        });
         cobrarComponent.setEstadoValidezListener(btnCobrar::setEnabled);
-//
+        cobrarComponent.setWidth("40px");
 
-    
+        btnArticulo.getStyle()
+                .set("background", "#0f172a");
 
-    //// Escuchamos el estado del componente
-////        cobrarComponent.setEstadoValidezListener(valido -> {
-////            btnCobrar.setEnabled(valido);
-////        });
+    }
+
+
+    private void salir() {
+
+        ConfirmDialog dialog = new ConfirmDialog(
+                "¿Seguro que quiere salir del punto de venta-> ",
+                () -> {
+
+                    UI.getCurrent().navigate(ModuloPrincipal.class);
+
+                },
+                () -> {
+
+                }
+        );
+
+        dialog.open();
 
     }
 
@@ -163,7 +236,7 @@ public class PuntoDeVentaView extends VerticalLayout {
 
         btnImprimir = new Button("Imprimir(F6)", e -> guardar());
 
-        btnSalir = new Button("Salir(F12)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
+        btnSalir = new Button("Salir(F12)", e -> salir());
 
         btnAyuda = new Button("Ayuda(F1)", e -> UI.getCurrent().navigate(ModuloPrincipal.class));
 
@@ -184,6 +257,7 @@ public class PuntoDeVentaView extends VerticalLayout {
         btnCobrar.setWidth("150px");
         btnDescuento.setWidth("150px");
         btnCancelar.setWidth("150px");
+        btnArticulo.setWidth("150px");
 
         txtSubTotal.setWidth("150px");
         txtDecuento.setWidth("150px");
@@ -198,25 +272,29 @@ public class PuntoDeVentaView extends VerticalLayout {
         HorizontalLayout hlArt = new HorizontalLayout();
 
         VerticalLayout vllTotal = new VerticalLayout();
+        VerticalLayout vlArticulo = new VerticalLayout();
 
         vllTotal.add(txtSubTotal, txtDecuento, txtItbis, txtTotal);
 
         vllTotal.setSpacing(false);
+        vlArticulo.setSizeFull();
+        vlArticulo.setSpacing(false);
+        vlArticulo.setPadding(false);
 
-        hlArt.add(dpFecha, lbNumDoc, txtNumDoc, txtBuscar, btnArticulo);
+        vlArticulo.add(txtBuscar, btnArticulo);
+
+//           btnArticulo.setVisible(false);
+        hlArt.setSpacing(false);
+//        hlArt.add(dpFecha, lbNumDoc, txtNumDoc, txtBuscar, btnArticulo);
         hlArt.setAlignItems(Alignment.START);
 
-        vlBotones.add(new H3("Resumen: "));
+        vlBotones.add(new H3("Resumen:"));
 
         Hr separador = new Hr();
+        separador.setSizeFull();
 
         TextField campoAzul = new TextField("Usuario");
-        campoAzul.getStyle()
-                .set("background-color", "#1565c0") // azul fuerte
-                .set("color", "red") // texto blanco
-                .set("border-radius", "8px")
-                .set("padding", "8px")
-                .set("font-weight", "bold");
+        separador.addClassNames("btn-cancelar");;
 
         txtSubTotal.getStyle()
                 .set("background-color", "1565c0") // gris muy claro azulado
@@ -225,7 +303,7 @@ public class PuntoDeVentaView extends VerticalLayout {
                 .set("padding", "8px");
 
 //        vlBotones.add(txtSubTotal, txtDecuento, txtItbis, txtTotal, separador, btnCobrar, btnImprimir, btnDescuento, btnCliente, btnCancelar);
-        vlBotones.add(cobrarComponent, separador, btnCobrar, btnCancelar, btnSalir);
+        vlBotones.add(cobrarComponent, separador, vlArticulo, separador, btnCobrar, btnCancelar, btnSalir);
 
         vlBotones.setSpacing(false);
         vlBotones.setAlignItems(Alignment.STRETCH);
@@ -238,7 +316,7 @@ public class PuntoDeVentaView extends VerticalLayout {
         btnImprimir.addClickShortcut(Key.F6);
         btnDescuento.addClickShortcut(Key.F5);
         btnSalir.addClickShortcut(Key.F12);
-        txtBuscar.focus();
+//        txtBuscar.focus();
         txtNumDoc.setEnabled(false);
         dpFecha.setValue(LocalDate.now());
 
@@ -255,6 +333,26 @@ public class PuntoDeVentaView extends VerticalLayout {
 
         formLayout.add(hlArt);
 
+    
+
+    ////
+//        grid.getStyle()
+//                .set("background", "linear-gradient(145deg, #0f172a, #1e293b)")
+//                .set("min-height", "100vh")
+//                .set("color", "#e2e8f0");
+//        
+//        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+//
+//        grid.getStyle()
+//                .set("background", "#1f2937")
+//                .set("border-radius", "16px")
+//                .set("overflow", "hidden");
+//        
+//        grid.getStyle()
+//                .set("background", "#111827")
+//                .set("border-radius", "20px")
+//                .set("padding", "20px")
+//                .set("box-shadow", "0 20px 40px rgba(0,0,0,0.4)");
     }
 
     private void guardar() {
@@ -264,7 +362,7 @@ public class PuntoDeVentaView extends VerticalLayout {
             if (listDet.size() <= 0) {
 
                 Notification.show("La factura no tiene detalle ",
-                        3000, Notification.Position.TOP_CENTER);
+                        3000, Notification.Position.MIDDLE);
                 return;
             }
 
@@ -273,7 +371,7 @@ public class PuntoDeVentaView extends VerticalLayout {
                 if (det2.getCantidad() <= 0) {
 
                     Notification.show("El articulo  " + det2.getDescripcionArticulo() + " tiene la cantidad en cero ",
-                            4000, Notification.Position.TOP_CENTER);
+                            4000, Notification.Position.MIDDLE);
                     return;
                 }
 
@@ -294,16 +392,28 @@ public class PuntoDeVentaView extends VerticalLayout {
                 e.setCodigo(null);
             });
 
-            factura.setDetalleFacturaDeVentaCollection(listDet);
-            this.factService.guardar(factura);
-            Notification.show("Factura guardada exitosamente", 3000, Notification.Position.TOP_CENTER);
-            listDet.clear();
-            grid.getDataProvider().refreshAll();
-            txtBuscar.focus();
+            ConfirmDialog dialog = new ConfirmDialog(
+                    "¿Seguro que quiere guardar la venta-> ",
+                    () -> {
 
-            // 🔔 Sonido POS
-            SonidoUtil.reproducir("sound.mp3");
-            cobrarComponent.limpiarMonto();
+                        factura.setDetalleFacturaDeVentaCollection(listDet);
+                        this.factService.guardar(factura);
+                        Notification.show("Factura guardada exitosamente", 3000, Notification.Position.MIDDLE);
+                        listDet.clear();
+                        grid.getDataProvider().refreshAll();
+                        txtBuscar.focus();
+
+                        // 🔔 Sonido POS
+//                        SonidoUtil.reproducir("sound.mp3");
+                        cobrarComponent.limpiarMonto();
+
+                    },
+                    () -> {
+
+                    }
+            );
+
+            dialog.open();
 
         } catch (Exception e) {
             Notification.show("Error guardando la factura ", 3000, Notification.Position.TOP_CENTER);
@@ -314,12 +424,17 @@ public class PuntoDeVentaView extends VerticalLayout {
 
     private void configurarGridDetalle() {
 
-        grid.setHeight("90%");
+        grid.setHeight("95%");
         grid.setWidthFull();
 
+//        grid.addThemeVariants( GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_NO_BORDER);
         grid.setItems(listDet);
 
         dataView = grid.setItems(listDet);
+
+        grid.addColumn(DetalleFacturaDeVenta::getCodigo)
+                .setHeader("Codigo")
+                .setKey("codigo").setWidth("30px");
 
         grid.addColumn(DetalleFacturaDeVenta::getDescripcionArticulo)
                 .setHeader("Articulo")
@@ -350,6 +465,10 @@ public class PuntoDeVentaView extends VerticalLayout {
         grid.addComponentColumn(item -> {
 
             HorizontalLayout actions = new HorizontalLayout();
+
+            actions.setAlignItems(Alignment.END);
+//            actions.setSpacing(false);
+            actions.setPadding(false);
 
             btnEditar = new Button(new Button("(F4)", click -> {
 
@@ -394,11 +513,11 @@ public class PuntoDeVentaView extends VerticalLayout {
 
             });
 
-            deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
+//            deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
             deleteButton.addClickShortcut(Key.F3);
             btnEditar.addClickShortcut(Key.F4);
 
-            actions.add(deleteButton, new CantidadStepper(item, grid));
+            actions.add(new CantidadStepper(item, grid), deleteButton);
 //            actions.setAlignItems(Alignment.CENTER);
 //            actions.setMargin(true);
 
@@ -610,6 +729,7 @@ public class PuntoDeVentaView extends VerticalLayout {
 
                 }
 
+                cobrarComponent.getBigMontoRecibido().focus();
             });
 
             dialog.open();
@@ -644,18 +764,24 @@ public class PuntoDeVentaView extends VerticalLayout {
             this.grid = grid;
             this.lblCantidad = new Span(String.valueOf(detFact.getCantidad()));
 
+            TextField txtCantidad = new TextField();
             Button btnMenos = new Button("➖", e -> disminuir());
             Button btnMas = new Button("➕", e -> aumentar());
-            btnMas.setWidth("20px");
-            btnMenos.setWidth("20px");
+
+            btnMas.setWidth("10px");
+            btnMenos.setWidth("10px");
+//            txtCantidad.setWidth("60px");
             HorizontalLayout hl = new HorizontalLayout();
+
             hl.setAlignItems(Alignment.END);
             hl.add(btnMenos, btnMas);
-            hl.setWidth("50%");
+//            hl.setWidth("50%");
+            hl.setSpacing(false);
 
             add(hl);
             setAlignItems(Alignment.CENTER);
             setPadding(false);
+
         }
 
         private void aumentar() {
@@ -720,23 +846,26 @@ public class PuntoDeVentaView extends VerticalLayout {
 
     private void cancelar() {
 
-        ConfirmDialog dialog = new ConfirmDialog(
-                "¿Seguro que quiere cancelar la venta-> ",
-                () -> {
+        if (!listDet.isEmpty()) {
 
-                    listDet.clear();
-                    grid.getDataProvider().refreshAll();
-                    txtBuscar.clear();
-                    txtBuscar.focus();
-                    cobrarComponent.limpiarMonto();
+            ConfirmDialog dialog = new ConfirmDialog(
+                    "¿Seguro que quiere cancelar la venta-> ",
+                    () -> {
 
-                },
-                () -> {
-                    txtBuscar.clear();
-                }
-        );
+                        listDet.clear();
+                        grid.getDataProvider().refreshAll();
+                        txtBuscar.clear();
+                        txtBuscar.focus();
+                        cobrarComponent.limpiarMonto();
 
-        dialog.open();
+                    },
+                    () -> {
+                        txtBuscar.clear();
+                    }
+            );
+
+            dialog.open();
+        }
 
     }
 
