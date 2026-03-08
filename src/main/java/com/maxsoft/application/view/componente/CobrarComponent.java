@@ -14,14 +14,16 @@ import java.util.function.Consumer;
 public class CobrarComponent extends VerticalLayout {
 
     private Consumer<Boolean> estadoValidezListener;
-    private final BigDecimalField montoRecibido = new BigDecimalField("DINERO RECIBIDO");
-    private final BigDecimalField montoACobrar = new BigDecimalField("TOTAL A COBRAR");
+    private final BigDecimalField montoRecibido = new BigDecimalField("RECIBIDO");
+    private final BigDecimalField montoACobrar = new BigDecimalField("TOTAL");
     private final BigDecimalField montoADevolver = new BigDecimalField("DEVUELTA");
 
     public CobrarComponent() {
         configurarCampos();
         configurarEventos();
         setAlignItems(Alignment.START);
+  
+//        setWidthFull();
 
         add(
                 montoACobrar,
@@ -68,7 +70,6 @@ public class CobrarComponent extends VerticalLayout {
         montoACobrar.addClassName("monto-total-pos");
         montoADevolver.addClassName("monto-devolucion-pos");
         montoRecibido.addClassName("monto-recibido-pos");
-
 
     }
 

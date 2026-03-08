@@ -336,5 +336,12 @@ vaadin-form-layout[empty] {
     color: red;
 }
 
-
+/* TOTAL A COBRAR - POS */
+.centralizar-header{
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--lumo-primary-text-color);
+    text-align: center;
+    width: 100%;
+}
 

@@ -23,5 +23,6 @@ public interface FacturaDeventaRepo extends JpaRepository<FacturaDeVenta, Intege
 
     @Query(value = strDet, nativeQuery = true)
     public List<DetalleFacturaDeVenta> getDetalle(@Param("obj") int op);
+
     
 }

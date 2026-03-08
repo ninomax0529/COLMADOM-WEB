@@ -17,6 +17,7 @@ import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.componente.CobrarComponent;
 import com.maxsoft.application.view.componente.ComponenetePos;
 import com.maxsoft.application.view.componente.RelojDigitalComponent;
+import com.maxsoft.application.view.componente.VistaCobrar;
 import com.maxsoft.application.view.dialogo.ConfirmDialog;
 import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
 import com.maxsoft.application.view.venta.CobroView;
@@ -47,7 +48,6 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeLeaveEvent;
-import com.vaadin.flow.router.BeforeLeaveEvent.ContinueNavigationAction;
 import com.vaadin.flow.router.BeforeLeaveObserver;
 import com.vaadin.flow.router.Menu;
 import java.math.BigDecimal;
@@ -58,13 +58,13 @@ import java.util.List;
 import java.util.Objects;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
-@PageTitle("Punto de Venta")
-@Route(value = "puntoDeVenta")
+@PageTitle("Punto de Venta V1")
+@Route(value = "puntoDeVentav1")
 //@Layout(value = "venta")
 //https://github.com/ninomax0529/vaadin-railway.git
-@Menu(order = 3, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
+@Menu(order = 4, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 
-public class PuntoDeVentaView extends VerticalLayout implements BeforeLeaveObserver {
+public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObserver {
 
     private final Grid<DetalleFacturaDeVenta> grid = new Grid<>(DetalleFacturaDeVenta.class, false);
     private Binder<DetalleFacturaDeVenta> binder = new Binder<>(DetalleFacturaDeVenta.class);
@@ -73,7 +73,7 @@ public class PuntoDeVentaView extends VerticalLayout implements BeforeLeaveObser
     TextField txtBuscar = new TextField();
     private final DatePicker dpFecha = new DatePicker();
     TextField txtCantidad = new TextField();
-    TextField txtSubTotal = new TextField("Dinero Recibo");
+    TextField txtSubTotal = new TextField("Recibido:");
     TextField txtTotal = new TextField("Total");
     TextField txtDecuento = new TextField("Descuento");
     TextField txtItbis = new TextField("Itbis");
@@ -90,7 +90,7 @@ public class PuntoDeVentaView extends VerticalLayout implements BeforeLeaveObser
     Button btnEditar = null;
     TextField filtroNombre = new TextField();
     H3 lbNumDoc = new H3("Factura");
-    Boolean cambiosSinGuardar=false;
+    Boolean cambiosSinGuardar = false;
 
     FormLayout formLayout = new FormLayout();
     GridListDataView<DetalleFacturaDeVenta> dataView = null;
@@ -112,21 +112,21 @@ public class PuntoDeVentaView extends VerticalLayout implements BeforeLeaveObser
     int i = 0;
 
     @Autowired
-    public PuntoDeVentaView(FacturaDeVentaService factServiceArg,
+    public PuntoDeVentaViewV1(FacturaDeVentaService factServiceArg,
             ArticuloService articuloServiceArg) {
 
         setSizeFull();
-
-        UI.getCurrent().getPage().executeJs("""
-            window.addEventListener('beforeunload', function (e) {
-                e.preventDefault();
-                e.returnValue = '';
-            });
-        """);
-
-        UI.getCurrent().getPage().executeJs("""
-        window.onbeforeunload = null;
-    """);
+//
+//        UI.getCurrent().getPage().executeJs("""
+//            window.addEventListener('beforeunload', function (e) {
+//                e.preventDefault();
+//                e.returnValue = '';
+//            });
+//        """);
+//
+//        UI.getCurrent().getPage().executeJs("""
+//        window.onbeforeunload = null;
+//    """);
 
         i = 1;
 
@@ -208,8 +208,36 @@ public class PuntoDeVentaView extends VerticalLayout implements BeforeLeaveObser
         btnSalir.addClassNames("btn-salir");
         btnArticulo.addClassNames("btn-salir");
 
+        Button cobrar = new Button("Cobrar");
+
+
+        cobrar.addClickListener(e -> {
+
+       UI.getCurrent().navigate(CobrarComponent.class);
+//            BigDecimal total = calcularTotal();
+//
+//            VistaCobrar dialog = new VistaCobrar(total.doubleValue(), () -> {
+//
+//               guardar();
+//
+//            });
+//
+//            dialog.open();
+
+        });
+
+        txtBuscar.addBlurListener(e -> {
+
+            txtBuscar.focus();
+
+        });
+
+        txtBuscar.addKeyPressListener(Key.ENTER, e -> {
+
+//            buscarArticulo(txtBuscar.getValue());
+        });
+
         cobrarComponent.setEstadoValidezListener(btnCobrar::setEnabled);
-//        cobrarComponent.setWidth("50px");
 
         btnArticulo.getStyle()
                 .set("background", "#0f172a");
@@ -229,7 +257,7 @@ public class PuntoDeVentaView extends VerticalLayout implements BeforeLeaveObser
                 "¿Seguro que quiere salir del punto de venta-> ",
                 () -> {
 
-                    cambiosSinGuardar=false;
+                    cambiosSinGuardar = false;
                     UI.getCurrent().navigate(ModuloPrincipal.class);
 
                 },
@@ -502,9 +530,10 @@ public class PuntoDeVentaView extends VerticalLayout implements BeforeLeaveObser
 
             deleteButton.addClickShortcut(Key.F3);
             btnEditar.addClickShortcut(Key.F4);
-            deleteButton.setWidth("15px");
+            deleteButton.setWidth("25px");
+            actions.add(deleteButton);
 
-            actions.add(new CantidadStepper(item, grid), deleteButton);
+//            actions.add(new CantidadStepper(item, grid), deleteButton);
             actions.setWidthFull();
 
             return actions;
@@ -741,7 +770,6 @@ public class PuntoDeVentaView extends VerticalLayout implements BeforeLeaveObser
         return lista.stream()
                 .anyMatch(n -> n.getArticulo().getCodigo() == art);
     }
-
 
     // Componente Stepper personalizado
     public class CantidadStepper extends HorizontalLayout {
