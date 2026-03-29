@@ -8,7 +8,6 @@ package com.maxsoft.application.view.venta.puntoVenta;
  *
  * @author maximilianoalmonte
  */
-import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
@@ -18,11 +17,9 @@ import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.componente.CobrarComponent;
 import com.maxsoft.application.view.componente.ComponenetePos;
 import com.maxsoft.application.view.componente.RelojDigitalComponent;
-import com.maxsoft.application.view.componente.VistaCobrar;
 import com.maxsoft.application.view.dialogo.ConfirmDialog;
 import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
 import com.maxsoft.application.view.venta.CobroView;
-import com.vaadin.data.util.converter.StringToDoubleConverter;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.UI;
@@ -294,6 +291,7 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
                     System.out.println("Seleccionado: " + seleccionado.getDescripcionArticulo());
                 } else {
                     Notification.show("Tiene que selecionar un articulo", 3000, Notification.Position.MIDDLE);
+
                     return;
                 }
             });
@@ -367,7 +365,7 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
         separador.setSizeFull();
 
         TextField campoAzul = new TextField("Usuario");
-        separador.addClassNames("btn-cancelar");;
+        separador.addClassNames("btn-cancelar");
 
         txtSubTotal.getStyle()
                 .set("background-color", "1565c0") // gris muy claro azulado
@@ -452,7 +450,7 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
 
                         factura.setDetalleFacturaDeVentaCollection(listDet);
                         this.factService.guardar(factura);
-                        Notification.show("Factura guardada exitosamente", 3000, Notification.Position.MIDDLE);
+                        Notification.show("Factura guardada exitosamente ", 3000, Notification.Position.MIDDLE);
                         listDet.clear();
                         i = 1;
                         cambiosSinGuardar = false;
@@ -472,7 +470,7 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
             dialog.open();
 
         } catch (Exception e) {
-            Notification.show("Error guardando la factura ", 3000, Notification.Position.TOP_CENTER);
+            Notification.show(" Error guardando la factura ", 3000, Notification.Position.TOP_CENTER);
             e.printStackTrace();
         }
 
@@ -641,14 +639,14 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
                 cantidadField.setStep(1);
 
                 Dialog dialog = new Dialog();
-                dialog.setHeaderTitle("Editar cantidad de: " + seleccionado.getDescripcionArticulo());
+                dialog.setHeaderTitle(" Editar cantidad de: " + seleccionado.getDescripcionArticulo());
                 dialog.addOpenedChangeListener(e -> {
                     if (e.isOpened()) {
                         cantidadField.focus();
                     }
                 });
 
-                Button guardar = new Button("Actualizar", e -> {
+                Button guardar = new Button(" Actualizar", e -> {
 
                     seleccionado.setCantidad(cantidadField.getValue().intValue());
                     seleccionado.setSubTotal(subTotal(seleccionado.getCantidad(), seleccionado.getPrecioVenta()));
@@ -682,6 +680,11 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
             }
 
         }, Key.F4);
+
+        grid.asSingleSelect().addValueChangeListener(e -> {
+            // puedes usar esto para acciones futuras
+            
+        });
 
     }
 
