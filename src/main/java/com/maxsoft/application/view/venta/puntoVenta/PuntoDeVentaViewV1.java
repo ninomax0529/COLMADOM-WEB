@@ -119,17 +119,6 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
             ArticuloService articuloServiceArg) {
 
         setSizeFull();
-//
-//        UI.getCurrent().getPage().executeJs("""
-//            window.addEventListener('beforeunload', function (e) {
-//                e.preventDefault();
-//                e.returnValue = '';
-//            });
-//        """);
-//
-//        UI.getCurrent().getPage().executeJs("""
-//        window.onbeforeunload = null;
-//    """);
 
         i = 1;
 
@@ -204,7 +193,7 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
         hlContenniido.add(gridContainer, vlBotones);
         add(header, linea, hlContenniido);
 
-        btnCobrar.setEnabled(false);
+        btnCobrar.setEnabled(true);
 
         btnCobrar.addClassName("btn-cobrar");
         btnEliminar.addClassName("btn-cobrar");
@@ -240,7 +229,7 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
 //            buscarArticulo(txtBuscar.getValue());
         });
 
-        cobrarComponent.setEstadoValidezListener(btnCobrar::setEnabled);
+//        cobrarComponent.setEstadoValidezListener(btnCobrar::setEnabled);
 
         btnArticulo.getStyle()
                 .set("background", "#0f172a");
@@ -374,7 +363,7 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
                 .set("padding", "8px");
 
 //        vlBotones.add(txtSubTotal, txtDecuento, txtItbis, txtTotal, separador, btnCobrar, btnImprimir, btnDescuento, btnCliente, btnCancelar);
-        vlBotones.add(cobrarComponent, separador, vlArticulo, separador, btnCobrar, btnCancelar, btnSalir);
+        vlBotones.add( separador, vlArticulo, separador, btnCobrar, btnCancelar, btnSalir);
 
         vlBotones.setSpacing(false);
         vlBotones.setAlignItems(Alignment.STRETCH);
@@ -429,6 +418,15 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
 
             }
 
+            CobroDialogV1 dialog = new CobroDialogV1(calcularTotal().doubleValue());
+
+            dialog.addDetachListener(e -> {
+                listDet.clear(); // 🔥 limpiar grid después de cobrar
+                grid.getDataProvider().refreshAll();
+            });
+
+            dialog.open();
+
             LocalDate localFecha = dpFecha.getValue();
             Date fecha = ClaseUtil.asDate(localFecha);
 
@@ -444,7 +442,7 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
                 e.setCodigo(null);
             });
 
-            ConfirmDialog dialog = new ConfirmDialog(
+            ConfirmDialog dialog1 = new ConfirmDialog(
                     "¿Seguro que quiere guardar la venta-> ",
                     () -> {
 
@@ -467,8 +465,7 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
                     }
             );
 
-            dialog.open();
-
+//            dialog1.open();
         } catch (Exception e) {
             Notification.show(" Error guardando la factura ", 3000, Notification.Position.TOP_CENTER);
             e.printStackTrace();
@@ -683,7 +680,7 @@ public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObs
 
         grid.asSingleSelect().addValueChangeListener(e -> {
             // puedes usar esto para acciones futuras
-            
+
         });
 
     }
