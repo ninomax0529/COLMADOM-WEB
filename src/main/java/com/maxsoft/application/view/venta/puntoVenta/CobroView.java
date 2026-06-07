@@ -95,6 +95,7 @@ public class CobroView extends VerticalLayout {
                 metodosPago,
                 btnCobrar
         );
+        
 
         contenido.setAlignItems(Alignment.CENTER);
         contenido.setSpacing(true);
