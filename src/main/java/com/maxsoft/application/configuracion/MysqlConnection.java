@@ -16,9 +16,9 @@ import java.sql.SQLException;
 
 public class MysqlConnection {
     // Configuración de conexión
-    private static final String URL = "jdbc:mysql://localhost:3306/db_colmadom_v1";
+    private static final String URL = "jdbc:mysql://localhost:3307/db_colmadom";
     private static final String USER = "root";
-    private static final String PASSWORD = "root1234";
+    private static final String PASSWORD = "root123";
     
     public static Connection getConnection() {
         Connection connection = null;

@@ -17,16 +17,14 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "usuario_rol")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "UsuarioRol.findAll", query = "SELECT u FROM UsuarioRol u")})
 public class UsuarioRol implements Serializable {

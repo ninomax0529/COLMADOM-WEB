@@ -17,19 +17,16 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "cliente")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Cliente.findAll", query = "SELECT c FROM Cliente c")})
 public class Cliente implements Serializable {
@@ -178,7 +175,6 @@ public class Cliente implements Serializable {
         this.habilitado = habilitado;
     }
 
-    @XmlTransient
     public Collection<FacturaDeVenta> getFacturaDeVentaCollection() {
         return facturaDeVentaCollection;
     }
@@ -209,7 +205,7 @@ public class Cliente implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Cliente[ codigo=" + codigo + " ]";
+        return nombre;
     }
     
 }

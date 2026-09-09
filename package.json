@@ -17,6 +17,7 @@
     "construct-style-sheets-polyfill": "3.1.0",
     "date-fns": "2.29.3",
     "lit": "3.2.1",
+    "print-js": "1.6.0",
     "proj4": "2.12.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
@@ -59,6 +60,7 @@
       "construct-style-sheets-polyfill": "3.1.0",
       "date-fns": "2.29.3",
       "lit": "3.2.1",
+      "print-js": "1.6.0",
       "proj4": "2.12.1",
       "react": "18.3.1",
       "react-dom": "18.3.1",
@@ -85,7 +87,7 @@
       "workbox-core": "7.3.0",
       "workbox-precaching": "7.3.0"
     },
-    "hash": "76b7c27f9fb58bc733c5aade76182d55e9231e77cbc2736b88cf583fe22d1a09"
+    "hash": "a5086c8a62056f13ecf93ea1030089f07d857e76251e0e190dde0bba42c63408"
   },
   "overrides": {
     "@vaadin/bundles": "$@vaadin/bundles",
@@ -105,6 +107,7 @@
     "proj4": "$proj4",
     "@vaadin/vaadin-themable-mixin": "$@vaadin/vaadin-themable-mixin",
     "@vaadin/vaadin-lumo-styles": "$@vaadin/vaadin-lumo-styles",
-    "@vaadin/vaadin-material-styles": "$@vaadin/vaadin-material-styles"
+    "@vaadin/vaadin-material-styles": "$@vaadin/vaadin-material-styles",
+    "print-js": "$print-js"
   }
 }

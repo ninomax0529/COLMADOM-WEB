@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <actions>
         <action>
-            <actionName>CUSTOM-jddk 21</actionName>
-            <displayName>jddk 21</displayName>
-            <properties>
-                <Env.JAVA_HOME>/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home</Env.JAVA_HOME>
-            </properties>
-        </action>
-        <action>
             <actionName>run</actionName>
             <packagings>
                 <packaging>jar</packaging>
@@ -57,6 +50,13 @@
                 <exec.mainClass>com.maxsoft.application.Application</exec.mainClass>
                 <exec.executable>java</exec.executable>
                 <exec.appArgs></exec.appArgs>
+            </properties>
+        </action>
+        <action>
+            <actionName>CUSTOM-JDK 21</actionName>
+            <displayName>JDK 21</displayName>
+            <properties>
+                <Env.JAVA_HOME>C:\Program Files\Java\jdk-21</Env.JAVA_HOME>
             </properties>
         </action>
     </actions>

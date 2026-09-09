@@ -1,0 +1,18 @@
+
+Paso 1: Configurar la impresora predeterminada en Windows (PC Cliente)
+Dado que --kiosk-printing imprime automáticamente en la impresora por defecto del sistema operativo sin preguntar:
+
+Presiona Win + R, escribe control printers y presiona Enter.
+
+Busca tu impresora de tickets (ej. EPSON, POS-80, Star, etc.).
+
+Haz clic derecho sobre ella y selecciona Establecer como impresora predeterminada.
+
+Paso 2: Crear el acceso directo de Chrome en Modo Kiosk
+Cierra todas las ventanas de Google Chrome que tengas abiertas.
+
+Ve al escritorio, haz clic derecho en un área vacía y selecciona Nuevo > Acceso directo.
+
+En la ubicación del elemento, pega la ruta de Chrome seguida del parámetro (modifica la URL por la de tu app):
+
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing "http://localhost:8080"

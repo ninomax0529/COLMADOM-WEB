@@ -47,7 +47,6 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeLeaveEvent;
-import com.vaadin.flow.router.BeforeLeaveEvent.ContinueNavigationAction;
 import com.vaadin.flow.router.BeforeLeaveObserver;
 import com.vaadin.flow.router.Menu;
 import java.math.BigDecimal;
@@ -58,11 +57,11 @@ import java.util.List;
 import java.util.Objects;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
-@PageTitle("Punto de Venta")
-@Route(value = "puntoDeVenta")
-//@Layout(value = "venta")
-//https://github.com/ninomax0529/vaadin-railway.git
-@Menu(order = 3, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
+//@PageTitle("Punto de Venta")
+//@Route(value = "puntoDeVenta")
+////@Layout(value = "venta")
+////https://github.com/ninomax0529/vaadin-railway.git
+//@Menu(order = 3, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 
 public class PuntoDeVentaView extends VerticalLayout implements BeforeLeaveObserver {
 

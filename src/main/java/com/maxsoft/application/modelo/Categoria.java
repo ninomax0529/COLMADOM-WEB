@@ -19,19 +19,16 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "categoria")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Categoria.findAll", query = "SELECT c FROM Categoria c")})
 public class Categoria implements Serializable {
@@ -116,7 +113,6 @@ public class Categoria implements Serializable {
         this.habilitada = habilitada;
     }
 
-    @XmlTransient
     public Collection<SubCategoria> getSubCategoriaCollection() {
         return subCategoriaCollection;
     }

@@ -21,19 +21,16 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "factura_de_venta")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "FacturaDeVenta.findAll", query = "SELECT f FROM FacturaDeVenta f")})
 public class FacturaDeVenta implements Serializable {
@@ -55,11 +52,15 @@ public class FacturaDeVenta implements Serializable {
     @Size(max = 25)
     @Column(name = "ncf")
     private String ncf;
+    @Size(max = 45)
+    @Column(name = "direccion")
+    private String direccion;
     @Size(max = 200)
     @Column(name = "nombre_cliente")
     private String nombreCliente;
-    @Column(name = "tipo_venta")
-    private Integer tipoVenta;
+    @Size(max = 60)
+    @Column(name = "nombre_delivery")
+    private String nombreDelivery;
     @Column(name = "fecha")
     @Temporal(TemporalType.DATE)
     private Date fecha;
@@ -106,6 +107,15 @@ public class FacturaDeVenta implements Serializable {
     @JoinColumn(name = "cliente", referencedColumnName = "codigo")
     @ManyToOne
     private Cliente cliente;
+    @JoinColumn(name = "delivery", referencedColumnName = "codigo")
+    @ManyToOne
+    private Delivery delivery;
+    @JoinColumn(name = "estado_factura", referencedColumnName = "codigo")
+    @ManyToOne
+    private EstadoFactura estadoFactura;
+    @JoinColumn(name = "tipo_venta", referencedColumnName = "codigo")
+    @ManyToOne
+    private TipoVenta tipoVenta;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
 
@@ -123,6 +133,22 @@ public class FacturaDeVenta implements Serializable {
     public void setCodigo(Integer codigo) {
         this.codigo = codigo;
     }
+    
+    
+    /**
+     * @return the direccion
+     */
+    public String getDireccion() {
+        return direccion;
+    }
+
+    /**
+     * @param direccion the direccion to set
+     */
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
+    }
+
 
     public Integer getNumeroDocumento() {
         return numeroDocumento;
@@ -172,12 +198,12 @@ public class FacturaDeVenta implements Serializable {
         this.nombreCliente = nombreCliente;
     }
 
-    public Integer getTipoVenta() {
-        return tipoVenta;
+    public String getNombreDelivery() {
+        return nombreDelivery;
     }
 
-    public void setTipoVenta(Integer tipoVenta) {
-        this.tipoVenta = tipoVenta;
+    public void setNombreDelivery(String nombreDelivery) {
+        this.nombreDelivery = nombreDelivery;
     }
 
     public Date getFecha() {
@@ -324,7 +350,30 @@ public class FacturaDeVenta implements Serializable {
         this.cliente = cliente;
     }
 
-    @XmlTransient
+    public Delivery getDelivery() {
+        return delivery;
+    }
+
+    public void setDelivery(Delivery delivery) {
+        this.delivery = delivery;
+    }
+
+    public EstadoFactura getEstadoFactura() {
+        return estadoFactura;
+    }
+
+    public void setEstadoFactura(EstadoFactura estadoFactura) {
+        this.estadoFactura = estadoFactura;
+    }
+
+    public TipoVenta getTipoVenta() {
+        return tipoVenta;
+    }
+
+    public void setTipoVenta(TipoVenta tipoVenta) {
+        this.tipoVenta = tipoVenta;
+    }
+
     public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
         return detalleFacturaDeVentaCollection;
     }
@@ -357,5 +406,5 @@ public class FacturaDeVenta implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.FacturaDeVenta[ codigo=" + codigo + " ]";
     }
-    
+
 }

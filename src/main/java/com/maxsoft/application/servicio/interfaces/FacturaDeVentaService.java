@@ -6,18 +6,18 @@ package com.maxsoft.application.servicio.interfaces;
 
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
+import com.maxsoft.application.view.venta.puntoVenta.TicketVenta;
 import java.util.List;
-import org.springframework.stereotype.Service;
 
 /**
  *
  * @author maximilianoalmonte
  */
-
 public interface FacturaDeVentaService {
-    
-    
+
     FacturaDeVenta guardar(FacturaDeVenta obj);
+
+    FacturaDeVenta procesarVenta(TicketVenta obj, String usaurio);
 
     List<FacturaDeVenta> getLista();
 

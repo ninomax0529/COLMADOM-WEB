@@ -22,19 +22,16 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "articulo")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Articulo.findAll", query = "SELECT a FROM Articulo a")})
 public class Articulo implements Serializable {
@@ -524,7 +521,6 @@ public class Articulo implements Serializable {
         this.habilitado = habilitado;
     }
 
-    @XmlTransient
     public Collection<DetalleEntradaInventario> getDetalleEntradaInventarioCollection() {
         return detalleEntradaInventarioCollection;
     }
@@ -533,7 +529,6 @@ public class Articulo implements Serializable {
         this.detalleEntradaInventarioCollection = detalleEntradaInventarioCollection;
     }
 
-    @XmlTransient
     public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
         return detalleFacturaDeVentaCollection;
     }
@@ -550,7 +545,6 @@ public class Articulo implements Serializable {
         this.unidadDeVenta = unidadDeVenta;
     }
 
-    @XmlTransient
     public Collection<DetalleSalidaInventario> getDetalleSalidaInventarioCollection() {
         return detalleSalidaInventarioCollection;
     }
@@ -581,7 +575,7 @@ public class Articulo implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Articulo[ codigo=" + codigo + " ]";
+        return descripcion;
     }
     
 }

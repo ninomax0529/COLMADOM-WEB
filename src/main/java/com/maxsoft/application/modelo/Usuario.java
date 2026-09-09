@@ -19,19 +19,16 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "usuario")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Usuario.findAll", query = "SELECT u FROM Usuario u")})
 public class Usuario implements Serializable {
@@ -162,7 +159,6 @@ public class Usuario implements Serializable {
         this.fechaActualizacion = fechaActualizacion;
     }
 
-    @XmlTransient
     public Collection<Documento> getDocumentoCollection() {
         return documentoCollection;
     }
@@ -171,7 +167,6 @@ public class Usuario implements Serializable {
         this.documentoCollection = documentoCollection;
     }
 
-    @XmlTransient
     public Collection<Rol> getRolCollection() {
         return rolCollection;
     }
@@ -180,7 +175,6 @@ public class Usuario implements Serializable {
         this.rolCollection = rolCollection;
     }
 
-    @XmlTransient
     public Collection<UsuarioRol> getUsuarioRolCollection() {
         return usuarioRolCollection;
     }
@@ -189,7 +183,6 @@ public class Usuario implements Serializable {
         this.usuarioRolCollection = usuarioRolCollection;
     }
 
-    @XmlTransient
     public Collection<SalidaInventario> getSalidaInventarioCollection() {
         return salidaInventarioCollection;
     }
@@ -198,7 +191,6 @@ public class Usuario implements Serializable {
         this.salidaInventarioCollection = salidaInventarioCollection;
     }
 
-    @XmlTransient
     public Collection<EntradaInventario> getEntradaInventarioCollection() {
         return entradaInventarioCollection;
     }

@@ -21,19 +21,16 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "salida_inventario")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "SalidaInventario.findAll", query = "SELECT s FROM SalidaInventario s")})
 public class SalidaInventario implements Serializable {
@@ -217,7 +214,6 @@ public class SalidaInventario implements Serializable {
         this.usuario = usuario;
     }
 
-    @XmlTransient
     public Collection<DetalleSalidaInventario> getDetalleSalidaInventarioCollection() {
         return detalleSalidaInventarioCollection;
     }

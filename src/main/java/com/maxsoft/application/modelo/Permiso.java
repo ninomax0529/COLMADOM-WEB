@@ -17,17 +17,15 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "permiso")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Permiso.findAll", query = "SELECT p FROM Permiso p")})
 public class Permiso implements Serializable {

@@ -19,19 +19,16 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "caja_chica")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "CajaChica.findAll", query = "SELECT c FROM CajaChica c")})
 public class CajaChica implements Serializable {
@@ -185,7 +182,6 @@ public class CajaChica implements Serializable {
         this.abierta = abierta;
     }
 
-    @XmlTransient
     public Collection<MovimientoCajaChica> getMovimientoCajaChicaCollection() {
         return movimientoCajaChicaCollection;
     }

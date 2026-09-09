@@ -17,16 +17,14 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "detalle_factura_de_venta")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "DetalleFacturaDeVenta.findAll", query = "SELECT d FROM DetalleFacturaDeVenta d")})
 public class DetalleFacturaDeVenta implements Serializable {
@@ -58,33 +56,33 @@ public class DetalleFacturaDeVenta implements Serializable {
     @Basic(optional = false)
     @NotNull
     @Column(name = "cantidad")
-    private double cantidad;
+    private Double cantidad;
     @Column(name = "precio_venta")
     private Double precioVenta;
     @Basic(optional = false)
     @NotNull
     @Column(name = "sub_total")
-    private double subTotal;
+    private Double subTotal;
     @Basic(optional = false)
     @NotNull
     @Column(name = "total_descuento")
-    private double totalDescuento;
+    private Double totalDescuento;
     @Basic(optional = false)
     @NotNull
     @Column(name = "porciento_descuento")
-    private double porcientoDescuento;
+    private Double porcientoDescuento;
     @Basic(optional = false)
     @NotNull
     @Column(name = "total_itbis")
-    private double totalItbis;
+    private Double totalItbis;
     @Basic(optional = false)
     @NotNull
     @Column(name = "porciento_itbis")
-    private double porcientoItbis;
+    private Double porcientoItbis;
     @Basic(optional = false)
     @NotNull
     @Column(name = "total")
-    private double total;
+    private Double total;
     @Basic(optional = false)
     @NotNull
     @Column(name = "numero_de_linea")
@@ -178,7 +176,7 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.nombreAlmacen = nombreAlmacen;
     }
 
-    public double getCantidad() {
+    public Double getCantidad() {
         return cantidad;
     }
 
@@ -194,7 +192,7 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.precioVenta = precioVenta;
     }
 
-    public double getSubTotal() {
+    public Double getSubTotal() {
         return subTotal;
     }
 
@@ -210,7 +208,7 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.totalDescuento = totalDescuento;
     }
 
-    public double getPorcientoDescuento() {
+    public Double getPorcientoDescuento() {
         return porcientoDescuento;
     }
 
@@ -218,7 +216,7 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.porcientoDescuento = porcientoDescuento;
     }
 
-    public double getTotalItbis() {
+    public Double getTotalItbis() {
         return totalItbis;
     }
 
@@ -226,7 +224,7 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.totalItbis = totalItbis;
     }
 
-    public double getPorcientoItbis() {
+    public Double getPorcientoItbis() {
         return porcientoItbis;
     }
 
@@ -234,7 +232,7 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.porcientoItbis = porcientoItbis;
     }
 
-    public double getTotal() {
+    public Double getTotal() {
         return total;
     }
 

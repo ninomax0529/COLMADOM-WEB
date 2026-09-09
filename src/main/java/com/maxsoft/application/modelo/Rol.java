@@ -22,19 +22,16 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "rol")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Rol.findAll", query = "SELECT r FROM Rol r")})
 public class Rol implements Serializable {
@@ -140,7 +137,6 @@ public class Rol implements Serializable {
         this.usuario = usuario;
     }
 
-    @XmlTransient
     public Collection<RolPermiso> getRolPermisoCollection() {
         return rolPermisoCollection;
     }

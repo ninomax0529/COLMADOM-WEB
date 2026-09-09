@@ -19,19 +19,16 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "almacen")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Almacen.findAll", query = "SELECT a FROM Almacen a")})
 public class Almacen implements Serializable {
@@ -118,7 +115,6 @@ public class Almacen implements Serializable {
         this.creadoPor = creadoPor;
     }
 
-    @XmlTransient
     public Collection<DetalleEntradaInventario> getDetalleEntradaInventarioCollection() {
         return detalleEntradaInventarioCollection;
     }
@@ -127,7 +123,6 @@ public class Almacen implements Serializable {
         this.detalleEntradaInventarioCollection = detalleEntradaInventarioCollection;
     }
 
-    @XmlTransient
     public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
         return detalleFacturaDeVentaCollection;
     }
@@ -136,7 +131,6 @@ public class Almacen implements Serializable {
         this.detalleFacturaDeVentaCollection = detalleFacturaDeVentaCollection;
     }
 
-    @XmlTransient
     public Collection<ArticuloAlmacen> getArticuloAlmacenCollection() {
         return articuloAlmacenCollection;
     }
@@ -167,7 +161,7 @@ public class Almacen implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Almacen[ codigo=" + codigo + " ]";
+        return nombre;
     }
     
 }

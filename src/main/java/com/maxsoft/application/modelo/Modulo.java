@@ -15,16 +15,14 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 
 /**
  *
- * @author maximilianoalmonte
+ * @author Maximiliano
  */
 @Entity
 @Table(name = "modulo")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Modulo.findAll", query = "SELECT m FROM Modulo m")})
 public class Modulo implements Serializable {

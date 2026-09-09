@@ -8,6 +8,7 @@ package com.maxsoft.application.view.venta.puntoVenta;
  *
  * @author maximilianoalmonte
  */
+import com.maxsoft.application.view.componente.CobroDialogV1;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.servicio.interfaces.ArticuloService;
@@ -60,11 +61,11 @@ import java.util.List;
 import java.util.Objects;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
-@PageTitle("Punto de Venta V1")
-@Route(value = "puntoDeVentav1")
+//@PageTitle("Punto de Venta V1")
+//@Route(value = "puntoDeVentav1")
 //@Layout(value = "venta")
 //https://github.com/ninomax0529/vaadin-railway.git
-@Menu(order = 4, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
+//@Menu(order = 4, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 
 public class PuntoDeVentaViewV1 extends VerticalLayout implements BeforeLeaveObserver {
 

@@ -1,0 +1,523 @@
+//package com.maxsoft.application.view.venta.puntoVenta;
+//
+//import com.maxsoft.application.modelo.Articulo;
+//import com.maxsoft.application.modelo.Cliente;
+//import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
+//import com.maxsoft.application.modelo.FacturaDeVenta;
+//import com.maxsoft.application.servicio.interfaces.ArticuloService;
+//import com.maxsoft.application.servicio.interfaces.CajaService;
+//import com.maxsoft.application.servicio.interfaces.ClienteService;
+//import com.maxsoft.application.servicio.interfaces.DeliveryService;
+//import com.maxsoft.application.servicio.interfaces.EstadoFacturaService;
+//import com.maxsoft.application.servicio.interfaces.FacturaDeVentaService;
+//import com.maxsoft.application.servicio.interfaces.ReporteService;
+//import com.maxsoft.application.servicio.interfaces.TipoVentaService;
+//import com.maxsoft.application.view.componente.pos.DialogoAbonoLibreta;
+//import com.maxsoft.application.view.componente.pos.DialogoCobroEfectivo;
+//import com.maxsoft.application.view.componente.pos.DialogoConfirmarEliminarItem;
+//import com.maxsoft.application.view.componente.pos.DialogoEditarCantidad;
+//import com.maxsoft.application.view.componente.pos.DialogoMovimientoPos;
+//import com.maxsoft.application.view.componente.pos.DialogoRenombrarTicket;
+//import com.maxsoft.application.view.componente.pos.DialogoSeleccionCliente;
+//import com.maxsoft.application.view.componente.pos.DialogoVentaPorMonto;
+//import com.maxsoft.application.view.componente.pos.PanelCarritos;
+//import com.maxsoft.application.view.componente.pos.PanelProductos;
+//import com.maxsoft.application.view.componente.pos.PanelTicketContenido;
+//import com.maxsoft.application.view.venta.cajaChica.DialogoAperturaCaja;
+//import com.maxsoft.application.view.venta.cajaChica.DialogoCierreCaja;
+//import com.vaadin.flow.component.AttachEvent;
+//import com.vaadin.flow.component.DetachEvent;
+//import com.vaadin.flow.component.Key;
+//import com.vaadin.flow.component.KeyModifier;
+//import com.vaadin.flow.component.ShortcutRegistration;
+//import com.vaadin.flow.component.Shortcuts;
+//import com.vaadin.flow.component.button.Button;
+//import com.vaadin.flow.component.button.ButtonVariant;
+//import com.vaadin.flow.component.combobox.ComboBox;
+//import com.vaadin.flow.component.dialog.Dialog;
+//import com.vaadin.flow.component.grid.Grid;
+//import com.vaadin.flow.component.html.Anchor;
+//import com.vaadin.flow.component.html.Span;
+//import com.vaadin.flow.component.icon.VaadinIcon;
+//import com.vaadin.flow.component.notification.Notification;
+//import com.vaadin.flow.component.notification.NotificationVariant;
+//import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+//import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+//import com.vaadin.flow.component.tabs.TabSheet;
+//import com.vaadin.flow.router.BeforeLeaveEvent;
+//import com.vaadin.flow.router.BeforeLeaveObserver;
+//import com.vaadin.flow.router.Menu;
+//import com.vaadin.flow.router.PageTitle;
+//import com.vaadin.flow.router.Route;
+//import com.vaadin.flow.server.StreamResource;
+//import java.text.DecimalFormat;
+//import java.util.ArrayList;
+//import java.util.List;
+//import java.util.Optional;
+//import javax.sql.DataSource;
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.vaadin.lineawesome.LineAwesomeIconUrl;
+//
+////@PageTitle("Punto de Venta V6")
+////@Route(value = "puntoDeVentav6")
+////@Menu(order = 4, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
+//public class PuntoDeVentaViewV6 extends HorizontalLayout implements BeforeLeaveObserver {
+//
+//    private static final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");
+//
+//    // Servicios
+//    private final ReporteService reporteService;  
+//    private final CajaService cajaService;
+//    private final ArticuloService articuloService;
+//    private final ClienteService clienteService;
+//    private final DeliveryService deliveryService;
+//    private final TipoVentaService tipoVentaService;
+//    private final EstadoFacturaService estadoFacturaService;
+//    private final FacturaDeVentaService factService;
+//
+//    // Componentes de UI y Estado
+//    private final TabSheet ticketTabSheet = new TabSheet();
+//    private final List<TicketVenta> listaTicketsAbiertos = new ArrayList<>();
+//    private final ComboBox<Articulo> searchBox = new ComboBox<>("Buscar producto o escanear código");
+//    private final List<Cliente> libretaClientes = new ArrayList<>();
+//    private final List<ShortcutRegistration> atajosRegistrados = new ArrayList<>();
+//
+//    private TicketVenta ticketActivo;
+//    private int contadorSecuencialTickets = 0;
+//    private int contadorLineas = 1;
+//
+//    @Autowired
+//    public PuntoDeVentaViewV6(
+//            ReporteService reporteService, // Inyectar el servicio en lugar de DataSource        
+//            CajaService cajaService,
+//            FacturaDeVentaService factService,
+//            ArticuloService articuloService,
+//            ClienteService clienteService,
+//            DeliveryService deliveryService,
+//            TipoVentaService tipoVentaService,
+//            EstadoFacturaService estadoFacturaService
+//    ) {
+//        this.reporteService = reporteService;     
+//        this.cajaService = cajaService;
+//        this.factService = factService;
+//        this.articuloService = articuloService;
+//        this.clienteService = clienteService;
+//        this.deliveryService = deliveryService;
+//        this.tipoVentaService = tipoVentaService;
+//        this.estadoFacturaService = estadoFacturaService;
+//
+//        setSizeFull();
+//        setSpacing(true);
+//
+//        searchBox.setItemLabelGenerator(Articulo::getDescripcion);
+//
+//        VerticalLayout leftPanel = crearPanelProductos();
+//        leftPanel.setWidth("55%");
+//        leftPanel.setHeightFull();
+//
+//        VerticalLayout rightPanel = crearPanelCarritos();
+//        rightPanel.setWidth("45%");
+//        rightPanel.setHeightFull();
+//
+//        add(leftPanel, rightPanel);
+//
+//        crearNuevoTicket(null);
+//        abrirDialogoAperturaCaja();
+//    }
+//
+//    @Override
+//    protected void onAttach(AttachEvent attachEvent) {
+//        super.onAttach(attachEvent);
+//        configurarAtajosTeclado();
+//    }
+//
+//    @Override
+//    protected void onDetach(DetachEvent detachEvent) {
+//        super.onDetach(detachEvent);
+//        // Limpieza de listener para evitar fugas de memoria en la sesión
+//        atajosRegistrados.forEach(ShortcutRegistration::remove);
+//        atajosRegistrados.clear();
+//    }
+//
+//    private void configurarAtajosTeclado() {
+//        Key[] digitos = {Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5, Key.DIGIT_6, Key.DIGIT_7, Key.DIGIT_8, Key.DIGIT_9};
+//        Key[] numpadDigitos = {Key.NUMPAD_1, Key.NUMPAD_2, Key.NUMPAD_3, Key.NUMPAD_4, Key.NUMPAD_5, Key.NUMPAD_6, Key.NUMPAD_7, Key.NUMPAD_8, Key.NUMPAD_9};
+//
+//        for (int j = 0; j < 9; j++) {
+//            final int index = j;
+//            atajosRegistrados.add(Shortcuts.addShortcutListener(this, () -> seleccionarTicketPorPosicion(index), digitos[j], KeyModifier.ALT));
+//            atajosRegistrados.add(Shortcuts.addShortcutListener(this, () -> seleccionarTicketPorPosicion(index), numpadDigitos[j], KeyModifier.ALT));
+//        }
+//
+//        atajosRegistrados.add(Shortcuts.addShortcutListener(this, () -> {
+//            if (ticketActivo != null) {
+//                abrirDialogoRenombrarTicket(ticketActivo, new Span(ticketActivo.getId()));
+//            }
+//        }, Key.KEY_R, KeyModifier.ALT));
+//
+//        atajosRegistrados.add(Shortcuts.addShortcutListener(this, this::abrirDialogoAbonoLibreta, Key.KEY_A, KeyModifier.ALT));
+//    }
+//
+//    private void seleccionarTicketPorPosicion(int index) {
+//        if (index >= 0 && index < listaTicketsAbiertos.size()) {
+//            ticketTabSheet.setSelectedIndex(index);
+//            Notification.show("Cambiado a " + listaTicketsAbiertos.get(index).getId(), 1500, Notification.Position.TOP_CENTER);
+//            enfocarBuscador();
+//        }
+//    }
+//
+//    private VerticalLayout crearPanelProductos() {
+//        return new PanelProductos(
+//                this.articuloService,
+//                this::agregarAlTicketActivo,
+//                this::agregarAlTicketActivo,
+//                this::abrirDialogoVentaPorMonto,
+//                this::abrirDialogoAperturaCaja,
+//                this::abrirDialogoCierreCaja,
+//                this::abrirDialogoMovimientoPos
+//        );
+//    }
+//
+//    private VerticalLayout crearPanelCarritos() {
+//        return new PanelCarritos(
+//                ticketTabSheet,
+//                listaTicketsAbiertos,
+//                () -> crearNuevoTicket(null),
+//                ticketSeleccionado -> {
+//                    this.ticketActivo = ticketSeleccionado;
+//                    enfocarBuscador();
+//                }
+//        );
+//    }
+//
+//    private void agregarAlTicketActivo(Articulo articulo) {
+//        agregarAlTicketActivo(articulo, 1.0);
+//    }
+//
+//    private void agregarAlTicketActivo(Articulo articulo, Double cantidad) {
+//        if (ticketActivo == null || articulo == null) {
+//            return;
+//        }
+//
+//        Optional<DetalleFacturaDeVenta> existente = ticketActivo.getItems().stream()
+//                .filter(item -> item.getArticulo().equals(articulo))
+//                .findFirst();
+//
+//        if (existente.isPresent()) {
+//            DetalleFacturaDeVenta item = existente.get();
+//            double nuevaCantidad = item.getCantidad() + cantidad;
+//            if (nuevaCantidad <= 0) {
+//                confirmarEliminarItem(ticketActivo, item);
+//            } else {
+//                item.setCantidad(nuevaCantidad);
+//                recalcularTotalesItem(item);
+//                ticketActivo.updateUI();
+//            }
+//        } else {
+//            DetalleFacturaDeVenta nuevoDetalle = new DetalleFacturaDeVenta();
+//            nuevoDetalle.setCodigo(articulo.getCodigo());
+//            nuevoDetalle.setArticulo(articulo);
+//            nuevoDetalle.setNumeroDeLinea(contadorLineas++);
+//            nuevoDetalle.setDescripcionArticulo(articulo.getDescripcion());
+//            nuevoDetalle.setCantidad(cantidad);
+//            nuevoDetalle.setExistenciaActual(articulo.getExistencia());
+//            nuevoDetalle.setPrecioVenta(articulo.getPrecioVenta());
+//            nuevoDetalle.setPorcientoDescuento(0.00); // Ajustar según regla
+//            nuevoDetalle.setPorcientoItbis(18.00);
+//            nuevoDetalle.setNombreAlmacen("General");
+//            nuevoDetalle.setNombreUnidad("Unidad");
+//
+//            recalcularTotalesItem(nuevoDetalle);
+//
+//            ticketActivo.getItems().add(nuevoDetalle);
+//            ticketActivo.updateUI();
+//        }
+//
+//        enfocarBuscador();
+//    }
+//
+//    private void recalcularTotalesItem(DetalleFacturaDeVenta item) {
+//        double subTotal = item.getCantidad() * item.getPrecioVenta();
+//        double totalDesc = subTotal * (item.getPorcientoDescuento() / 100.0);
+//        double totalItbis = (subTotal - totalDesc) * (item.getPorcientoItbis() / 100.0);
+//        double total = (subTotal - totalDesc) + totalItbis;
+//
+//        item.setSubTotal(Math.round(subTotal * 100.0) / 100.0);
+//        item.setTotalDescuento(Math.round(totalDesc * 100.0) / 100.0);
+//        item.setTotalItbis(Math.round(totalItbis * 100.0) / 100.0);
+//        item.setTotal(Math.round(total * 100.0) / 100.0);
+//    }
+//
+//    private void crearNuevoTicket(String nombrePersonalizado) {
+//        contadorSecuencialTickets++;
+//        String nombreFinal = (nombrePersonalizado != null && !nombrePersonalizado.trim().isEmpty())
+//                ? nombrePersonalizado.trim()
+//                : "Venta " + contadorSecuencialTickets;
+//
+//        TicketVenta nuevoTicket = new TicketVenta(contadorSecuencialTickets, nombreFinal);
+//        listaTicketsAbiertos.add(nuevoTicket);
+//
+//        Grid<DetalleFacturaDeVenta> gridDet = nuevoTicket.getGrid();
+//        gridDet.setDataProvider(nuevoTicket.getDataProvider());
+//        gridDet.setSelectionMode(Grid.SelectionMode.SINGLE);
+//
+//        gridDet.addColumn(DetalleFacturaDeVenta::getArticulo).setHeader("Producto").setAutoWidth(true);
+//        gridDet.addColumn(DetalleFacturaDeVenta::getCantidad).setHeader("Cant.");
+//        gridDet.addColumn(item -> "RD$ " + MONEDA_FORMAT.format(item.getPrecioVenta())).setHeader("Precio");
+//        gridDet.addColumn(item -> "RD$ " + MONEDA_FORMAT.format(item.getSubTotal())).setHeader("Total");
+//
+//        gridDet.addComponentColumn(item -> {
+//            Button editQtyBtn = new Button(VaadinIcon.EDIT.create(), e -> abrirDialogoEditarCantidad(nuevoTicket, item));
+//            editQtyBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+//
+//            Button removeBtn = new Button(VaadinIcon.TRASH.create(), e -> confirmarEliminarItem(nuevoTicket, item));
+//            removeBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+//
+//            return new HorizontalLayout(editQtyBtn, removeBtn);
+//        }).setHeader("");
+//
+//        gridDet.addItemDoubleClickListener(e -> abrirDialogoEditarCantidad(nuevoTicket, e.getItem()));
+//
+//        Shortcuts.addShortcutListener(gridDet, () -> {
+//            DetalleFacturaDeVenta seleccionado = gridDet.asSingleSelect().getValue();
+//            if (seleccionado != null) {
+//                confirmarEliminarItem(nuevoTicket, seleccionado);
+//            }
+//        }, Key.DELETE);
+//
+//        Shortcuts.addShortcutListener(gridDet, () -> {
+//            DetalleFacturaDeVenta seleccionado = gridDet.asSingleSelect().getValue();
+//            if (seleccionado != null) {
+//                abrirDialogoEditarCantidad(nuevoTicket, seleccionado);
+//            }
+//        }, Key.NUMPAD_MULTIPLY);
+//
+//        gridDet.addCellFocusListener(e -> e.getItem().ifPresent(gridDet::select));
+//        gridDet.setHeightFull();
+//
+//        VerticalLayout contenidoTab = construirContenidoPanelTicket(nuevoTicket);
+//        ticketTabSheet.add(nombreFinal, contenidoTab);
+//        ticketTabSheet.setSelectedTab(ticketTabSheet.getTab(contenidoTab));
+//        ticketActivo = nuevoTicket;
+//
+//        actualizarTitulosPestanas();
+//        enfocarBuscador();
+//    }
+//
+//    private void actualizarTitulosPestanas() {
+//        for (int j = 0; j < listaTicketsAbiertos.size(); j++) {
+//            TicketVenta ticket = listaTicketsAbiertos.get(j);
+//            ticketTabSheet.getTabAt(j).setLabel("[Alt+" + (j + 1) + "] " + ticket.getId());
+//        }
+//    }
+//
+//    private VerticalLayout construirContenidoPanelTicket(TicketVenta ticket) {
+//        return new PanelTicketContenido(
+//                ticket,
+//                this::abrirDialogoRenombrarTicket,
+//                this::confirmarEliminarTicket,
+//                this::abrirDialogoCobroEfectivo,
+//                this::abrirDialogoSeleccionCliente
+//        );
+//    }
+//
+//    private void abrirDialogoCobroEfectivo(TicketVenta ticket) {
+//        if (ticket.getItems().isEmpty()) {
+//            Notification.show("El ticket [" + ticket.getId() + "] está vacío", 3000, Notification.Position.MIDDLE)
+//                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+//            return;
+//        }
+//
+//        DialogoCobroEfectivo dialogo = new DialogoCobroEfectivo(
+//                ticket,
+//                this.deliveryService,
+//                this.estadoFacturaService,
+//                this.clienteService,
+//                this.tipoVentaService,
+//                ticketAGuardar -> {
+//                    FacturaDeVenta f = guardar(ticketAGuardar);
+//                    if (f != null) {
+//                        imprimir(f.getCodigo());
+//                    }
+//                },
+//                this::cerrarTicketActual,
+//                this::enfocarBuscador
+//        );
+//        dialogo.open();
+//    }
+//
+//    private FacturaDeVenta guardar(TicketVenta ticketVenta) {
+//        try {
+//            String usuarioActual = "Administrador";
+//            FacturaDeVenta facturaGuardada = factService.procesarVenta(ticketVenta, usuarioActual);
+//
+//            Notification.show("Factura guardada correctamente", 3000, Notification.Position.TOP_CENTER)
+//                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+//
+//            return facturaGuardada;
+//        } catch (IllegalStateException | IllegalArgumentException ex) {
+//            Notification.show(ex.getMessage(), 3500, Notification.Position.MIDDLE)
+//                    .addThemeVariants(NotificationVariant.LUMO_WARNING);
+//            return null;
+//        } catch (Exception ex) {
+//            Notification.show("Error procesando la factura: " + ex.getMessage(), 4000, Notification.Position.TOP_CENTER)
+//                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+//            return null;
+//        }
+//    }
+//
+//    private void imprimir(int facturaCodigo) {
+//        
+//        try {
+//            
+//            StreamResource pdfResource = reporteService.generarReporteFacturaVenta(facturaCodigo);
+//
+//            Anchor anchor = new Anchor(pdfResource, "");
+//            anchor.getElement().setAttribute("download", false);
+//            anchor.getElement().setAttribute("target", "_blank");
+//            anchor.getElement().callJsFunction("click");
+//
+//            add(anchor);
+//        } catch (Exception ex) {
+//            Notification.show("Error al generar el reporte: " + ex.getMessage(), 3000, Notification.Position.TOP_CENTER)
+//                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+//        }
+//    }
+//
+//    private void enfocarBuscador() {
+//        if (searchBox != null) {
+//            searchBox.focus();
+//        }
+//    }
+//
+//    private void abrirDialogoAbonoLibreta() {
+//        new DialogoAbonoLibreta(this.libretaClientes, this::enfocarBuscador).open();
+//    }
+//
+//    private void abrirDialogoAperturaCaja() {
+//        new DialogoAperturaCaja(cajaService, fondo -> enfocarBuscador()).open();
+//    }
+//
+//    private void cerrarTicketActual() {
+//        eliminarTicket(ticketActivo);
+//    }
+//
+//    private void eliminarTicket(TicketVenta ticket) {
+//        if (listaTicketsAbiertos.size() <= 1) {
+//            ticket.getItems().clear();
+//            ticket.updateUI();
+//            Notification.show("Ticket limpiado.", 3000, Notification.Position.MIDDLE);
+//            enfocarBuscador();
+//            return;
+//        }
+//
+//        int index = listaTicketsAbiertos.indexOf(ticket);
+//        if (index >= 0) {
+//            listaTicketsAbiertos.remove(ticket);
+//            ticketTabSheet.remove(ticketTabSheet.getTabAt(index));
+//            actualizarTitulosPestanas();
+//            Notification.show("Venta descartada.", 3000, Notification.Position.MIDDLE)
+//                    .addThemeVariants(NotificationVariant.LUMO_WARNING);
+//        }
+//        enfocarBuscador();
+//    }
+//
+//    private void confirmarEliminarTicket(TicketVenta ticket) {
+//        Dialog confirmDialog = new Dialog();
+//        confirmDialog.setHeaderTitle("Descartar Venta");
+//        confirmDialog.add("¿Estás seguro de cancelar y eliminar " + ticket.getId() + "?");
+//
+//        Button cancelBtn = new Button("No, mantener", e -> confirmDialog.close());
+//        Button yesBtn = new Button("Sí, eliminar [Enter]", e -> {
+//            eliminarTicket(ticket);
+//            confirmDialog.close();
+//        });
+//        yesBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+//        yesBtn.addClickShortcut(Key.ENTER);
+//
+//        confirmDialog.getFooter().add(cancelBtn, yesBtn);
+//        confirmDialog.open();
+//    }
+//
+//    private void abrirDialogoVentaPorMonto(String producto, Double precioUnitario) {
+//        new DialogoVentaPorMonto(producto, precioUnitario, (monto, cantidadCalculada) -> {
+//            if (ticketActivo != null) {
+//                // Lógica para procesar la venta agregando la cantidad calculada
+//            }
+//        }).open();
+//    }
+//
+//    private void abrirDialogoEditarCantidad(TicketVenta ticket, DetalleFacturaDeVenta item) {
+//        new DialogoEditarCantidad(
+//                ticket,
+//                item,
+//                nuevaCantidad -> enfocarBuscador(),
+//                () -> confirmarEliminarItem(ticket, item)
+//        ).open();
+//    }
+//
+//    private void confirmarEliminarItem(TicketVenta ticket, DetalleFacturaDeVenta item) {
+//        new DialogoConfirmarEliminarItem(ticket, item, this::enfocarBuscador).open();
+//    }
+//
+//    private void abrirDialogoRenombrarTicket(TicketVenta ticket, Span ticketNameSpan) {
+//        new DialogoRenombrarTicket(ticket, ticketNameSpan, nombreLimpio -> {
+//            actualizarTitulosPestanas();
+//            enfocarBuscador();
+//        }).open();
+//    }
+//
+//    private void abrirDialogoMovimientoPos() {
+//        new DialogoMovimientoPos(this.cajaService, "Administrador").open();
+//    }
+//
+//    private void abrirDialogoCierreCaja() {
+//        new DialogoCierreCaja(this::enfocarBuscador).open();
+//    }
+//
+//    private void abrirDialogoSeleccionCliente(TicketVenta ticket) {
+//        if (ticket.getItems().isEmpty()) {
+//            Notification.show("El ticket [" + ticket.getId() + "] está vacío", 3000, Notification.Position.MIDDLE)
+//                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+//            return;
+//        }
+//
+//        libretaClientes.clear();
+//        libretaClientes.addAll(this.clienteService.getLista());
+//
+//        new DialogoSeleccionCliente(
+//                ticket,
+//                libretaClientes,
+//                this.deliveryService.getLista(),
+//                (clienteSeleccionado, esDelivery, motorista, direccion, telefono) -> {
+//                    if (esDelivery) {
+//                        ticket.setDelivery(motorista);
+//                        ticket.setEstadoFactura(this.estadoFacturaService.getEstadoFactura(1));
+//                    } else {
+//                        ticket.setEstadoFactura(this.estadoFacturaService.getEstadoFactura(2));
+//                    }
+//
+//                    ticket.setCliente(clienteSeleccionado);
+//                    ticket.setNombreCliente(ticket.getCliente().getNombre());
+//                    ticket.setDireccion(ticket.getCliente().getDireccion());
+//                    ticket.setTipoVenta(this.tipoVentaService.getTipoVenta(2));
+//
+//                    FacturaDeVenta f = guardar(ticket);
+//                    cerrarTicketActual();
+//                    enfocarBuscador();
+//
+//                    if (f != null) {
+//                        imprimir(f.getCodigo());
+//                    }
+//                }
+//        ).open();
+//    }
+//
+//    @Override
+//    public void beforeLeave(BeforeLeaveEvent event) {
+//        // Implementar diálogo o confirmación si existen tickets abiertos con productos
+//        if (listaTicketsAbiertos.stream().anyMatch(t -> !t.getItems().isEmpty())) {
+//            // Lógica opcional para postergar la salida
+//        }
+//    }
+//}
