@@ -9,15 +9,15 @@ import com.maxsoft.application.modelo.CajaTurno;
 import com.maxsoft.application.modelo.Cliente;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
-import com.maxsoft.application.servicio.impl.ImpresionDirectaService;
-import com.maxsoft.application.servicio.interfaces.ArticuloService;
-import com.maxsoft.application.servicio.interfaces.CajaService;
-import com.maxsoft.application.servicio.interfaces.ClienteService;
-import com.maxsoft.application.servicio.interfaces.DeliveryService;
-import com.maxsoft.application.servicio.interfaces.EstadoFacturaService;
-import com.maxsoft.application.servicio.interfaces.FacturaDeVentaService;
-import com.maxsoft.application.servicio.interfaces.ReporteService;
-import com.maxsoft.application.servicio.interfaces.TipoVentaService;
+import com.maxsoft.application.servicio.impl.venta.ImpresionDirectaService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
+import com.maxsoft.application.servicio.interfaces.venta.CajaService;
+import com.maxsoft.application.servicio.interfaces.venta.ClienteService;
+import com.maxsoft.application.servicio.interfaces.venta.DeliveryService;
+import com.maxsoft.application.servicio.interfaces.venta.EstadoFacturaService;
+import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
+import com.maxsoft.application.servicio.interfaces.reporte.ReporteService;
+import com.maxsoft.application.servicio.interfaces.venta.TipoVentaService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.componente.pos.DialogoAbonoLibreta;
 import com.maxsoft.application.view.componente.pos.DialogoCobroEfectivo;
@@ -47,7 +47,6 @@ import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.IFrame;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -108,6 +107,8 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
     private int contadorSecuencialTickets = 0;
     private int contadorLineas = 1;
     private boolean cajaAbierta = false;
+    // Declarar una variable a nivel de clase en tu pantalla principal
+    private DialogoSeleccionCliente dialogoActivo;
 
     public PuntoDeVentaViewV10(
             ReporteService reporteService,
@@ -130,6 +131,14 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
         this.estadoFacturaService = estadoFacturaService;
         this.impresionDirectaService = impresionDirectaService;
 
+        enfocarBuscador();
+        // En el constructor o donde registras el atajo F3:
+        Shortcuts.addShortcutListener(this, () -> {
+            // Solo abre si no hay un diálogo abierto ya
+            if (dialogoActivo == null || !dialogoActivo.isOpened()) {
+                abrirDialogoSeleccionCliente(ticketActivo);
+            }
+        }, Key.F3);
         setSizeFull();
         setSpacing(true);
 
@@ -144,6 +153,12 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
         rightPanel.setHeightFull();
 
         add(leftPanel, rightPanel);
+
+        // Suponiendo que tu vista principal es o tiene un layout contenedor (ej. VerticalLayout)
+        this.addClickListener(event -> {
+            // Si el usuario hace clic en el fondo de la pantalla, regresa el foco al buscador
+            restaurarFocoArticulos();
+        });
 
         // Listener para sincronizar selección manual de pestañas
         ticketTabSheet.addSelectedChangeListener(event -> {
@@ -238,7 +253,7 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
     private void seleccionarTicketPorPosicion(int index) {
         if (index >= 0 && index < listaTicketsAbiertos.size()) {
             ticketTabSheet.setSelectedIndex(index);
-             ClaseUtil.mostrarNotificacion("Cambiado a " + listaTicketsAbiertos.get(index).getId() ,NotificationVariant.LUMO_SUCCESS);
+            ClaseUtil.mostrarNotificacion("Cambiado a " + listaTicketsAbiertos.get(index).getId(), NotificationVariant.LUMO_SUCCESS);
 //            Notification.show("Cambiado a " + listaTicketsAbiertos.get(index).getId(), 1500, Notification.Position.TOP_CENTER);
             enfocarBuscador();
         }
@@ -256,17 +271,31 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
         );
     }
 
-    private VerticalLayout crearPanelCarritos() {
-        return new PanelCarritos(
-                ticketTabSheet,
-                listaTicketsAbiertos,
-                () -> crearNuevoTicket(null),
-                ticketSeleccionado -> {
-                    this.ticketActivo = ticketSeleccionado;
-                    enfocarBuscador();
+private VerticalLayout crearPanelCarritos() {
+    return new PanelCarritos(
+            ticketTabSheet,
+            listaTicketsAbiertos,
+
+            // Nueva venta
+            () -> crearNuevoTicket(null),
+
+            // Cambiar nombre
+            () -> {
+                if (ticketActivo != null) {
+                    abrirDialogoRenombrarTicket(
+                            ticketActivo,
+                            new Span(ticketActivo.getId())
+                    );
                 }
-        );
-    }
+            },
+
+            // Selección de ticket
+            ticketSeleccionado -> {
+                this.ticketActivo = ticketSeleccionado;
+                enfocarBuscador();
+            }
+    );
+}
 
     private void agregarAlTicketActivo(Articulo articulo) {
         agregarAlTicketActivo(articulo, 1.0);
@@ -387,6 +416,7 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
 
         actualizarTitulosPestanas();
         enfocarBuscador();
+
     }
 
     private void actualizarTitulosPestanas() {
@@ -407,9 +437,11 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
     }
 
     private void abrirDialogoCobroEfectivo(TicketVenta ticket) {
+
         if (ticket.getItems().isEmpty()) {
-            Notification.show("El ticket [" + ticket.getId() + "] está vacío", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+
+            ClaseUtil.mostrarNotificacion("La : [" + ticket.getId() + "] está vacía", NotificationVariant.LUMO_SUCCESS);
+
             return;
         }
 
@@ -440,19 +472,18 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
 //            ClaseUtil.mostrarNotificacion("Factura guardada correctamente", NotificationVariant.LUMO_SUCCESS);
 //            Notification.show("Factura guardada correctamente", 3000, Notification.Position.TOP_CENTER)
 //                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-
             return facturaGuardada;
         } catch (IllegalStateException | IllegalArgumentException ex) {
             Notification.show(ex.getMessage(), 3500, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_WARNING);
             return null;
         } catch (Exception ex) {
-            
-              ClaseUtil.mostrarNotificacion("Error procesando la factura: " ,NotificationVariant.LUMO_ERROR);
+
+            ClaseUtil.mostrarNotificacion("Error procesando la factura: ", NotificationVariant.LUMO_ERROR);
 //              
 //            Notification.show("Error procesando la factura: " + ex.getMessage(), 4000, Notification.Position.TOP_CENTER)
 //                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            
+
             return null;
         }
     }
@@ -500,20 +531,18 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
                     pdfUrl
             );
 
-         
             UI.getCurrent().getPage().executeJs(script);
 
-            
 //                ClaseUtil.mostrarNotificacion("Enviando a la impresora de caja...",NotificationVariant.LUMO_SUCCESS);
             Notification.show("Enviando a la impresora de caja...", 2000, Notification.Position.BOTTOM_END)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
-               enfocarBuscador();
-               
         } catch (Exception ex) {
             Notification.show("Error al generar el documento: " + ex.getMessage(), 4000, Notification.Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
+
+        enfocarBuscador();
     }
 
     private void imprimirCaja(int facturaCodigo) {
@@ -522,11 +551,10 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
             JasperPrint jasperPrint = reporteService.generarJasperPrintFacturaVenta(facturaCodigo);
             impresionDirectaService.imprimirJasperDirecto(jasperPrint, null);
 
-              
             Notification.show("Imprimiendo ticket de venta...", 2000, Notification.Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
-                 enfocarBuscador();
+            enfocarBuscador();
         } catch (Exception ex) {
             Notification.show("Error al enviar a la impresora: " + ex.getMessage(), 4000, Notification.Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
@@ -548,12 +576,14 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
             this.cajaAbierta = true;
             getUI().ifPresent(ui -> ui.access(() -> {
                 setVisible(true);
-                enfocarBuscador();
+
                 this.cajaAbierta = true;
                 mostrarPosConTransicion();
             }));
         });
         dialogo.open();
+
+        enfocarBuscador();
     }
 
     private void cerrarTicketActual() {
@@ -568,7 +598,7 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
         if (listaTicketsAbiertos.size() <= 1) {
             ticket.getItems().clear();
             ticket.updateUI();
-            ClaseUtil.mostrarNotificacion("Ticket limpiado.",NotificationVariant.LUMO_SUCCESS);
+            ClaseUtil.mostrarNotificacion("Ticket limpiado.", NotificationVariant.LUMO_SUCCESS);
 //            Notification.show("Ticket limpiado.", 3000, Notification.Position.MIDDLE);
             enfocarBuscador();
             return;
@@ -606,6 +636,7 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
 
         confirmDialog.getFooter().add(cancelBtn, yesBtn);
         confirmDialog.open();
+        enfocarBuscador();
     }
 
     private void abrirDialogoVentaPorMonto(String producto, Double precioUnitario) {
@@ -646,15 +677,18 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
 
     private void abrirDialogoSeleccionCliente(TicketVenta ticket) {
         if (ticket.getItems().isEmpty()) {
-            Notification.show("El ticket [" + ticket.getId() + "] está vacío", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+
+            ClaseUtil.mostrarNotificacion("La : [" + ticket.getId() + "] está vacía", NotificationVariant.LUMO_ERROR);
+//            Notification.show("El ticket [" + ticket.getId() + "] está vacío", 3000, Notification.Position.MIDDLE)
+//                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+
             return;
         }
 
         libretaClientes.clear();
         libretaClientes.addAll(this.clienteService.getLista());
 
-        new DialogoSeleccionCliente(
+        dialogoActivo = new DialogoSeleccionCliente(
                 ticket,
                 libretaClientes,
                 this.deliveryService.getLista(),
@@ -672,14 +706,22 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
                     ticket.setTipoVenta(this.tipoVentaService.getTipoVenta(2));
 
                     FacturaDeVenta f = guardar(ticket);
+
+                    // IMPORTANTE: Primero cerramos el diálogo explícitamente si no se cierra solo
+                    if (dialogoActivo != null) {
+                        dialogoActivo.close();
+                    }
                     cerrarTicketActual();
                     enfocarBuscador();
 
                     if (f != null) {
                         imprimir(f.getCodigo());
                     }
+
                 }
-        ).open();
+        );
+
+        dialogoActivo.open();
     }
 
     private void mostrarPosConTransicion() {
@@ -704,5 +746,15 @@ public class PuntoDeVentaViewV10 extends HorizontalLayout implements BeforeEnter
             // Lógica opcional para postergar la salida
         }
     }
-    
+
+    private void restaurarFocoArticulos() {
+        if (UI.getCurrent() != null && searchBox != null) {
+            UI.getCurrent().access(() -> {
+                searchBox.focus();
+                // Esto limpia el buscador para que quede listo para el siguiente código de barra
+                searchBox.clear();
+            });
+        }
+    }
+
 }

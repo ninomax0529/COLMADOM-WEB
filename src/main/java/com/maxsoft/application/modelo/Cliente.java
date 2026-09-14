@@ -31,12 +31,6 @@ import java.util.Date;
     @NamedQuery(name = "Cliente.findAll", query = "SELECT c FROM Cliente c")})
 public class Cliente implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Size(max = 150)
     @Column(name = "nombre")
     private String nombre;
@@ -58,12 +52,24 @@ public class Cliente implements Serializable {
     @Size(max = 45)
     @Column(name = "referencia")
     private String referencia;
-    @Column(name = "fecha_creacion")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaCreacion;
     @Size(max = 90)
     @Column(name = "creado_por")
     private String creadoPor;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
+    @Column(name = "limite_credito")
+    private Double limiteCredito;
+    @Size(max = 45)
+    @Column(name = "apodo")
+    private String apodo;
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
+    @Column(name = "fecha_creacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaCreacion;
     @Column(name = "fecha_actualizacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaActualizacion;
@@ -87,37 +93,6 @@ public class Cliente implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getCedula() {
-        return cedula;
-    }
-
-    public void setCedula(String cedula) {
-        this.cedula = cedula;
-    }
-
-    public String getCelular() {
-        return celular;
-    }
-
-    public void setCelular(String celular) {
-        this.celular = celular;
-    }
-
-    public String getDireccion() {
-        return direccion;
-    }
-
-    public void setDireccion(String direccion) {
-        this.direccion = direccion;
-    }
 
     public String getLugarDeTrabajo() {
         return lugarDeTrabajo;
@@ -135,13 +110,6 @@ public class Cliente implements Serializable {
         this.actualizadoPor = actualizadoPor;
     }
 
-    public String getReferencia() {
-        return referencia;
-    }
-
-    public void setReferencia(String referencia) {
-        this.referencia = referencia;
-    }
 
     public Date getFechaCreacion() {
         return fechaCreacion;
@@ -206,6 +174,64 @@ public class Cliente implements Serializable {
     @Override
     public String toString() {
         return nombre;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getCedula() {
+        return cedula;
+    }
+
+    public void setCedula(String cedula) {
+        this.cedula = cedula;
+    }
+
+    public String getCelular() {
+        return celular;
+    }
+
+    public void setCelular(String celular) {
+        this.celular = celular;
+    }
+
+    public String getDireccion() {
+        return direccion;
+    }
+
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
+    }
+
+
+    public String getReferencia() {
+        return referencia;
+    }
+
+    public void setReferencia(String referencia) {
+        this.referencia = referencia;
+    }
+
+
+    public Double getLimiteCredito() {
+        return limiteCredito;
+    }
+
+    public void setLimiteCredito(Double limiteCredito) {
+        this.limiteCredito = limiteCredito;
+    }
+
+    public String getApodo() {
+        return apodo;
+    }
+
+    public void setApodo(String apodo) {
+        this.apodo = apodo;
     }
     
 }

@@ -10,8 +10,8 @@ package com.maxsoft.application.view.venta.puntoVenta;
  */
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
-import com.maxsoft.application.servicio.interfaces.ArticuloService;
-import com.maxsoft.application.servicio.interfaces.FacturaDeVentaService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
+import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.componente.CobrarComponent;

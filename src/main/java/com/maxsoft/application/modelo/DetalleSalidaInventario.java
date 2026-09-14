@@ -43,7 +43,7 @@ public class DetalleSalidaInventario implements Serializable {
     @Basic(optional = false)
     @NotNull
     @Column(name = "cantidad")
-    private double cantidad;
+    private Double cantidad;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "existencia")
     private Double existencia;
@@ -96,11 +96,11 @@ public class DetalleSalidaInventario implements Serializable {
         this.descripcionArticulo = descripcionArticulo;
     }
 
-    public double getCantidad() {
+    public Double getCantidad() {
         return cantidad;
     }
 
-    public void setCantidad(double cantidad) {
+    public void setCantidad(Double cantidad) {
         this.cantidad = cantidad;
     }
 

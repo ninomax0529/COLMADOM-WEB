@@ -1,7 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package com.maxsoft.application.view.componente.pos;
 
 import com.maxsoft.application.view.venta.puntoVenta.TicketVenta;
@@ -29,48 +26,148 @@ public class PanelCarritos extends VerticalLayout {
             TabSheet ticketTabSheet,
             List<TicketVenta> ticketsAbiertos,
             Runnable onCrearNuevoTicket,
+            Runnable onCambiarNombre,
             AccionCambioSeleccionTicket onSeleccionarTicket
     ) {
+
         getStyle().set("background-color", "var(--lumo-contrast-5pct)");
         getStyle().set("padding", "1rem");
         getStyle().set("border-radius", "8px");
+
         setHeightFull();
 
+        // =========================================================
+        // ENCABEZADO
+        // =========================================================
+
         HorizontalLayout headerLayout = new HorizontalLayout();
+
         headerLayout.setWidthFull();
-        headerLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        headerLayout.setAlignItems(FlexComponent.Alignment.CENTER);
+        headerLayout.setJustifyContentMode(
+                FlexComponent.JustifyContentMode.BETWEEN
+        );
+        headerLayout.setAlignItems(
+                FlexComponent.Alignment.CENTER
+        );
 
         H3 cartTitle = new H3("Ventas Abiertas");
 
-        Button addTicketBtn = new Button("Nueva Venta (+) [Alt+N]", VaadinIcon.PLUS.create());
-        addTicketBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        // =========================================================
+        // BOTÓN CAMBIAR NOMBRE
+        // =========================================================
+
+        Button renameTicketBtn = new Button(
+                "Cambiar Nombre [Alt+R]",
+                VaadinIcon.EDIT.create()
+        );
+
+        renameTicketBtn.addThemeVariants(
+                ButtonVariant.LUMO_TERTIARY,
+                ButtonVariant.LUMO_SMALL
+        );
+
+        renameTicketBtn.addClickListener(e -> {
+
+            if (onCambiarNombre != null) {
+                onCambiarNombre.run();
+            }
+
+        });
+
+        // =========================================================
+        // BOTÓN NUEVA VENTA
+        // =========================================================
+
+        Button addTicketBtn = new Button(
+                "Nueva Venta (+) [Alt+N]",
+                VaadinIcon.PLUS.create()
+        );
+
+        addTicketBtn.addThemeVariants(
+                ButtonVariant.LUMO_PRIMARY,
+                ButtonVariant.LUMO_SMALL
+        );
+
         addTicketBtn.addClickListener(e -> {
+
             if (onCrearNuevoTicket != null) {
                 onCrearNuevoTicket.run();
             }
+
         });
 
-        addTicketBtn.addClickShortcut(Key.KEY_N, KeyModifier.ALT);
+        addTicketBtn.addClickShortcut(
+                Key.KEY_N,
+                KeyModifier.ALT
+        );
 
-        headerLayout.add(cartTitle, addTicketBtn);
+        // =========================================================
+        // AGRUPAR BOTONES
+        // =========================================================
+
+        HorizontalLayout acciones = new HorizontalLayout(
+                renameTicketBtn,
+                addTicketBtn
+        );
+
+        acciones.setSpacing(true);
+        acciones.setPadding(false);
+        acciones.setAlignItems(
+                FlexComponent.Alignment.CENTER
+        );
+
+        // =========================================================
+        // HEADER
+        // =========================================================
+
+        headerLayout.add(
+                cartTitle,
+                acciones
+        );
+
+        // =========================================================
+        // TABS
+        // =========================================================
 
         ticketTabSheet.setWidthFull();
         ticketTabSheet.setHeightFull();
-        ticketTabSheet.getStyle().set("display", "flex");
-        ticketTabSheet.getStyle().set("flex-direction", "column");
+
+        ticketTabSheet.getStyle().set(
+                "display",
+                "flex"
+        );
+
+        ticketTabSheet.getStyle().set(
+                "flex-direction",
+                "column"
+        );
 
         ticketTabSheet.addSelectedChangeListener(event -> {
+
             int index = ticketTabSheet.getSelectedIndex();
+
             if (index >= 0 && index < ticketsAbiertos.size()) {
-                TicketVenta ticketSeleccionado = ticketsAbiertos.get(index);
+
+                TicketVenta ticketSeleccionado =
+                        ticketsAbiertos.get(index);
+
                 if (onSeleccionarTicket != null) {
-                    onSeleccionarTicket.ejecutar(ticketSeleccionado);
+
+                    onSeleccionarTicket.ejecutar(
+                            ticketSeleccionado
+                    );
                 }
             }
         });
 
-        add(headerLayout, ticketTabSheet);
-        setFlexGrow(1, ticketTabSheet);
+        add(
+                headerLayout,
+                ticketTabSheet
+        );
+
+        setFlexGrow(
+                1,
+                ticketTabSheet
+        );
     }
 }

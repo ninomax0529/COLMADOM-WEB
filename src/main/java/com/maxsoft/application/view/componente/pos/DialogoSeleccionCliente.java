@@ -27,7 +27,6 @@ public class DialogoSeleccionCliente extends Dialog {
 
     private static final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");
 
-    // Interfaz funcional para callbacks necesarios desde la vista llamante
     @FunctionalInterface
     public interface AccionConfirmarFiado {
         void ejecutar(Cliente clienteSeleccionado, boolean esDelivery, Delivery motorista, String direccion, String telefono);
@@ -41,6 +40,8 @@ public class DialogoSeleccionCliente extends Dialog {
     ) {
         setHeaderTitle("Registrar Venta Fiada - " + ticket.getId());
         setWidth("450px");
+        setCloseOnEsc(true);
+        setCloseOnOutsideClick(false);
 
         VerticalLayout layout = new VerticalLayout();
         layout.setSpacing(true);
@@ -51,7 +52,7 @@ public class DialogoSeleccionCliente extends Dialog {
 
         ComboBox<Cliente> clientCombo = new ComboBox<>("Seleccionar Cliente (Fiado)");
         clientCombo.setItems(listaClientes);
-        clientCombo.setItemLabelGenerator(c -> c.getNombre());
+        clientCombo.setItemLabelGenerator(Cliente::getNombre);
         clientCombo.setWidthFull();
 
         HorizontalLayout tipoEntregaLayout = new HorizontalLayout();
@@ -79,20 +80,21 @@ public class DialogoSeleccionCliente extends Dialog {
 
         ComboBox<Delivery> cbDelivery = new ComboBox<>("Asignar Motorista (Delivery)");
         cbDelivery.setItems(listaDeliveries);
+        cbDelivery.setItemLabelGenerator(d -> d.getNombre() != null ? d.getNombre() : "");
         cbDelivery.setWidthFull();
 
         BigDecimalField costoEnvioField = new BigDecimalField("Costo de Delivery (RD$)");
         costoEnvioField.setValue(BigDecimal.ZERO);
         costoEnvioField.setWidthFull();
 
-        deliveryLayout.add(direccionField, cbDelivery);
+        // Se agregan TODOS los campos correspondientes al layout de delivery
+        deliveryLayout.add(direccionField, telefonoField, cbDelivery, costoEnvioField);
 
         final boolean[] esDeliveryState = {false};
 
         btnLocal.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btnDelivery.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
 
-        // Métodos de acción declarados explícitamente para mantener control del foco
         Runnable seleccionarLocal = () -> {
             esDeliveryState[0] = false;
             deliveryLayout.setVisible(false);
@@ -100,7 +102,7 @@ public class DialogoSeleccionCliente extends Dialog {
             btnLocal.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             btnDelivery.removeThemeVariants(ButtonVariant.LUMO_PRIMARY);
             btnDelivery.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
-            clientCombo.focus();
+           
         };
 
         Runnable seleccionarDelivery = () -> {
@@ -110,20 +112,23 @@ public class DialogoSeleccionCliente extends Dialog {
             btnDelivery.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             btnLocal.removeThemeVariants(ButtonVariant.LUMO_PRIMARY);
             btnLocal.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
-            direccionField.focus();
+           
         };
 
         btnLocal.addClickListener(e -> seleccionarLocal.run());
         btnDelivery.addClickListener(e -> seleccionarDelivery.run());
 
-        // --- REGISTRO CORRECTO DE ATAJOS GLOBALES (ALT+L Y ALT+D) ---
+        // Atajos Alt+L y Alt+D
         Shortcuts.addShortcutListener(this, seleccionarLocal::run, Key.KEY_L, KeyModifier.ALT);
         Shortcuts.addShortcutListener(this, seleccionarDelivery::run, Key.KEY_D, KeyModifier.ALT);
 
         tipoEntregaLayout.add(btnLocal, btnDelivery);
 
         Span totalFiadoLabel = new Span("Total a Fiar: RD$ " + MONEDA_FORMAT.format(subtotalProductos));
-        totalFiadoLabel.getStyle().set("font-size", "1.2rem").set("font-weight", "bold").set("color", "var(--lumo-error-text-color)");
+        totalFiadoLabel.getStyle()
+                .set("font-size", "1.2rem")
+                .set("font-weight", "bold")
+                .set("color", "var(--lumo-error-text-color)");
 
         costoEnvioField.addValueChangeListener(e -> {
             BigDecimal envio = e.getValue() != null ? e.getValue() : BigDecimal.ZERO;
@@ -138,11 +143,10 @@ public class DialogoSeleccionCliente extends Dialog {
         Button processBtn = new Button("Confirmar Fiado [Enter]", VaadinIcon.CHECK.create());
         processBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
 
-        // Atajo global para Enter
-        Shortcuts.addShortcutListener(this, () -> processBtn.click(), Key.ENTER);
+        // Se usa addClickShortcut en lugar de listener manual de Enter para evitar capturar el Enter dentro de los ComboBoxes
+        processBtn.addClickShortcut(Key.ENTER);
 
         processBtn.addClickListener(e -> {
-
             Cliente clienteSeleccionado = clientCombo.getValue();
             boolean esDelivery = esDeliveryState[0];
 
@@ -154,7 +158,6 @@ public class DialogoSeleccionCliente extends Dialog {
             }
 
             if (esDelivery) {
-
                 if (direccionField.getValue() == null || direccionField.getValue().trim().isEmpty()) {
                     Notification.show("Debe ingresar la dirección para el delivery", 2500, Notification.Position.MIDDLE)
                             .addThemeVariants(NotificationVariant.LUMO_WARNING);
@@ -169,8 +172,10 @@ public class DialogoSeleccionCliente extends Dialog {
                 }
             }
 
+            // 1. Cerrar el diálogo inmediatamente
             close();
 
+            // 2. Notificar al callback de la vista principal
             if (onConfirmar != null) {
                 onConfirmar.ejecutar(
                         clienteSeleccionado,
@@ -183,11 +188,14 @@ public class DialogoSeleccionCliente extends Dialog {
         });
 
         getFooter().add(cancelBtn, processBtn);
+      
 
         addOpenedChangeListener(e -> {
             if (e.isOpened()) {
+                
                 clientCombo.focus();
             }
         });
     }
 }
+

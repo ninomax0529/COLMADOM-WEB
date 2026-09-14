@@ -1,10 +1,10 @@
 package com.maxsoft.application.view.componente.pos;
 
 import com.maxsoft.application.modelo.Delivery;
-import com.maxsoft.application.servicio.interfaces.ClienteService;
-import com.maxsoft.application.servicio.interfaces.DeliveryService;
-import com.maxsoft.application.servicio.interfaces.EstadoFacturaService;
-import com.maxsoft.application.servicio.interfaces.TipoVentaService;
+import com.maxsoft.application.servicio.interfaces.venta.ClienteService;
+import com.maxsoft.application.servicio.interfaces.venta.DeliveryService;
+import com.maxsoft.application.servicio.interfaces.venta.EstadoFacturaService;
+import com.maxsoft.application.servicio.interfaces.venta.TipoVentaService;
 import com.maxsoft.application.view.venta.puntoVenta.TicketVenta;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;

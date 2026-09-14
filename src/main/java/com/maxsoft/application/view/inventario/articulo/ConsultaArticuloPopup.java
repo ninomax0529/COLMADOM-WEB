@@ -10,7 +10,7 @@ package com.maxsoft.application.view.inventario.articulo;
  */
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.servicio.ArticuloDaoService;
-import com.maxsoft.application.servicio.interfaces.ArticuloService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.view.inventario.entrada.RegistroEntradaDeIventarioView;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;

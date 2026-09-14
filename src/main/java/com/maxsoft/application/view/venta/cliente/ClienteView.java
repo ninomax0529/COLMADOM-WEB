@@ -12,7 +12,7 @@ import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.maxsoft.application.modelo.Cliente;
-import com.maxsoft.application.servicio.interfaces.ClienteService;
+import com.maxsoft.application.servicio.interfaces.venta.ClienteService;
 import com.maxsoft.application.util.NavigationContext;
 import com.maxsoft.application.view.componente.FiltroAvanzado;
 import com.maxsoft.application.view.componente.ToolBarBotonera;

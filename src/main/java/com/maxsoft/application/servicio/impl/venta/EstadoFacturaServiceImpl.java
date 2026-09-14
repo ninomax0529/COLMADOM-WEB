@@ -2,11 +2,11 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.maxsoft.application.servicio.impl;
+package com.maxsoft.application.servicio.impl.venta;
 
 import com.maxsoft.application.modelo.EstadoFactura;
 import com.maxsoft.application.repo.EstadoFacturaRepo;
-import com.maxsoft.application.servicio.interfaces.EstadoFacturaService;
+import com.maxsoft.application.servicio.interfaces.venta.EstadoFacturaService;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

@@ -93,6 +93,10 @@ public class Articulo implements Serializable {
     @NotNull
     @Column(name = "inventariable")
     private boolean inventariable;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "permitir_venta_sin_existencia")
+    private boolean permitirVentaSinExistencia;
     @Column(name = "tipo_articulo")
     private Integer tipoArticulo;
     @Column(name = "margen_beneficio")
@@ -553,6 +557,20 @@ public class Articulo implements Serializable {
         this.detalleSalidaInventarioCollection = detalleSalidaInventarioCollection;
     }
 
+    /**
+     * @return the permitirVentaSinExistencia
+     */
+    public boolean isPermitirVentaSinExistencia() {
+        return permitirVentaSinExistencia;
+    }
+
+    /**
+     * @param permitirVentaSinExistencia the permitirVentaSinExistencia to set
+     */
+    public void setPermitirVentaSinExistencia(boolean permitirVentaSinExistencia) {
+        this.permitirVentaSinExistencia = permitirVentaSinExistencia;
+    }
+
     @Override
     public int hashCode() {
         int hash = 0;
@@ -577,5 +595,5 @@ public class Articulo implements Serializable {
     public String toString() {
         return descripcion;
     }
-    
+
 }

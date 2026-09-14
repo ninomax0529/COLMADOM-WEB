@@ -2,18 +2,18 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
  */
-package com.maxsoft.application.servicio.interfaces;
+package com.maxsoft.application.servicio.interfaces.venta;
 
-import com.maxsoft.application.modelo.TipoVenta;
+import com.maxsoft.application.modelo.EstadoFactura;
 import java.util.List;
 
 /**
  *
  * @author Maximiliano
  */
-public interface TipoVentaService {
+public interface EstadoFacturaService {
 
-    List<TipoVenta> getLista();
+    List<EstadoFactura> getLista();
 
-    TipoVenta getTipoVenta(int codigo);
+    EstadoFactura getEstadoFactura(int codigo);
 }

@@ -2,16 +2,19 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
  */
-package com.maxsoft.application.servicio.interfaces;
+package com.maxsoft.application.servicio.interfaces.venta;
 
-import com.maxsoft.application.modelo.Delivery;
+import com.maxsoft.application.modelo.Cliente;
 import java.util.List;
 
 /**
  *
- * @author Maximiliano
+ * @author maximilianoalmonte
  */
-public interface DeliveryService {
+public interface ClienteService {
     
-      List<Delivery> getLista();
+     Cliente guardar(Cliente obj);
+
+
+    List<Cliente> getLista();
 }

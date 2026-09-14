@@ -101,7 +101,7 @@ public class UnidadDeVenta implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.UnidadDeVenta[ codigo=" + codigo + " ]";
+        return nombre;
     }
     
 }

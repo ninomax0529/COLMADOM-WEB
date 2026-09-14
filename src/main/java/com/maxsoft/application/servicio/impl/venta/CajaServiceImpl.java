@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.maxsoft.application.servicio.impl;
+package com.maxsoft.application.servicio.impl.venta;
 
 import com.maxsoft.application.modelo.CajaTurno;
 import com.maxsoft.application.modelo.DesgloseCaja;
@@ -10,7 +10,7 @@ import com.maxsoft.application.modelo.MovimientoCaja;
 import com.maxsoft.application.repo.CajaTurnoRepo;
 import com.maxsoft.application.repo.DesgloseCajaRepo;
 import com.maxsoft.application.repo.MovimientoCajaRepo;
-import com.maxsoft.application.servicio.interfaces.CajaService;
+import com.maxsoft.application.servicio.interfaces.venta.CajaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

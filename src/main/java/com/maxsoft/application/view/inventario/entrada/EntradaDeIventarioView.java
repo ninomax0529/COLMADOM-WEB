@@ -8,21 +8,17 @@ package com.maxsoft.application.view.inventario.entrada;
  *
  * @author maximilianoalmonte
  */
-import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.DetalleEntradaInventario;
 import com.maxsoft.application.modelo.EntradaInventario;
-import com.maxsoft.application.servicio.interfaces.EntradaDeInventarioService;
+import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.NumberField;
-import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.tabs.TabSheet;
 import java.util.List;
 
@@ -117,11 +113,11 @@ public class EntradaDeIventarioView extends VerticalLayout {
                 .setHeader("Cantidad")
                 .setKey("cantidad");
 
-        gridDetalle.addColumn(DetalleEntradaInventario::getNuevaExistencia)
+        gridDetalle.addColumn(DetalleEntradaInventario::getExistenciaActual)
                 .setHeader("Existencia")
                 .setKey("existencia");
 
-        gridDetalle.addColumn(DetalleEntradaInventario::getExistenciaActual)
+        gridDetalle.addColumn(DetalleEntradaInventario::getNuevaExistencia)
                 .setHeader("Nueva Existencia")
                 .setKey("nuevaexistencia");
 

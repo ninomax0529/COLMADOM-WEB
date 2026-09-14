@@ -52,7 +52,7 @@ public class PanelTicketContenido extends VerticalLayout {
             }
         });
 
-        topBar.add(ticketNameSpan, renameBtn);
+//        topBar.add(ticketNameSpan);
 
         TextField filterText = new TextField();
         filterText.setPlaceholder("Filtrar productos en este ticket...");

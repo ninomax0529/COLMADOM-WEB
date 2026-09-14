@@ -11,7 +11,7 @@ package com.maxsoft.application.view.inventario.salida;
 
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
 import com.maxsoft.application.modelo.SalidaInventario;
-import com.maxsoft.application.servicio.interfaces.SalidaInventarioService;
+import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;

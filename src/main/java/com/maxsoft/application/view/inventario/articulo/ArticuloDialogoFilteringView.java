@@ -9,7 +9,7 @@ package com.maxsoft.application.view.inventario.articulo;
  * @author maximilianoalmonte
  */
 import com.maxsoft.application.modelo.Articulo;
-import com.maxsoft.application.servicio.interfaces.ArticuloService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.view.componente.FiltroDataView;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.dialog.Dialog;

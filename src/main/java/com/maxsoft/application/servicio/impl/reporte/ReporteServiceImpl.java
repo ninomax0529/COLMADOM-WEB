@@ -2,10 +2,10 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.maxsoft.application.servicio.impl;
+package com.maxsoft.application.servicio.impl.reporte;
 
 import com.maxsoft.application.reporte.venta.RptFaturaVenta;
-import com.maxsoft.application.servicio.interfaces.ReporteService;
+import com.maxsoft.application.servicio.interfaces.reporte.ReporteService;
 import com.vaadin.flow.server.StreamResource;
 import org.springframework.stereotype.Service;
 

@@ -9,7 +9,7 @@ package com.maxsoft.application.view.inventario.articulo;
  * @author maximilianoalmonte
  */
 import com.maxsoft.application.modelo.Articulo;
-import com.maxsoft.application.servicio.interfaces.ArticuloService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.util.NavigationContext;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
 import com.vaadin.flow.component.UI;

@@ -18,7 +18,7 @@ import java.util.Date;
 import com.vaadin.flow.component.notification.Notification;
 
 import com.maxsoft.application.modelo.Cliente;
-import com.maxsoft.application.servicio.interfaces.ClienteService;
+import com.maxsoft.application.servicio.interfaces.venta.ClienteService;
 import com.maxsoft.application.util.NavigationContext;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
 

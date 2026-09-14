@@ -5,7 +5,7 @@
 package com.maxsoft.application.view.componente.pos;
 
 import com.maxsoft.application.modelo.Articulo;
-import com.maxsoft.application.servicio.interfaces.ArticuloService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;

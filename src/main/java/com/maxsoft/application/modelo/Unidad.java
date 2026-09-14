@@ -178,7 +178,7 @@ public class Unidad implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Unidad[ codigo=" + codigo + " ]";
+        return descripcion;
     }
     
 }

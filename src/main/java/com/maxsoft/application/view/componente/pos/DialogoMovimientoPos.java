@@ -5,7 +5,7 @@
 package com.maxsoft.application.view.componente.pos;
 
 import com.maxsoft.application.modelo.CajaTurno;
-import com.maxsoft.application.servicio.interfaces.CajaService;
+import com.maxsoft.application.servicio.interfaces.venta.CajaService;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;

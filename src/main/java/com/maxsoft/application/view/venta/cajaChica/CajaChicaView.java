@@ -10,7 +10,7 @@ package com.maxsoft.application.view.venta.cajaChica;
  */
 import com.maxsoft.application.modelo.CajaChica;
 import com.maxsoft.application.modelo.MovimientoCajaChica;
-import com.maxsoft.application.servicio.interfaces.CajaChicaService;
+import com.maxsoft.application.servicio.interfaces.venta.CajaChicaService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;

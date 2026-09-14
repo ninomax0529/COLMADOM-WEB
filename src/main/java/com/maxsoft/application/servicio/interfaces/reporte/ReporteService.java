@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
  */
-package com.maxsoft.application.servicio.interfaces;
+package com.maxsoft.application.servicio.interfaces.reporte;
 
 import com.vaadin.flow.server.StreamResource;
 import net.sf.jasperreports.engine.JasperPrint;

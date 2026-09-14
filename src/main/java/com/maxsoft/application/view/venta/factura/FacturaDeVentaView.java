@@ -10,7 +10,7 @@ package com.maxsoft.application.view.venta.factura;
  */
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
-import com.maxsoft.application.servicio.interfaces.FacturaDeVentaService;
+import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
