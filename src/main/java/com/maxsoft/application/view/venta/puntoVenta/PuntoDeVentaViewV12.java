@@ -52,6 +52,8 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.BeforeLeaveEvent;
@@ -193,6 +195,9 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
                 },
                 Key.NUMPAD_MULTIPLY
         );
+
+        // Atajo global para abrir la ventana de anulación
+        atajosRegistrados.add(Shortcuts.addShortcutListener(this, this::abrirDialogoAnulacion, Key.KEY_X, KeyModifier.ALT));
 
         configurarVista();
         configurarBuscador();
@@ -1033,7 +1038,6 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
                                         factura.getCodigo()
                                 );
 
-                                restaurarFocoArticulos();
                             }
                         },
                         this::cerrarTicketActual,
@@ -1758,5 +1762,77 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
     private void restaurarFocoArticulos() {
 
         enfocarBuscador();
+    }
+
+    private void ejecutarAnulacion(Integer codigoFactura, String motivo) {
+        try {
+            // Ejecución real contra la capa de negocio
+            FacturaDeVenta facturaAnulada = this.factService.anularVenta(codigoFactura, motivo, USUARIO_POR_DEFECTO);
+
+            if (facturaAnulada != null) {
+                ClaseUtil.mostrarNotificacion(
+                        "Factura #" + codigoFactura + " anulada correctamente.",
+                        NotificationVariant.LUMO_SUCCESS
+                );
+
+                // Re-impresión del comprobante o ticket de anulación
+//                imprimir(facturaAnulada.getCodigo());
+            } else {
+                ClaseUtil.mostrarNotificacion("No se encontró la factura N° " + codigoFactura, NotificationVariant.LUMO_ERROR);
+            }
+        } catch (Exception ex) {
+            System.out.println("Erro msg " + ex.getMessage());
+            // En caso de que la factura ya esté anulada, cerrada o devuelva error de negocio
+            Notification.show("Error al anular: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        } finally {
+            enfocarBuscador();
+        }
+    }
+
+    public void abrirDialogoAnulacion() {
+        Dialog dialogo = new Dialog();
+        dialogo.setHeaderTitle("Anular Factura / Venta");
+
+        VerticalLayout layout = new VerticalLayout();
+        layout.setPadding(true);
+        layout.setSpacing(true);
+
+        IntegerField txtCodigoFactura = new IntegerField("Número de Factura");
+        txtCodigoFactura.setPlaceholder("Ej. 1045");
+        txtCodigoFactura.setWidthFull();
+        txtCodigoFactura.setAutofocus(true);
+
+        TextArea txtMotivo = new TextArea("Motivo de Anulación");
+        txtMotivo.setPlaceholder("Ingrese la razón de la anulación...");
+        txtMotivo.setWidthFull();
+
+        layout.add(txtCodigoFactura, txtMotivo);
+
+        Button btnAnular = new Button("Confirmar Anulación", VaadinIcon.CLOSE_CIRCLE.create(), e -> {
+            Integer codigoFactura = txtCodigoFactura.getValue();
+            String motivo = txtMotivo.getValue();
+
+            if (codigoFactura == null) {
+                ClaseUtil.mostrarNotificacion("Debe ingresar un número de factura válido.", NotificationVariant.LUMO_WARNING);
+                return;
+            }
+
+            if (motivo == null || motivo.trim().isEmpty()) {
+                ClaseUtil.mostrarNotificacion("Debe especificar el motivo de la anulación.", NotificationVariant.LUMO_WARNING);
+                return;
+            }
+
+            ejecutarAnulacion(codigoFactura, motivo.trim());
+            dialogo.close();
+        });
+        btnAnular.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+
+        Button btnCancelar = new Button("Cancelar", e -> dialogo.close());
+        btnCancelar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        dialogo.getFooter().add(btnCancelar, btnAnular);
+        dialogo.add(layout);
+        dialogo.open();
     }
 }

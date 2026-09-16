@@ -8,13 +8,17 @@ import com.maxsoft.application.modelo.DetalleEntradaInventario;
 import com.maxsoft.application.modelo.EntradaInventario;
 import java.util.List;
 
-/**
- *
- * @author Maximiliano
- */
+
 public interface EntradaDeInventarioService {
 
-    EntradaInventario guardar(EntradaInventario obj);
+    /**
+     * Procesa de forma atómica (@Transactional) el guardado de la Entrada de Inventario:
+     * 1.Guarda la cabecera y el detalle de la entrada.2.Actualiza el stock del artículo y registra la traza en movimiento_inventario.
+     * @param obj
+     * @param usuario
+     * @return 
+     */
+    EntradaInventario guardar(EntradaInventario obj, String usuario);
 
     List<EntradaInventario> getLista();
 

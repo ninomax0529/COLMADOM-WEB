@@ -5,6 +5,7 @@
 package com.maxsoft.application.modelo;
 
 import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,7 +15,6 @@ import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.util.Collection;
@@ -24,16 +24,10 @@ import java.util.Collection;
  * @author Maximiliano
  */
 @Entity
-@Table(name = "unidad_de_venta")
+@Table(name = "tipo_ajuste")
 @NamedQueries({
-    @NamedQuery(name = "UnidadDeVenta.findAll", query = "SELECT u FROM UnidadDeVenta u")})
-public class UnidadDeVenta implements Serializable {
-
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 15)
-    @Column(name = "nombre")
-    private String nombre;
+    @NamedQuery(name = "TipoAjuste.findAll", query = "SELECT t FROM TipoAjuste t")})
+public class TipoAjuste implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -41,19 +35,17 @@ public class UnidadDeVenta implements Serializable {
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @OneToMany(mappedBy = "unidadDeVenta")
-    private Collection<Articulo> articuloCollection;
+    @Size(max = 45)
+    @Column(name = "descripcion")
+    private String descripcion;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoAjuste")
+    private Collection<AjusteInventario> ajusteInventarioCollection;
 
-    public UnidadDeVenta() {
+    public TipoAjuste() {
     }
 
-    public UnidadDeVenta(Integer codigo) {
+    public TipoAjuste(Integer codigo) {
         this.codigo = codigo;
-    }
-
-    public UnidadDeVenta(Integer codigo, String nombre) {
-        this.codigo = codigo;
-        this.nombre = nombre;
     }
 
     public Integer getCodigo() {
@@ -64,13 +56,20 @@ public class UnidadDeVenta implements Serializable {
         this.codigo = codigo;
     }
 
-
-    public Collection<Articulo> getArticuloCollection() {
-        return articuloCollection;
+    public String getDescripcion() {
+        return descripcion;
     }
 
-    public void setArticuloCollection(Collection<Articulo> articuloCollection) {
-        this.articuloCollection = articuloCollection;
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public Collection<AjusteInventario> getAjusteInventarioCollection() {
+        return ajusteInventarioCollection;
+    }
+
+    public void setAjusteInventarioCollection(Collection<AjusteInventario> ajusteInventarioCollection) {
+        this.ajusteInventarioCollection = ajusteInventarioCollection;
     }
 
     @Override
@@ -83,10 +82,10 @@ public class UnidadDeVenta implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof UnidadDeVenta)) {
+        if (!(object instanceof TipoAjuste)) {
             return false;
         }
-        UnidadDeVenta other = (UnidadDeVenta) object;
+        TipoAjuste other = (TipoAjuste) object;
         if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
             return false;
         }
@@ -95,15 +94,7 @@ public class UnidadDeVenta implements Serializable {
 
     @Override
     public String toString() {
-        return nombre;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
+        return "com.maxsoft.application.modelo.TipoAjuste[ codigo=" + codigo + " ]";
     }
     
 }

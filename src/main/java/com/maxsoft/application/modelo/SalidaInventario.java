@@ -79,7 +79,7 @@ public class SalidaInventario implements Serializable {
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
     @ManyToOne
     private Usuario usuario;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "salidaInventario")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "salidaInventario" )
     private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
 
     public SalidaInventario() {

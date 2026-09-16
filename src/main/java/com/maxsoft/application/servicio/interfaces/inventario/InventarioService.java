@@ -4,12 +4,17 @@
  */
 package com.maxsoft.application.servicio.interfaces.inventario;
 
-
 public interface InventarioService {
-
-    void descontarStock(Integer idArticulo, Double cantidad);
-    void incrementarStock(Integer idArticulo, Double cantidad); // <-- AGREGAR ESTE MÉTODO
+    void descontarStock(Integer idArticulo, Double cantidad, String referencia);
+    void incrementarStock(Integer idArticulo, Double cantidad, String referencia);
     void validarStockDisponible(Integer idArticulo, Double cantidad);
 }
-    
+//
+//public interface InventarioService {
+//
+//    void descontarStock(Integer idArticulo, Double cantidad);
+//    void incrementarStock(Integer idArticulo, Double cantidad); // <-- AGREGAR ESTE MÉTODO
+//    void validarStockDisponible(Integer idArticulo, Double cantidad);
+//}
+//    
 

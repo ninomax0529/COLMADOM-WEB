@@ -1,52 +1,94 @@
 package com.maxsoft.application.servicio.impl.inventario;
 
-import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.DetalleEntradaInventario;
 import com.maxsoft.application.modelo.EntradaInventario;
-import com.maxsoft.application.repo.ArticuloRepo;
+import com.maxsoft.application.modelo.TipoDocumento;
+import com.maxsoft.application.modelo.TipoMovimiento;
 import com.maxsoft.application.repo.EntradaDeInventarioRepo;
-import java.util.List;
+import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
+import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
+import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
+import com.maxsoft.application.servicio.interfaces.inventario.TipoMovimientoService;
+import java.util.Collection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioService {
 
-    @Autowired
-    private EntradaDeInventarioRepo entradaRepo;
+    private final EntradaDeInventarioRepo entradaRepo;
+    private final MovimientoInventarioService movimientoService;
+    TipoMovimientoService tipoMovimientoService;
+    TipoDocumentoService tipoDocumentoService;
 
     @Autowired
-    private ArticuloRepo articuloRepo; // Inyección para actualizar la tabla Artículo directamente
+    public EntradaDeInventarioServiceImpl(EntradaDeInventarioRepo entradaRepo,
+            MovimientoInventarioService movimientoService,
+            TipoMovimientoService tipoMovimientoService,
+            TipoDocumentoService tipoDocumentoService
+    ) {
+        this.entradaRepo = entradaRepo;
+        this.movimientoService = movimientoService;
+        this.tipoDocumentoService = tipoDocumentoService;
+        this.tipoMovimientoService = tipoMovimientoService;
+    }
 
     @Override
-    @Transactional // Garantiza que si falla la actualización del stock, la entrada no se guarda
-    public EntradaInventario guardar(EntradaInventario obj) {
+    @Transactional(rollbackFor = Exception.class)
+    public EntradaInventario guardar(EntradaInventario obj, String usuario) {
 
-        // 1. Guardar el registro de la entrada y sus detalles
+        // 1. Guardar la cabecera
         EntradaInventario entradaGuardada = entradaRepo.save(obj);
 
-        // 2. Actualizar el stock en la tabla de artículos
-        if (entradaGuardada.getDetalleEntradaInventarioCollection() != null) {
-            for (DetalleEntradaInventario detalle : entradaGuardada.getDetalleEntradaInventarioCollection()) {
-                
-                // Obtener el artículo original desde el detalle
-                if (detalle.getArticulo() != null && detalle.getArticulo().getCodigo() != null) {
-                    
-                    Articulo articulo = articuloRepo.findById(detalle.getArticulo().getCodigo())
-                            .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado ID: " + detalle.getArticulo().getCodigo()));
+        String numDocumento = "ENT-" + (entradaGuardada.getCodigo() != null
+                ? entradaGuardada.getCodigo()
+                : System.currentTimeMillis());
 
-                    // Solo actualizar si el artículo está configurado como inventariable
-                    if (Boolean.TRUE.equals(articulo.getInventariable())) {
-                        double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+        TipoDocumento tp = this.tipoDocumentoService.getTipoDocumento(1);
+        TipoMovimiento tm = this.tipoMovimientoService.getTipoMovimientoa(1);
+
+        // 2. Usar la colección del parámetro 'obj' recibido en lugar de 'entradaGuardada'
+        Collection<DetalleEntradaInventario> detalles = obj.getDetalleEntradaInventarioCollection();
+
+        if (detalles != null && !detalles.isEmpty()) {
+
+            for (DetalleEntradaInventario detalle : detalles) {
+
+                // Asignar manualmente la cabecera ya persistida a cada detalle
+                detalle.setEntradaInventario(entradaGuardada);
+
+//                Articulo articuloProxy = detalle.getArticulo();
+
+//                if (articuloProxy != null && articuloProxy.getCodigo() != null) {
+
+                      Articulo articulo =detalle.getArticulo();
+                    // Cargar el artículo fresco desde el repositorio para evitar Lazy Proxy / inventariable null
+//                    Articulo articulo = articuloRepo.findById(articuloProxy.getCodigo())
+//                            .orElse(articuloProxy);
+//
+//                    boolean esInventariable = articulo.getInventariable() == null || Boolean.TRUE.equals(articulo.getInventariable());
+//
+//                    if (esInventariable) {
                         double cantidadEntrante = detalle.getCantidadRecibida() != null ? detalle.getCantidadRecibida() : 0.0;
 
-                        // Suma algebraica: Regulariza automáticamente existencias en negativo (-5 + 12 = 7)
-                        articulo.setExistencia(stockActual + cantidadEntrante);
-                        articuloRepo.save(articulo);
-                    }
-                }
+                        if (cantidadEntrante > 0) {
+                            
+                            movimientoService.registrarMovimiento(
+                                    articulo,
+                                    tm,
+                                    tp,
+                                    numDocumento,
+                                    cantidadEntrante,
+                                    usuario,
+                                    obj.getComentario()
+                            );
+                        }
+//                    }
+//                }
             }
         }
 

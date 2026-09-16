@@ -107,18 +107,21 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
     }
 
     private void agregarOActualizarArticulo(Articulo articulo) {
+        
         boolean existe = listDet.stream()
                 .anyMatch(d -> d.getArticulo() != null && Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo()));
 
         if (existe) {
+            
             listDet.forEach(d -> {
                 if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
-                    double nuevaCant = d.getCantidadRecibida() + 1.0;
+                    double nuevaCant = d.getCantidadRecibida();
                     d.setCantidadRecibida(nuevaCant);
                     d.setNuevaExistencia(d.getExistenciaActual() + nuevaCant);
                 }
             });
         } else {
+            
             DetalleEntradaInventario det = new DetalleEntradaInventario();
             det.setCodigo(articulo.getCodigo());
             det.setArticulo(articulo);
@@ -252,6 +255,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
             entradaInv.setFechaCreacion(new Date());
             entradaInv.setFechaActualizacion(new Date());
             entradaInv.setNombreUsuario("Administrador");
+            entradaInv.setComentario("Entrada po proveedor");
 
             listDet.forEach(e -> {
                 e.setEntradaInventario(entradaInv);
@@ -260,7 +264,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
             entradaInv.setDetalleEntradaInventarioCollection(listDet);
             
-            this.entradaInvService.guardar(entradaInv);
+            this.entradaInvService.guardar(entradaInv,"Admin");
 
             Notification.show("Entrada guardada exitosamente", 3000, Position.TOP_CENTER);
             listDet.clear();

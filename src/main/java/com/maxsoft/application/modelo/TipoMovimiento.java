@@ -28,10 +28,10 @@ import java.util.Date;
  * @author Maximiliano
  */
 @Entity
-@Table(name = "tipo_documento")
+@Table(name = "tipo_movimiento")
 @NamedQueries({
-    @NamedQuery(name = "TipoDocumento.findAll", query = "SELECT t FROM TipoDocumento t")})
-public class TipoDocumento implements Serializable {
+    @NamedQuery(name = "TipoMovimiento.findAll", query = "SELECT t FROM TipoMovimiento t")})
+public class TipoMovimiento implements Serializable {
 
     @Basic(optional = false)
     @NotNull
@@ -41,8 +41,6 @@ public class TipoDocumento implements Serializable {
     @Size(max = 50)
     @Column(name = "creado_por")
     private String creadoPor;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoDocumento")
-    private Collection<MovimientoInventario> movimientoInventarioCollection;
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -50,22 +48,20 @@ public class TipoDocumento implements Serializable {
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @Column(name = "modulo")
-    private Integer modulo;
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoDocumento")
-    private Collection<SecuenciaDocumento> secuenciaDocumentoCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoMovimiento")
+    private Collection<MovimientoInventario> movimientoInventarioCollection;
 
-    public TipoDocumento() {
+    public TipoMovimiento() {
     }
 
-    public TipoDocumento(Integer codigo) {
+    public TipoMovimiento(Integer codigo) {
         this.codigo = codigo;
     }
 
-    public TipoDocumento(Integer codigo, String nombre) {
+    public TipoMovimiento(Integer codigo, String nombre) {
         this.codigo = codigo;
         this.nombre = nombre;
     }
@@ -76,15 +72,6 @@ public class TipoDocumento implements Serializable {
 
     public void setCodigo(Integer codigo) {
         this.codigo = codigo;
-    }
-
-
-    public Integer getModulo() {
-        return modulo;
-    }
-
-    public void setModulo(Integer modulo) {
-        this.modulo = modulo;
     }
 
     public Date getFechaCreacion() {
@@ -103,12 +90,12 @@ public class TipoDocumento implements Serializable {
         this.creadoPor = creadoPor;
     }
 
-    public Collection<SecuenciaDocumento> getSecuenciaDocumentoCollection() {
-        return secuenciaDocumentoCollection;
+    public Collection<MovimientoInventario> getMovimientoInventarioCollection() {
+        return movimientoInventarioCollection;
     }
 
-    public void setSecuenciaDocumentoCollection(Collection<SecuenciaDocumento> secuenciaDocumentoCollection) {
-        this.secuenciaDocumentoCollection = secuenciaDocumentoCollection;
+    public void setMovimientoInventarioCollection(Collection<MovimientoInventario> movimientoInventarioCollection) {
+        this.movimientoInventarioCollection = movimientoInventarioCollection;
     }
 
     @Override
@@ -121,10 +108,10 @@ public class TipoDocumento implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof TipoDocumento)) {
+        if (!(object instanceof TipoMovimiento)) {
             return false;
         }
-        TipoDocumento other = (TipoDocumento) object;
+        TipoMovimiento other = (TipoMovimiento) object;
         if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
             return false;
         }
@@ -136,15 +123,6 @@ public class TipoDocumento implements Serializable {
         return nombre;
     }
 
-
-    public Collection<MovimientoInventario> getMovimientoInventarioCollection() {
-        return movimientoInventarioCollection;
-    }
-
-    public void setMovimientoInventarioCollection(Collection<MovimientoInventario> movimientoInventarioCollection) {
-        this.movimientoInventarioCollection = movimientoInventarioCollection;
-    }
-
     public String getNombre() {
         return nombre;
     }
@@ -153,6 +131,4 @@ public class TipoDocumento implements Serializable {
         this.nombre = nombre;
     }
 
-
-    
 }

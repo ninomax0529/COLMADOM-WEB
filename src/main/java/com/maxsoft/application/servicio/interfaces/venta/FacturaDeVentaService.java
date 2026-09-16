@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.servicio.interfaces.venta;
 
+import com.maxsoft.application.dto.SolicitudDevolucionDto;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.view.venta.puntoVenta.TicketVenta;
@@ -22,4 +23,10 @@ public interface FacturaDeVentaService {
     List<FacturaDeVenta> getLista();
 
     List<DetalleFacturaDeVenta> getDetalle(int obj);
+
+    FacturaDeVenta anularVenta(Integer idFactura, String motivoAnulacion, String nombreUsuario);
+    FacturaDeVenta procesarDevolucion(SolicitudDevolucionDto solicitud);
+    
+    
+    
 }

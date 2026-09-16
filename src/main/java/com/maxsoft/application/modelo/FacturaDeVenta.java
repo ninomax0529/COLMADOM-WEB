@@ -116,7 +116,7 @@ public class FacturaDeVenta implements Serializable {
     @JoinColumn(name = "tipo_venta", referencedColumnName = "codigo")
     @ManyToOne
     private TipoVenta tipoVenta;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura", orphanRemoval = true)//cascade = CascadeType.ALL, orphanRemoval = true)
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
 
     public FacturaDeVenta() {

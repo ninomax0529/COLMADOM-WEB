@@ -18,6 +18,7 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.grid.editor.Editor;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -59,7 +60,7 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
     @Autowired
     public RegistroSalidaDeIventarioView(SalidaInventarioService salidaInvService,
-                                         ArticuloService articuloService) {
+            ArticuloService articuloService) {
 
         this.salidaInvService = salidaInvService;
         this.articuloService = articuloService;
@@ -110,18 +111,48 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
     }
 
     private void agregarOActualizarArticulo(Articulo articulo) {
+
+        if (articulo == null) {
+            Notification.show("Seleccione un artículo y una cantidad válida", 3000, Position.TOP_CENTER);
+            return;
+        }
+
+        if (Boolean.TRUE.equals(articulo.getInventariable())) {
+            double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+
+            // Sumar cantidades del mismo artículo que YA están agregadas en la Grid
+            double cantidadYaEnGrid = listDet.stream()
+                    .filter(d -> d.getArticulo().getCodigo().equals(articulo.getCodigo()))
+                    .mapToDouble(DetalleSalidaInventario::getCantidad)
+                    .sum();
+
+            double totalSolicitado = cantidadYaEnGrid;
+
+            if (totalSolicitado > stockActual) {
+                Notification.show(
+                        String.format("Stock insuficiente para '%s'. Disponible: %.2f | En lista: %.2f | Intentas retirar: %.2f",
+                                articulo.getDescripcion(), stockActual, cantidadYaEnGrid, totalSolicitado),
+                        5000, Position.MIDDLE
+                );
+                return;
+            }
+        }
+
         boolean existe = listDet.stream()
                 .anyMatch(d -> d.getArticulo() != null && Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo()));
 
         if (existe) {
+
             listDet.forEach(d -> {
                 if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
                     double nuevaCantSalida = d.getCantidad();
                     d.setCantidad(nuevaCantSalida);
-                    d.setExistencia(d.getExistencia()- nuevaCantSalida); // Nueva existencia tras la salida
+                    d.setExistencia(d.getExistencia() - nuevaCantSalida); // Nueva existencia tras la salida
                 }
             });
+
         } else {
+
             DetalleSalidaInventario det = new DetalleSalidaInventario();
             det.setCodigo(articulo.getCodigo());
             det.setArticulo(articulo);
@@ -170,7 +201,8 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
                             listDet.remove(item);
                             grid.getDataProvider().refreshAll();
                         },
-                        () -> {}
+                        () -> {
+                        }
                 );
                 dialog.open();
             });
@@ -180,7 +212,9 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
         txtBuscar.addValueChangeListener(e -> dataView.addFilter(det -> {
             String term = e.getValue().trim().toLowerCase();
-            if (term.isEmpty()) return true;
+            if (term.isEmpty()) {
+                return true;
+            }
 
             boolean matchDesc = det.getDescripcionArticulo() != null && det.getDescripcionArticulo().toLowerCase().contains(term);
             boolean matchCod = det.getCodigo() != null && det.getCodigo().toString().contains(term);
@@ -207,18 +241,53 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         });
 
         cantidadField.addValueChangeListener(e -> {
-            if (!editor.isOpen() || editor.getItem() == null) return;
+            if (!editor.isOpen() || editor.getItem() == null) {
+                return;
+            }
 
             try {
                 double cant = Double.parseDouble(e.getValue());
+
                 if (cant <= 0) {
                     Notification.show("La cantidad debe ser mayor a cero", 2500, Position.MIDDLE);
                     return;
                 }
-                DetalleSalidaInventario item = editor.getItem();
-                item.setCantidad(cant);
-                item.setExistencia(item.getExistencia()- cant); // Recálculo restando la salida
-                grid.getDataProvider().refreshItem(item);
+
+                DetalleSalidaInventario itemActual = editor.getItem();
+                Articulo articulo = itemActual.getArticulo();
+
+                if (articulo != null && Boolean.TRUE.equals(articulo.getInventariable())) {
+
+                    // 1. Stock real en el maestro del artículo
+                    double stockDisponible = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+
+                    // 2. Calcular la suma de cantidades agregadas en OTRAS filas para este mismo artículo
+                    double cantidadEnOtrasFilas = listDet.stream()
+                            .filter(d -> !d.equals(itemActual) && d.getArticulo() != null && d.getArticulo().getCodigo().equals(articulo.getCodigo()))
+                            .mapToDouble(d -> d.getCantidad() != null ? d.getCantidad() : 0.0)
+                            .sum();
+
+                    // 3. Validar si la nueva cantidad excede el disponible
+                    if ((cantidadEnOtrasFilas + cant) > stockDisponible) {
+                        Notification.show(
+                                String.format("Stock insuficiente para '%s'. Disponible: %.2f (Ya en uso en otras filas: %.2f)",
+                                        articulo.getDescripcion(), stockDisponible, cantidadEnOtrasFilas),
+                                4000, Position.MIDDLE
+                        );
+
+                        // Restaurar o limpiar la casilla si excede
+                        cantidadField.setValue(itemActual.getCantidad() != null ? String.valueOf(itemActual.getCantidad()) : "");
+                        return;
+                    }
+                }
+
+                // 4. Si la validación pasa, actualizamos el modelo y recalculamos existencia en pantalla
+                itemActual.setCantidad(cant);
+                if (articulo != null && articulo.getExistencia() != null) {
+                    itemActual.setExistencia(articulo.getExistencia() - cant);
+                }
+
+                grid.getDataProvider().refreshItem(itemActual);
 
             } catch (NumberFormatException ex) {
                 Notification.show("Ingrese una cantidad válida", 2000, Position.MIDDLE);
@@ -227,43 +296,98 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
     }
 
     private void procesarGuardado() {
+        // 1. Validaciones previas de la interfaz
         if (listDet.isEmpty()) {
-            Notification.show("La salida no tiene artículos registrados", 3000, Position.TOP_CENTER);
+            Notification.show("Debe agregar al menos un artículo a la salida.", 3000, Position.TOP_CENTER);
             return;
         }
 
         for (DetalleSalidaInventario det : listDet) {
-            if (det.getCantidad() <= 0) {
-                Notification.show("El artículo '" + det.getDescripcionArticulo() + "' tiene cantidad en cero", 4000, Position.TOP_CENTER);
+
+            if (det.getCantidad() == null || det.getCantidad() <= 0) {
+                Notification.show("El artículo '" + det.getArticulo().getDescripcion() + "' tiene una cantidad inválida.", 4000, Position.TOP_CENTER);
                 return;
             }
         }
 
         try {
-            LocalDate localFecha = dpFecha.getValue();
-            Date fecha = ClaseUtil.asDate(localFecha);
+            // 2. Construir el objeto cabecera de SalidaInventario
+            SalidaInventario salida = new SalidaInventario();
+            salida.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
+            salida.setFechaRegistro(new Date());
+            salida.setObservacion("Amin");
 
-            SalidaInventario salidaInv = new SalidaInventario();
-            salidaInv.setFecha(fecha);
-            salidaInv.setFechaRegistro(new Date());
-
+            // Asignar explícitamente la relación bidireccional en memoria
             listDet.forEach(e -> {
-                e.setSalidaInventario(salidaInv);
+                e.setSalidaInventario(salida);
                 e.setCodigo(null);
             });
 
-            salidaInv.setDetalleSalidaInventarioCollection(listDet);
+            salida.setDetalleSalidaInventarioCollection(listDet);
 
-            // Persistir la salida y actualizar/descontar el stock en la BD
-            this.salidaInvService.guardar(salidaInv);
+            // TODO: Reemplazar "ADMIN" por el usuario del contexto de Vaadin/Spring Security
+            String usuarioActual = "ADMIN";
 
-            Notification.show("Salida guardada exitosamente", 3000, Position.TOP_CENTER);
+            // 3. Invocar al servicio transaccional (Guarda la Salida + Descuenta Stock + Traza Movimiento)
+            SalidaInventario guardada = this.salidaInvService.guardar(salida, usuarioActual);
+
+            Notification.show("Salida #" + guardada.getCodigo() + " procesada y descontada del inventario correctamente.", 3000, Position.TOP_CENTER);
+
+            // 4. Limpiar la interfaz
             listDet.clear();
+
             grid.getDataProvider().refreshAll();
 
+        } catch (IllegalStateException ex) {
+            // Captura excepciones de stock insuficiente disparadas por MovimientoInventarioService
+            Notification.show(ex.getMessage(), 5000, Position.MIDDLE);
+        } catch (IllegalArgumentException ex) {
+            // Validaciones de negocio (artículos nulos, cantidades en cero, etc.)
+            Notification.show(ex.getMessage(), 4000, Position.TOP_CENTER);
         } catch (Exception e) {
-            Notification.show("Error guardando la salida: " + e.getMessage(), 3000, Position.TOP_CENTER);
+            Notification.show("Error inesperado al guardar la salida: " + e.getMessage(), 4000, Position.TOP_CENTER);
             e.printStackTrace();
         }
     }
+
+//    private void procesarGuardado() {
+//        if (listDet.isEmpty()) {
+//            Notification.show("La salida no tiene artículos registrados", 3000, Position.TOP_CENTER);
+//            return;
+//        }
+//
+//        for (DetalleSalidaInventario det : listDet) {
+//            if (det.getCantidad() <= 0) {
+//                Notification.show("El artículo '" + det.getDescripcionArticulo() + "' tiene cantidad en cero", 4000, Position.TOP_CENTER);
+//                return;
+//            }
+//        }
+//
+//        try {
+//            LocalDate localFecha = dpFecha.getValue();
+//            Date fecha = ClaseUtil.asDate(localFecha);
+//
+//            SalidaInventario salidaInv = new SalidaInventario();
+//            salidaInv.setFecha(fecha);
+//            salidaInv.setFechaRegistro(new Date());
+//
+//            listDet.forEach(e -> {
+//                e.setSalidaInventario(salidaInv);
+//                e.setCodigo(null);
+//            });
+//
+//            salidaInv.setDetalleSalidaInventarioCollection(listDet);
+//
+//            // Persistir la salida y actualizar/descontar el stock en la BD
+//            this.salidaInvService.guardar(salidaInv);
+//
+//            Notification.show("Salida guardada exitosamente", 3000, Position.TOP_CENTER);
+//            listDet.clear();
+//            grid.getDataProvider().refreshAll();
+//
+//        } catch (Exception e) {
+//            Notification.show("Error guardando la salida: " + e.getMessage(), 3000, Position.TOP_CENTER);
+//            e.printStackTrace();
+//        }
+//    }
 }

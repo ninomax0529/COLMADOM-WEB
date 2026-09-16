@@ -14,11 +14,21 @@ import java.util.List;
  */
 public interface SalidaInventarioService {
 
-    SalidaInventario guardar(SalidaInventario obj);
+    /**
+     * Procesa de forma atómica (@Transactional) la Salida de Inventario: 1.
+     * Valida el stock actual disponible de cada artículo. 2. Guarda el
+     * documento de cabecera y detalle de la salida. 3. Descuenta el stock y
+     * genera la traza imborrable en movimiento_inventario.
+     *
+     * @param obj Objeto con la cabecera y los detalles de la salida
+     * @param usuario Nombre del usuario que realiza la operación
+     * @return El objeto SalidaInventario persistido
+     */
+    SalidaInventario guardar(SalidaInventario obj, String usuario);
 
     List<SalidaInventario> getLista();
 
-    List<DetalleSalidaInventario> getDetalle(int obj);
+    List<DetalleSalidaInventario> getDetalle(int codigoSalida);
 
     List<SalidaInventario> getLista(boolean estado);
 }

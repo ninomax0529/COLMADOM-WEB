@@ -6,7 +6,9 @@ package com.maxsoft.application.view.inventario;
 
 import com.maxsoft.application.view.inventario.articulo.ArticuloView;
 import com.maxsoft.application.view.ModuloPrincipal;
+import com.maxsoft.application.view.inventario.ajuste.RegistroAjusteDeInventarioView;
 import com.maxsoft.application.view.inventario.entrada.EntradaDeIventarioView;
+import com.maxsoft.application.view.inventario.movimiento.MovimientosInventarioView;
 import com.maxsoft.application.view.inventario.salida.SalidaDeIventarioView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -45,14 +47,21 @@ public class ModuloInventario extends AppLayout {
     private void createDrawer() {
 
         RouterLink linkArticulo = createLink(VaadinIcon.DASHBOARD, "Articulo", ArticuloView.class);
-        RouterLink linkEntrada = createLink(VaadinIcon.FILE_TABLE, "Entrada Inventario ", EntradaDeIventarioView.class);
-        RouterLink linkSalida = createLink(VaadinIcon.FILE_TABLE, "Salida Inventario ", SalidaDeIventarioView.class);
+        RouterLink linkEntrada = createLink(VaadinIcon.FILE_TABLE, "Entrada ", EntradaDeIventarioView.class);
+        RouterLink linkSalida = createLink(VaadinIcon.FILE_TABLE, "Salida ", SalidaDeIventarioView.class);
+        RouterLink linkAjuste = createLink(VaadinIcon.FILE_TABLE, "Ajuste", RegistroAjusteDeInventarioView.class);
+        RouterLink linkMovimiento = createLink(VaadinIcon.FILE_TABLE, "Movimiento", MovimientosInventarioView.class);
 
-//          RouterLink linkConsArtInv1 = createLink(VaadinIcon.FILE_TABLE, "Filtro Inventario ", GridColumnFiltering.class);
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
         ////
 //        // Layout vertical que contiene los enlaces del menú
-        VerticalLayout menuLayout = new VerticalLayout(linkArticulo, linkEntrada, linkSalida, linkModulo);
+        VerticalLayout menuLayout = new VerticalLayout(
+                linkArticulo,
+                linkEntrada,
+                linkSalida,
+                linkAjuste,
+                linkMovimiento,
+                linkModulo);
 
         menuLayout.setPadding(false);
         menuLayout.setSpacing(false);
