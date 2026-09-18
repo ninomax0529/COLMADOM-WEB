@@ -35,6 +35,29 @@ import java.util.Date;
     @NamedQuery(name = "SalidaInventario.findAll", query = "SELECT s FROM SalidaInventario s")})
 public class SalidaInventario implements Serializable {
 
+    @Size(max = 45)
+    @Column(name = "observacion")
+    private String observacion;
+    @Size(max = 80)
+    @Column(name = "solicitante")
+    private String solicitante;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "anulada")
+    private boolean anulada;
+    @Size(max = 45)
+    @Column(name = "numero_documento")
+    private String numeroDocumento;
+    @Size(max = 45)
+    @Column(name = "nombre_tipo_salida")
+    private String nombreTipoSalida;
+    @Size(max = 45)
+    @Column(name = "nombre_usuario")
+    private String nombreUsuario;
+    @JoinColumn(name = "tipo_documento", referencedColumnName = "codigo")
+    @ManyToOne
+    private TipoDocumento tipoDocumento;
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,23 +72,13 @@ public class SalidaInventario implements Serializable {
     @Column(name = "fecha_registro")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaRegistro;
-    @Size(max = 45)
-    @Column(name = "observacion")
-    private String observacion;
     @Column(name = "fecha_contabilizacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaContabilizacion;
     @Column(name = "moneda")
     private Integer moneda;
-    @Size(max = 80)
-    @Column(name = "solicitante")
-    private String solicitante;
     @Column(name = "tipo_salida")
     private Integer tipoSalida;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "anulada")
-    private boolean anulada;
     @Column(name = "fecha_anulada")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaAnulada;
@@ -126,13 +139,6 @@ public class SalidaInventario implements Serializable {
         this.fechaRegistro = fechaRegistro;
     }
 
-    public String getObservacion() {
-        return observacion;
-    }
-
-    public void setObservacion(String observacion) {
-        this.observacion = observacion;
-    }
 
     public Date getFechaContabilizacion() {
         return fechaContabilizacion;
@@ -150,13 +156,6 @@ public class SalidaInventario implements Serializable {
         this.moneda = moneda;
     }
 
-    public String getSolicitante() {
-        return solicitante;
-    }
-
-    public void setSolicitante(String solicitante) {
-        this.solicitante = solicitante;
-    }
 
     public Integer getTipoSalida() {
         return tipoSalida;
@@ -166,13 +165,6 @@ public class SalidaInventario implements Serializable {
         this.tipoSalida = tipoSalida;
     }
 
-    public boolean getAnulada() {
-        return anulada;
-    }
-
-    public void setAnulada(boolean anulada) {
-        this.anulada = anulada;
-    }
 
     public Date getFechaAnulada() {
         return fechaAnulada;
@@ -245,6 +237,62 @@ public class SalidaInventario implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.SalidaInventario[ codigo=" + codigo + " ]";
+    }
+
+    public String getObservacion() {
+        return observacion;
+    }
+
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
+    }
+
+    public String getSolicitante() {
+        return solicitante;
+    }
+
+    public void setSolicitante(String solicitante) {
+        this.solicitante = solicitante;
+    }
+
+    public boolean getAnulada() {
+        return anulada;
+    }
+
+    public void setAnulada(boolean anulada) {
+        this.anulada = anulada;
+    }
+
+    public String getNumeroDocumento() {
+        return numeroDocumento;
+    }
+
+    public void setNumeroDocumento(String numeroDocumento) {
+        this.numeroDocumento = numeroDocumento;
+    }
+
+    public String getNombreTipoSalida() {
+        return nombreTipoSalida;
+    }
+
+    public void setNombreTipoSalida(String nombreTipoSalida) {
+        this.nombreTipoSalida = nombreTipoSalida;
+    }
+
+    public String getNombreUsuario() {
+        return nombreUsuario;
+    }
+
+    public void setNombreUsuario(String nombreUsuario) {
+        this.nombreUsuario = nombreUsuario;
+    }
+
+    public TipoDocumento getTipoDocumento() {
+        return tipoDocumento;
+    }
+
+    public void setTipoDocumento(TipoDocumento tipoDocumento) {
+        this.tipoDocumento = tipoDocumento;
     }
     
 }

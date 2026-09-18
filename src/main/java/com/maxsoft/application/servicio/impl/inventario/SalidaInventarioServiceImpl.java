@@ -1,19 +1,26 @@
 package com.maxsoft.application.servicio.impl.inventario;
 
+import com.maxsoft.application.evento.SalidaInventarioCreadaEvent;
 import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
+import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.SalidaInventario;
 import com.maxsoft.application.modelo.TipoDocumento;
 import com.maxsoft.application.modelo.TipoMovimiento;
+import com.maxsoft.application.modelo.Usuario;
 import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.repo.SalidaInventarioRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoMovimientoService;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,13 +32,15 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
     private final MovimientoInventarioService movimientoService;
     private final TipoDocumentoService tipoDocumentoService;
     private final TipoMovimientoService tipoMovimientoService;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher; // 👈 2. Inyectar la variable aquí
 
     @Autowired
     public SalidaInventarioServiceImpl(SalidaInventarioRepo salidaRepo,
-                                          ArticuloRepo articuloRepo,
-                                          MovimientoInventarioService movimientoService,
-                                          TipoDocumentoService tipoDocumentoService,
-                                          TipoMovimientoService tipoMovimientoService) {
+            ArticuloRepo articuloRepo,
+            MovimientoInventarioService movimientoService,
+            TipoDocumentoService tipoDocumentoService,
+            TipoMovimientoService tipoMovimientoService) {
         this.salidaRepo = salidaRepo;
         this.articuloRepo = articuloRepo;
         this.movimientoService = movimientoService;
@@ -75,28 +84,179 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 //                    boolean esInventariable = articulo.getInventariable() == null || Boolean.TRUE.equals(articulo.getInventariable());
 //
 //                    if (esInventariable) {
-                        
-                        double cantidadSalida = detalle.getCantidad() != null ? detalle.getCantidad() : 0.0;
+                    double cantidadSalida = detalle.getCantidad() != null ? detalle.getCantidad() : 0.0;
 
-                        if (cantidadSalida > 0) {
-                            // Registra el movimiento en el Kardex y descuenta el stock real.
-                            // Si el stock es insuficiente, lanza IllegalStateException y hace Rollback automático.
-                            movimientoService.registrarMovimiento(
-                                    articulo,
-                                    tm,
-                                    tp,
-                                    numDocumento,
-                                    cantidadSalida,
-                                    usuario,
-                                    obj.getObservacion()
-                            );
-                        }
+                    if (cantidadSalida > 0) {
+                        // Registra el movimiento en el Kardex y descuenta el stock real.
+                        // Si el stock es insuficiente, lanza IllegalStateException y hace Rollback automático.
+                        movimientoService.registrarMovimiento(
+                                articulo,
+                                tm,
+                                tp,
+                                numDocumento,
+                                cantidadSalida,
+                                usuario,
+                                obj.getObservacion()
+                        );
                     }
                 }
+            }
 //            }
         }
 
         return salidaGuardada;
+    }
+
+//    @Transactional
+//    @Override
+//    public SalidaInventario crearSalidaPorVenta(FacturaDeVenta factura) {
+//
+//        SalidaInventario salida = new SalidaInventario();
+//        Date fechaActual = new Date();
+//
+//        try {
+//            salida.setFecha(fechaActual);
+//            salida.setFechaRegistro(fechaActual);
+//            salida.setFechaContabilizacion(fechaActual);
+//
+//            salida.setTipoDocumento(this.tipoDocumentoService.getTipoDocumento(5)); // ID Tipo 'Venta POS'
+//            salida.setNumeroDocumento(factura.getCodigo().toString());
+//            salida.setTipoSalida(1); // ID Tipo Salida por Venta
+//            salida.setNombreTipoSalida("VENTA POS");
+//
+//            // 1. Asignar usuario recuperado de BD o buscarlo (evita TransientObjectException)
+//            // Opción A: Si tienes usuarioRepo, busca la entidad persistida:
+//            // Usuario usuarioBD = usuarioRepo.findById(1).orElseThrow(() -> new IllegalArgumentException("Usuario 1 no existe"));
+//            // salida.setUsuario(usuarioBD);
+//            // Opción B: Si usas getReferenceById (Hibernate proxy sin consulta extra):
+//            salida.setUsuario(new Usuario(1));
+//            salida.setNombreUsuario(factura.getNombreUsuario() != null ? factura.getNombreUsuario() : "Admin");
+//
+//            salida.setAnulada(false);
+//            salida.setObservacion("Salida automática por Factura POS #" + factura.getCodigo());
+//
+//            List<DetalleSalidaInventario> detalles = new ArrayList<>();
+//
+//            // 1. Declaración correcta de la lista
+//            List<SalidaInventarioCreadaEvent.ItemSalidaDto> itemsParaKardex = new ArrayList<>();
+//
+    //// 2. Dentro del for:
+//            for (DetalleFacturaDeVenta detFactura : factura.getDetalleFacturaDeVentaCollection()) {
+//                if (detFactura.getArticulo() != null && Boolean.TRUE.equals(detFactura.getArticulo().getInventariable())) {
+//
+//                    // ... (tu código del detalle) ...
+//                    itemsParaKardex.add(new SalidaInventarioCreadaEvent.ItemSalidaDto(
+//                            detFactura.getArticulo().getCodigo(), // Debe ser Integer
+//                            detFactura.getCantidad() // Debe ser Double
+//                    ));
+//                }
+//            }
+//
+//// 3. Obtención segura de parámetros antes de instanciar el evento:
+//            Integer idSalida = salida.getCodigo() != null ? salida.getCodigo().intValue() : null;
+//            String numDocumento = (factura != null && factura.getCodigo() != null) ? String.valueOf(factura.getCodigo()) : "";
+//            String usuario = (factura != null && factura.getNombreUsuario() != null) ? factura.getNombreUsuario() : "System";
+//
+//// 4. Publicación del evento
+//            eventPublisher.publishEvent(new SalidaInventarioCreadaEvent(
+//                    idSalida,
+//                    numDocumento,
+//                    usuario,
+//                    itemsParaKardex
+//            ));
+//
+//            return salida;
+//
+//        } catch (Exception ex) {
+//            System.err.println("Error al crear salida de inventario por venta: " + ex.getMessage());
+//            ex.printStackTrace();
+//            // OBLIGATORIO: Relanzar la excepción para que @Transactional ejecute ROLLBACK
+//            throw new RuntimeException("Error creando salida de inventario: " + ex.getMessage(), ex);
+//        }
+//    }
+//
+    @Transactional
+    @Override
+    public SalidaInventario crearSalidaPorVenta(FacturaDeVenta factura) {
+
+        SalidaInventario salida = new SalidaInventario();
+        Date fechaActual = new Date();
+
+        try {
+
+            salida.setFecha(fechaActual);
+            salida.setFechaRegistro(fechaActual);
+            salida.setFechaContabilizacion(fechaActual);
+
+            salida.setTipoDocumento(this.tipoDocumentoService.getTipoDocumento(5)); // ID Tipo Documento 'Venta POS'
+            salida.setNumeroDocumento(factura.getCodigo().toString());
+            salida.setTipoSalida(1); // ID Tipo Salida por Venta
+            salida.setNombreTipoSalida("VENTA POS");
+            salida.setUsuario(new Usuario(1));
+            salida.setNombreUsuario("Admin");
+            salida.setAnulada(false);
+            salida.setObservacion("Salida automática por Factura POS #" + factura.getCodigo());
+
+            List<DetalleSalidaInventario> detalles = new ArrayList<>();
+            List<SalidaInventarioCreadaEvent.ItemSalidaDto> itemsParaKardex = new ArrayList<>();
+
+            for (DetalleFacturaDeVenta detFactura : factura.getDetalleFacturaDeVentaCollection()) {
+
+                if (Boolean.TRUE.equals(detFactura.getArticulo().getInventariable())) {
+
+                    DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
+
+                    detSalida.setSalidaInventario(salida);
+                    detSalida.setArticulo(detFactura.getArticulo());
+                    detSalida.setDescripcionArticulo(detFactura.getArticulo().getDescripcion());
+                    detSalida.setCantidad(detFactura.getCantidad());
+
+                    double stockActual = detFactura.getArticulo().getExistencia() != null ? detFactura.getArticulo().getExistencia() : 0.0;
+                    detSalida.setExistenciaAnterior(stockActual);
+
+                    detSalida.setExistencia(stockActual); // Nueva existencia (Resta)
+                    detSalida.setUnidad(detFactura.getArticulo().getUnidadSalida());
+                    detSalida.setCostoUnitario(detFactura.getPrecioCompra() != null ? detFactura.getPrecioCompra() : 0.0);
+                    detSalida.setprecioCompra(detFactura.getPrecioCompra() != null ? detFactura.getPrecioCompra() : 0.0);
+                    detSalida.setPrecioVenta(detFactura.getPrecioVenta() != null
+                            ? detFactura.getPrecioVenta() : detFactura.getPrecioVenta());
+
+                    detalles.add(detSalida);
+                    // Prepara los ítems para el Kardex
+                    itemsParaKardex.add(new SalidaInventarioCreadaEvent.ItemSalidaDto(
+                            detFactura.getArticulo().getCodigo(),
+                            detFactura.getCantidad()
+                    ));
+                }
+            }
+
+            salida.setDetalleSalidaInventarioCollection(detalles);
+            salida = salidaRepo.saveAndFlush(salida);
+
+            System.out.println(">>> Total ítems para Kardex: " + itemsParaKardex.size());
+
+            eventPublisher.publishEvent(new SalidaInventarioCreadaEvent(
+                    salida.getCodigo(),
+                    factura.getCodigo().toString(),
+                    factura.getNombreUsuario(),
+                    itemsParaKardex
+            ));
+
+//            // 🚀 La Salida publica su propio evento para mover el Kardex
+//            eventPublisher.publishEvent(new SalidaInventarioCreadaEvent(
+//                    salida.getCodigo(),
+//                    factura.getCodigo().toString(),
+//                    factura.getNombreUsuario(),
+//                    itemsParaKardex
+//            ));
+        } catch (Exception ex) {
+            System.err.println("Error al crear salida de inventario por venta: " + ex.getMessage());
+            ex.printStackTrace();
+            // OBLIGATORIO: Relanzar la excepción para que @Transactional ejecute ROLLBACK
+            throw new RuntimeException("Error creando salida de inventario: " + ex.getMessage(), ex);
+        }
+
+        return salida;
     }
 
     @Override
@@ -116,6 +276,5 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
         return salidaRepo.getLista(estado);
     }
-
 
 }

@@ -5,6 +5,7 @@
 package com.maxsoft.application.servicio.interfaces.inventario;
 
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
+import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.SalidaInventario;
 import java.util.List;
 
@@ -31,4 +32,6 @@ public interface SalidaInventarioService {
     List<DetalleSalidaInventario> getDetalle(int codigoSalida);
 
     List<SalidaInventario> getLista(boolean estado);
+
+    SalidaInventario crearSalidaPorVenta(FacturaDeVenta factura);
 }

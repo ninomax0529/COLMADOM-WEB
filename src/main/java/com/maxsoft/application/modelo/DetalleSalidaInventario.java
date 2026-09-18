@@ -47,10 +47,12 @@ public class DetalleSalidaInventario implements Serializable {
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "existencia")
     private Double existencia;
-    @Column(name = "precio")
-    private Double precio;
-    @Column(name = "valor")
-    private Double valor;
+    @Column(name = "precio_compra")
+    private Double precioCompra;
+    @Column(name = "precio_venta")
+    private Double precioVenta;
+    @Column(name = "costo_unitario")
+    private Double costoUnitario;
     @Column(name = "existencia_anterior")
     private Double existenciaAnterior;
     @Column(name = "cantidad_solicitada")
@@ -66,6 +68,34 @@ public class DetalleSalidaInventario implements Serializable {
     @JoinColumn(name = "unidad", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Unidad unidad;
+
+    /**
+     * @return the costoUnitario
+     */
+    public Double getCostoUnitario() {
+        return costoUnitario;
+    }
+
+    /**
+     * @param costoUnitario the costoUnitario to set
+     */
+    public void setCostoUnitario(Double costoUnitario) {
+        this.costoUnitario = costoUnitario;
+    }
+
+    /**
+     * @return the precioVenta
+     */
+    public Double getPrecioVenta() {
+        return precioVenta;
+    }
+
+    /**
+     * @param precioVenta the precioVenta to set
+     */
+    public void setPrecioVenta(Double precioVenta) {
+        this.precioVenta = precioVenta;
+    }
 
     public DetalleSalidaInventario() {
     }
@@ -112,20 +142,12 @@ public class DetalleSalidaInventario implements Serializable {
         this.existencia = existencia;
     }
 
-    public Double getPrecio() {
-        return precio;
+    public Double getprecioCompra() {
+        return precioCompra;
     }
 
-    public void setPrecio(Double precio) {
-        this.precio = precio;
-    }
-
-    public Double getValor() {
-        return valor;
-    }
-
-    public void setValor(Double valor) {
-        this.valor = valor;
+    public void setprecioCompra(Double precio) {
+        this.precioCompra = precio;
     }
 
     public Double getExistenciaAnterior() {
@@ -200,5 +222,5 @@ public class DetalleSalidaInventario implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.DetalleSalidaInventario[ codigo=" + codigo + " ]";
     }
-    
+
 }

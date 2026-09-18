@@ -11,6 +11,8 @@ import com.maxsoft.application.modelo.TipoMovimiento;
 import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.repo.MovimientoInventarioRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
+import com.maxsoft.application.util.ClaseUtil;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,6 +73,9 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
                 boolean permiteSinStock = Boolean.TRUE.equals(articulo.isPermitirVentaSinExistencia());
 
                 if (!permiteSinStock && stockAnterior < cantidad) {
+                    
+//                      ClaseUtil.mostrarNotificacion("Existencia insuficiente para: " + articulo.getDescripcion()
+//                    + ". Disponible: " + stockAnterior + ", Solicitado: " + cantidad, NotificationVariant.LUMO_PRIMARY);
                     throw new IllegalStateException("Stock insuficiente para '" + articulo.getDescripcion()
                             + "'. Existencia actual: " + stockAnterior + ", Cantidad requerida: " + cantidad);
                 }

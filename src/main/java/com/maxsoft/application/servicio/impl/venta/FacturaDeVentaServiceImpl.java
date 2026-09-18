@@ -11,10 +11,14 @@ import com.maxsoft.application.evento.VentaRealizadaEvent;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.CajaTurno;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
+import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
+import com.maxsoft.application.modelo.SalidaInventario;
 import com.maxsoft.application.repo.FacturaDeventaRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
+import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
+import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
 import com.maxsoft.application.servicio.interfaces.venta.CajaService;
 import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
 import com.maxsoft.application.view.venta.puntoVenta.TicketVenta;
@@ -40,6 +44,10 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
 
     @Autowired
     private InventarioService inventarioService;
+    @Autowired
+    private EntradaDeInventarioService entradaInventarioService;
+    @Autowired
+    SalidaInventarioService SalidaInventarioService;
 
     @Autowired
     ArticuloService articuloService;
@@ -51,85 +59,108 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
     @Override
     public FacturaDeVenta procesarVenta(TicketVenta ticketVenta, String nombreUsuario) {
 
-        // 1. Validación de Caja
-        CajaTurno turnoActual = cajaService.obtenerCajaAbierta()
-                .orElseThrow(() -> new IllegalStateException("Debe abrir una caja antes de registrar movimientos de POS"));
+        FacturaDeVenta facturaGuardada = null;
 
-        // 2. Validaciones de Negocio e Inventario
-        if (ticketVenta.getItems() == null || ticketVenta.getItems().isEmpty()) {
-            throw new IllegalArgumentException("La factura no tiene detalle.");
-        }
+        try {
 
-        for (DetalleFacturaDeVenta det : ticketVenta.getItems()) {
-            if (det.getCantidad() <= 0) {
-                throw new IllegalArgumentException("El artículo '" + det.getDescripcionArticulo() + "' tiene la cantidad en cero.");
+            // 1. Validación de Caja
+            CajaTurno turnoActual = cajaService.obtenerCajaAbierta()
+                    .orElseThrow(() -> new IllegalStateException("Debe abrir una caja antes de registrar movimientos de POS"));
+
+            // 2. Validaciones de Negocio e Inventario
+            if (ticketVenta.getItems() == null || ticketVenta.getItems().isEmpty()) {
+                throw new IllegalArgumentException("La factura no tiene detalle.");
             }
 
-            // Validar stock solo si el artículo existe y es inventariable
-            if (det.getArticulo() != null && det.getArticulo().getCodigo() != null
-                    && Boolean.TRUE.equals(det.getArticulo().getInventariable())) {
-                inventarioService.validarStockDisponible(det.getArticulo().getCodigo(), det.getCantidad());
+            for (DetalleFacturaDeVenta det : ticketVenta.getItems()) {
+                if (det.getCantidad() <= 0) {
+                    throw new IllegalArgumentException("El artículo '" + det.getDescripcionArticulo() + "' tiene la cantidad en cero.");
+                }
+
+                // Validar stock solo si el artículo existe y es inventariable
+                if (det.getArticulo() != null && det.getArticulo().getCodigo() != null
+                        && Boolean.TRUE.equals(det.getArticulo().getInventariable())) {
+
+                    System.out.println("det.getArticulo().getCodigo() " + det.getArticulo().getCodigo());
+                    System.out.println("d  det.getCantidad()" + det.getCantidad());
+
+                    inventarioService.validarStockDisponible(det.getArticulo().getCodigo(), det.getCantidad());
+                }
             }
-        }
 
-        // 3. Mapeo y Construcción de la Factura
-        FacturaDeVenta factura = new FacturaDeVenta();
-        factura.setEstadoFactura(ticketVenta.getEstadoFactura());
-        factura.setTipoVenta(ticketVenta.getTipoVenta());
-        factura.setCliente(ticketVenta.getCliente());
-        factura.setNombreCliente(ticketVenta.getNombreCliente());
-        factura.setDireccion(ticketVenta.getDireccion());
+            // 3. Mapeo y Construcción de la Factura
+            FacturaDeVenta factura = new FacturaDeVenta();
+            factura.setEstadoFactura(ticketVenta.getEstadoFactura());
+            factura.setTipoVenta(ticketVenta.getTipoVenta());
+            factura.setCliente(ticketVenta.getCliente());
+            factura.setNombreCliente(ticketVenta.getNombreCliente());
+            factura.setDireccion(ticketVenta.getDireccion());
+            factura.setAnulada(Boolean.FALSE);
 
-        if (ticketVenta.getDelivery() != null) {
-            factura.setDelivery(ticketVenta.getDelivery());
-            factura.setNombreDelivery(ticketVenta.getDelivery().getNombre());
-        } else {
-            factura.setDelivery(null);
-            factura.setNombreDelivery("N/A");
-        }
+            if (ticketVenta.getDelivery() != null) {
+                factura.setDelivery(ticketVenta.getDelivery());
+                factura.setNombreDelivery(ticketVenta.getDelivery().getNombre());
+            } else {
+                factura.setDelivery(null);
+                factura.setNombreDelivery("N/A");
+            }
 
-        Date ahora = new Date();
-        factura.setFecha(ahora);
-        factura.setFechaCreacion(ahora);
-        factura.setFechaActualizacion(ahora);
-        factura.setNombreUsuario(nombreUsuario);
-        factura.setTotal(ticketVenta.getTotalAmount());
+            Date ahora = new Date();
+            factura.setFecha(ahora);
+            factura.setFechaCreacion(ahora);
+            factura.setFechaActualizacion(ahora);
+            factura.setNombreUsuario(nombreUsuario);
+            factura.setTotal(ticketVenta.getTotalAmount());
 
-        ticketVenta.getItems().forEach(item -> {
-            item.setFactura(factura);
-            item.setCodigo(null);
-        });
+            ticketVenta.getItems().forEach(item -> {
+                item.setFactura(factura);
+                item.setCantidadDevuelta(0.00);
+                item.setPrecioCompra(item.getArticulo().getPrecioCompra());
 
-        factura.setDetalleFacturaDeVentaCollection(ticketVenta.getItems());
+                item.setCodigo(null);
+            });
 
-        // 4. Persistencia de la factura
-        FacturaDeVenta facturaGuardada = facttRepo.save(factura);
+            factura.setDetalleFacturaDeVentaCollection(ticketVenta.getItems());
 
-        // 5. Registrar Movimiento de Caja (Usando id como Long)
-        cajaService.registrarMovimientoPos(
-                turnoActual.getId().intValue(),
-                facturaGuardada.getTipoVenta().getNombre(),
-                BigDecimal.valueOf(facturaGuardada.getTotal()),
-                "Ingreso por venta #" + facturaGuardada.getCodigo(),
-                nombreUsuario
-        );
+            System.out.println("facttRepo " + facttRepo);
+            // 4. Persistencia de la factura
+            facturaGuardada = facttRepo.save(factura);
 
-        // 6. Publicación del Evento (Corregido)
-        List<VentaRealizadaEvent.ItemVentaDto> itemsDto = facturaGuardada.getDetalleFacturaDeVentaCollection().stream()
-                .filter(item -> item.getArticulo() != null)
-                .map(item -> {
-                    // Asegurar la extracción del ID del artículo (probando getCodigo() o getId())
-                    Integer idArticulo = item.getArticulo().getCodigo();
-                    return new VentaRealizadaEvent.ItemVentaDto(idArticulo, item.getCantidad());
-                })
-                // Filtrar DTOs cuyo idArticulo no sea nulo
-                .filter(dto -> dto.getIdArticulo() != null)
-                .collect(Collectors.toList());
+            // 3. Generar la Salida de Inventario explícita
+            SalidaInventario salida = this.SalidaInventarioService.crearSalidaPorVenta(facturaGuardada);
+
+            System.out.println("Salida :"+salida.getCodigo());
+            // 5. Registrar Movimiento de Caja (Usando id como Long)
+            cajaService.registrarMovimientoPos(
+                    turnoActual.getId().intValue(),
+                    facturaGuardada.getTipoVenta().getNombre(),
+                    BigDecimal.valueOf(facturaGuardada.getTotal()),
+                    "Ingreso por venta #" + facturaGuardada.getCodigo(),
+                    nombreUsuario
+            );
+
+            // 6. Publicación del Evento (Corregido)
+            List<VentaRealizadaEvent.ItemVentaDto> itemsDto = facturaGuardada.getDetalleFacturaDeVentaCollection().stream()
+                    .filter(item -> item.getArticulo() != null)
+                    .map(item -> {
+                        // Asegurar la extracción del ID del artículo (probando getCodigo() o getId())
+                        Integer idArticulo = item.getArticulo().getCodigo();
+                        return new VentaRealizadaEvent.ItemVentaDto(idArticulo, item.getCantidad());
+                    })
+                    // Filtrar DTOs cuyo idArticulo no sea nulo
+                    .filter(dto -> dto.getIdArticulo() != null)
+                    .collect(Collectors.toList());
 
 // Log de depuración para confirmar cuántos ítems viajan en el evento
-        System.out.println(">>> Publicando VentaRealizadaEvent con " + itemsDto.size() + " ítems. ID Factura: " + facturaGuardada.getCodigo());
+            System.out.println(">>> Publicando VentaRealizadaEvent con " + itemsDto.size() + " ítems. ID Factura: " + facturaGuardada.getCodigo());
 
-        eventPublisher.publishEvent(new VentaRealizadaEvent(facturaGuardada.getCodigo(), itemsDto));
+//            eventPublisher.publishEvent(new VentaRealizadaEvent(facturaGuardada.getCodigo(), itemsDto));
+
+        } catch (Exception ex) {
+            System.err.println("Error procesando venta: " + ex.getMessage());
+            ex.printStackTrace();
+            throw ex; // <--- Importante para que @Transactional haga rollback
+        }
 
         return facturaGuardada;
     }
@@ -189,94 +220,110 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
     @Override
     public FacturaDeVenta procesarDevolucion(SolicitudDevolucionDto solicitud) {
 
-        // 1. Validar la factura
-        FacturaDeVenta factura = facttRepo.findById(solicitud.getIdFactura())
-                .orElseThrow(() -> new IllegalArgumentException("La factura ID " + solicitud.getIdFactura() + " no existe."));
+        FacturaDeVenta facturaGuardada = null;
 
-        if (Boolean.TRUE.equals(factura.getAnulada())) {
-            throw new IllegalStateException("No se pueden hacer devoluciones sobre una factura anulada.");
-        }
+        try {
 
-        // 2. Verificar caja abierta
-        CajaTurno turnoActual = cajaService.obtenerCajaAbierta()
-                .orElseThrow(() -> new IllegalStateException("Debe abrir una caja para procesar la devolución."));
+            // 1. Buscar la factura
+            FacturaDeVenta factura = facttRepo.findById(solicitud.getIdFactura())
+                    .orElseThrow(() -> new IllegalArgumentException("La factura ID " + solicitud.getIdFactura() + " no existe."));
 
-        BigDecimal montoTotalReembolso = BigDecimal.ZERO;
-        List<VentaDevueltaEvent.ItemAnulacionDto> itemsParaKardex = new ArrayList<>();
-        boolean todosLosItemsDevueltosCompletos = true;
-
-        // 3. Procesar y validar ítem por ítem
-        for (SolicitudDevolucionDto.ItemDevolucionDto itemDev : solicitud.getItems()) {
-
-            DetalleFacturaDeVenta detalle = factura.getDetalleFacturaDeVentaCollection().stream()
-                    .filter(d -> d.getCodigo().equals(itemDev.getIdDetalleFactura()))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("El detalle indicado no pertenece a esta factura."));
-
-            double cantidadPreviaDevuelta = detalle.getCantidad()!= null ? detalle.getCantidad() : 0.0;
-            double cantidadDisponible = detalle.getCantidad() - cantidadPreviaDevuelta;
-
-            if (itemDev.getCantidadADevolver() <= 0 || itemDev.getCantidadADevolver() > cantidadDisponible) {
-                throw new IllegalArgumentException("La cantidad a devolver (" + itemDev.getCantidadADevolver()
-                        + ") para el artículo '" + detalle.getArticulo().getDescripcion()
-                        + "' supera lo disponible (" + cantidadDisponible + ").");
+            if (Boolean.TRUE.equals(factura.getAnulada())) {
+                throw new IllegalStateException("No se pueden realizar devoluciones sobre una factura totalmente anulada.");
             }
 
-            // Actualizar la cantidad devuelta acumulada en el detalle
-            double nuevaCantidadDevuelta = cantidadPreviaDevuelta + itemDev.getCantidadADevolver();
-            detalle.setCantidad(nuevaCantidadDevuelta);
+            // 2. Verificar caja abierta para egreso del dinero reembolsado
+            CajaTurno turnoActual = cajaService.obtenerCajaAbierta()
+                    .orElseThrow(() -> new IllegalStateException("Debe abrir una caja para procesar la devolución."));
 
-            // Verificar si este ítem se devolvió por completo
-            if (nuevaCantidadDevuelta < detalle.getCantidad()) {
-                todosLosItemsDevueltosCompletos = false;
+            BigDecimal montoTotalReembolso = BigDecimal.ZERO;
+            List<VentaDevueltaEvent.ItemAnulacionDto> itemsParaKardex = new ArrayList<>();
+
+            // 3. Validar y procesar cada ítem enviado
+            for (SolicitudDevolucionDto.ItemDevolucionDto itemDev : solicitud.getItems()) {
+
+                DetalleFacturaDeVenta detalle = factura.getDetalleFacturaDeVentaCollection().stream()
+                        .filter(d -> d.getCodigo().equals(itemDev.getIdDetalleFactura()))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("El detalle enviado no pertenece a la factura #" + factura.getCodigo()));
+
+                double devueltoPrevio = detalle.getCantidadDevuelta() != null ? detalle.getCantidadDevuelta() : 0.0;
+                double disponibleParaDevolver = detalle.getCantidad() - devueltoPrevio;
+
+                if (itemDev.getCantidadADevolver() <= 0 || itemDev.getCantidadADevolver() > disponibleParaDevolver) {
+                    throw new IllegalArgumentException("Cantidad inválida para " + detalle.getArticulo().getDescripcion()
+                            + ". Máximo disponible para devolver: " + disponibleParaDevolver);
+                }
+
+                // Actualizar acumulado devuelto en la BD
+                detalle.setCantidadDevuelta(devueltoPrevio + itemDev.getCantidadADevolver());
+
+                // CORRECCIÓN: Usar precio de VENTA (o precio unitario cobrado), NO precio de compra
+                double precioVentaReal = detalle.getPrecioVenta() != null ? detalle.getPrecioVenta() : detalle.getPrecioCompra();
+                BigDecimal subtotal = BigDecimal.valueOf(precioVentaReal)
+                        .multiply(BigDecimal.valueOf(itemDev.getCantidadADevolver()));
+                montoTotalReembolso = montoTotalReembolso.add(subtotal);
+
+                // Si el artículo es inventariable, se prepara para el Kardex
+                Articulo articulo = detalle.getArticulo();
+                if (articulo != null && Boolean.TRUE.equals(articulo.getInventariable())) {
+
+                    itemsParaKardex.add(new VentaDevueltaEvent.ItemAnulacionDto(
+                            articulo.getCodigo(),
+                            itemDev.getCantidadADevolver()
+                    ));
+                }
             }
 
-            // Calcular el subtotal del reembolso proporcional (precio Unitario * cantidad devuelta)
-            BigDecimal subtotalDevuelto = BigDecimal.valueOf(detalle.getPrecioCompra())
-                    .multiply(BigDecimal.valueOf(itemDev.getCantidadADevolver()));
-            montoTotalReembolso = montoTotalReembolso.add(subtotalDevuelto);
+            // 4. Evaluar si la devolución terminó cubriendo TODOS los ítems de la factura
+            boolean esDevolucionTotal = factura.getDetalleFacturaDeVentaCollection().stream()
+                    .allMatch(d -> {
+                        double devuelto = d.getCantidadDevuelta() != null ? d.getCantidadDevuelta() : 0.0;
+                        return Double.compare(devuelto, d.getCantidad()) == 0;
+                    });
 
-            // Preparar ítems inventariables para Kardex
-            Articulo articulo = detalle.getArticulo();
-            if (articulo != null && articulo.getCodigo() != null && Boolean.TRUE.equals(articulo.getInventariable())) {
-                itemsParaKardex.add(new VentaDevueltaEvent.ItemAnulacionDto(
-                        articulo.getCodigo(),
-                        itemDev.getCantidadADevolver()
-                ));
+            if (esDevolucionTotal) {
+                factura.setAnulada(true);
+                factura.setFechaAnulada(new Date());
             }
+
+            factura.setFechaActualizacion(new Date());
+            facturaGuardada = facttRepo.save(factura);
+
+            // -----------------------------------------------------------------------------------
+            // NUEVO PASO 4.1: Crear formalmente la EntradaInventario en la Base de Datos
+            // -----------------------------------------------------------------------------------
+            EntradaInventario entradaCreada = entradaInventarioService.crearEntradaPorDevolucion(facturaGuardada, solicitud);
+
+            // 5. Egreso de Dinero en Caja POS
+            // NOTA: Aseguramos la lectura del tipo de venta/documento evitando nulls
+            String tipoVentaNombre = (facturaGuardada.getTipoVenta() != null)
+                    ? facturaGuardada.getTipoVenta().getNombre()
+                    : "EFECTIVO"; // Valor fallback seguro si viniera nulo
+
+            cajaService.registrarMovimientoPos(
+                    turnoActual.getId().intValue(),
+                    tipoVentaNombre,
+                    montoTotalReembolso.negate(),
+                    (esDevolucionTotal ? "Devolución Total" : "Devolución Parcial")
+                    + " Factura #" + facturaGuardada.getCodigo() + ". Motivo: " + solicitud.getMotivo(),
+                    solicitud.getUsuario()
+            );
+
+            // 6. Publicar evento para Kardex
+            eventPublisher.publishEvent(new VentaDevueltaEvent(
+                    facturaGuardada.getCodigo(),
+                    entradaCreada.getCodigo(), // <--- Pasa el código de entrada generado
+                    solicitud.getUsuario(),
+                    solicitud.getMotivo(),
+                    esDevolucionTotal,
+                    itemsParaKardex
+            ));
+
+        } catch (Exception ex) {
+
+            ex.printStackTrace();
         }
-
-        // 4. Si todos los detalles fueron devueltos en su totalidad, se marca la factura como anulada/devuelta total
-        boolean esDevolucionTotal = todosLosItemsDevueltosCompletos
-                && factura.getDetalleFacturaDeVentaCollection().size() == solicitud.getItems().size();
-
-        if (esDevolucionTotal) {
-            factura.setAnulada(true);
-            factura.setFechaAnulada(new Date());
-        }
-
-        factura.setFechaActualizacion(new Date());
-        FacturaDeVenta facturaGuardada = facttRepo.save(factura);
-
-        // 5. Egreso proporcional de dinero en Caja
-        cajaService.registrarMovimientoPos(
-                turnoActual.getId().intValue(),
-                facturaGuardada.getTipoVenta().getNombre(),
-                montoTotalReembolso.negate(),
-                (esDevolucionTotal ? "Devolución Total" : "Devolución Parcial")
-                + " Venta #" + facturaGuardada.getCodigo() + ". Motivo: " + solicitud.getMotivo(),
-                solicitud.getUsuario()
-        );
-
-        // 6. Publicar evento para actualizar Kardex
-        eventPublisher.publishEvent(new VentaDevueltaEvent(
-                facturaGuardada.getCodigo(),
-                solicitud.getUsuario(),
-                solicitud.getMotivo(),
-                esDevolucionTotal,
-                montoTotalReembolso,
-                itemsParaKardex
-        ));
 
         return facturaGuardada;
     }
@@ -294,6 +341,13 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
     @Override
     public List<DetalleFacturaDeVenta> getDetalle(int obj) {
         return facttRepo.getDetalle(obj);
+    }
+
+    @Override
+    public FacturaDeVenta getFactura(int codigo) {
+
+        return facttRepo.getFactura(codigo);
+
     }
 
 }

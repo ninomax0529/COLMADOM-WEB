@@ -17,6 +17,8 @@ import java.util.List;
 public interface FacturaDeVentaService {
 
     FacturaDeVenta guardar(FacturaDeVenta obj);
+    
+   FacturaDeVenta getFactura(int codigo);
 
     FacturaDeVenta procesarVenta(TicketVenta obj, String usaurio);
 

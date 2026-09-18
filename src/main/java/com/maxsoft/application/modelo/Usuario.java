@@ -197,6 +197,12 @@ public class Usuario implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.Usuario[ codigo=" + codigo + " ]";
     }
+    public Collection<AjusteInventario> getAjusteInventarioCollection() {
+        return ajusteInventarioCollection;
+    }
+    public void setAjusteInventarioCollection(Collection<AjusteInventario> ajusteInventarioCollection) {
+        this.ajusteInventarioCollection = ajusteInventarioCollection;
+    }
 
     public String getNombre() {
         return nombre;
@@ -228,14 +234,6 @@ public class Usuario implements Serializable {
 
     public void setHabilitado(boolean habilitado) {
         this.habilitado = habilitado;
-    }
-
-    public Collection<AjusteInventario> getAjusteInventarioCollection() {
-        return ajusteInventarioCollection;
-    }
-
-    public void setAjusteInventarioCollection(Collection<AjusteInventario> ajusteInventarioCollection) {
-        this.ajusteInventarioCollection = ajusteInventarioCollection;
     }
     
 }

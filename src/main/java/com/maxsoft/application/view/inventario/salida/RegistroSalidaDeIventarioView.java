@@ -154,6 +154,7 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         } else {
 
             DetalleSalidaInventario det = new DetalleSalidaInventario();
+           
             det.setCodigo(articulo.getCodigo());
             det.setArticulo(articulo);
             det.setDescripcionArticulo(articulo.getDescripcion());

@@ -73,6 +73,7 @@ import java.util.List;
 import java.util.Optional;
 
 import net.sf.jasperreports.engine.JasperPrint;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
 @NpmPackage(value = "print-js", version = "1.6.0")
@@ -166,7 +167,8 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
             DeliveryService deliveryService,
             TipoVentaService tipoVentaService,
             EstadoFacturaService estadoFacturaService,
-            ImpresionDirectaService impresionDirectaService) {
+            ImpresionDirectaService impresionDirectaService
+    ) {
 
         this.reporteService = reporteService;
         this.cajaService = cajaService;
@@ -177,6 +179,7 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
         this.tipoVentaService = tipoVentaService;
         this.estadoFacturaService = estadoFacturaService;
         this.impresionDirectaService = impresionDirectaService;
+     
 
         Shortcuts.addShortcutListener(
                 this,
@@ -480,7 +483,8 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
                 this::abrirDialogoVentaPorMonto,
                 this::abrirDialogoAperturaCaja,
                 this::abrirDialogoCierreCaja,
-                this::abrirDialogoMovimientoPos
+                this::abrirDialogoMovimientoPos,
+                factService
         );
     }
 
@@ -1051,6 +1055,7 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
     // PERSISTENCIA
     // ============================================================
     private FacturaDeVenta guardar(
+            
             TicketVenta ticketVenta) {
 
         if (ticketVenta == null) {
@@ -1090,6 +1095,7 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
 
         } catch (Exception ex) {
 
+            ex.printStackTrace();
             Notification.show(
                     "Error procesando la factura.",
                     4000,

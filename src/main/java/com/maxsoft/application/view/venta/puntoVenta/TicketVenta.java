@@ -225,19 +225,27 @@ public class TicketVenta {
 
     /**
      * Permite escuchar el doble clic sobre cualquier fila del Grid de este ticket.
+     * @param listener
      */
     public void alHacerDobleClicEnFila(AccionEditarDetalle listener) {
+        
         grid.addItemDoubleClickListener(e -> {
+            
             DetalleFacturaDeVenta item = e.getItem();
+            
             if (item != null && listener != null) {
                 grid.select(item); // Garantizar la selección visual
                 listener.ejecutar(item);
             }
         });
+        
+        
+        
     }
 
     /**
      * Retorna el elemento seleccionado actualmente en el Grid (útil para atajos de teclado).
+     * @return 
      */
     public Optional<DetalleFacturaDeVenta> getDetalleSeleccionado() {
         return grid.getSelectedItems().stream().findFirst();

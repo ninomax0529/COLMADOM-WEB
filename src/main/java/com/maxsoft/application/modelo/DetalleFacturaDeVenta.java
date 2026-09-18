@@ -99,6 +99,20 @@ public class DetalleFacturaDeVenta implements Serializable {
     @JoinColumn(name = "unidad", referencedColumnName = "codigo")
     @ManyToOne
     private Unidad unidad;
+    @Column(name = "cantidad_devuelta")
+    private Double cantidadDevuelta = 0.0;
+
+    // Getter y Setter
+    public Double getCantidadDevuelta() {
+        if (cantidadDevuelta == null) {
+            return 0.0;
+        }
+        return cantidadDevuelta;
+    }
+
+    public void setCantidadDevuelta(Double cantidadDevuelta) {
+        this.cantidadDevuelta = cantidadDevuelta;
+    }
 
     public DetalleFacturaDeVenta() {
     }

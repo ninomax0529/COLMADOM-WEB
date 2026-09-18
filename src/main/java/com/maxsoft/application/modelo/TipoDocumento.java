@@ -41,6 +41,8 @@ public class TipoDocumento implements Serializable {
     @Size(max = 50)
     @Column(name = "creado_por")
     private String creadoPor;
+    @OneToMany(mappedBy = "tipoDocumento")
+    private Collection<SalidaInventario> salidaInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoDocumento")
     private Collection<MovimientoInventario> movimientoInventarioCollection;
 
@@ -151,6 +153,14 @@ public class TipoDocumento implements Serializable {
 
     public void setNombre(String nombre) {
         this.nombre = nombre;
+    }
+
+    public Collection<SalidaInventario> getSalidaInventarioCollection() {
+        return salidaInventarioCollection;
+    }
+
+    public void setSalidaInventarioCollection(Collection<SalidaInventario> salidaInventarioCollection) {
+        this.salidaInventarioCollection = salidaInventarioCollection;
     }
 
 

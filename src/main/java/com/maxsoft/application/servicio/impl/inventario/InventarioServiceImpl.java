@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.servicio.impl.inventario;
 
+import com.maxsoft.application.evento.SalidaInventarioCreadaEvent;
 import com.maxsoft.application.evento.VentaAnuladaEvent;
 import com.maxsoft.application.evento.VentaDevueltaEvent;
 import com.maxsoft.application.evento.VentaRealizadaEvent;
@@ -16,6 +17,8 @@ import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoMovimientoService;
+import com.maxsoft.application.util.ClaseUtil;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -29,7 +32,6 @@ public class InventarioServiceImpl implements InventarioService {
 
     @Autowired
     private MovimientoInventarioService movimientoInventarioService;
-
     @Autowired
     private TipoMovimientoService tipoMovimientoRepo;
 
@@ -82,10 +84,21 @@ public class InventarioServiceImpl implements InventarioService {
 
         // 3. Validar existencia real
         double existencia = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
-        if (existencia < cantidad) {
-            throw new IllegalStateException("Stock insuficiente para: " + articulo.getDescripcion()
-                    + ". Disponible: " + existencia + ", Solicitado: " + cantidad);
+
+        // Ejemplo de mejora en tu MovimientoInventarioServiceImpl:
+        if (existencia < cantidad && !articulo.getPermitirVentaSinExistencia()) {
+
+            ClaseUtil.mostrarNotificacion("Existencia insuficiente para: " + articulo.getDescripcion()
+                    + ". Disponible: " + existencia + ", Solicitado: " + cantidad, NotificationVariant.LUMO_WARNING);
+
+//           throw new IllegalStateException();
         }
+
+//        if (existencia < cantidad) {
+//
+//            throw new IllegalStateException("Stock insuficiente para: " + articulo.getDescripcion()
+//                    + ". Disponible: " + existencia + ", Solicitado: " + cantidad);
+//        }
     }
 
     @EventListener
@@ -121,24 +134,21 @@ public class InventarioServiceImpl implements InventarioService {
             }
         }
     }
-    
+
     @EventListener
     @Transactional
     public void onVentaDevuelta(VentaDevueltaEvent event) {
-        
-     
+
         // Requiere que el TipoMovimiento 'ENTRADA' o 'ENTRADA_ANULACION' exista en BD
         TipoMovimiento tipoEntrada = tipoMovimientoRepo.getTipoMovimientoa(1);
 //                .orElseThrow(() -> new IllegalStateException("No existe el TipoMovimiento 'ENTRADA' en la BD"));
 
-//        TipoDocumento tipoFactura = tipoDocumentoRepo.getTipoDocumento(1);
+        TipoDocumento tipoFactura = tipoDocumentoRepo.getTipoDocumento(1);
 //                .orElseThrow(() -> new IllegalStateException("No existe el TipoDocumento 'FACTURA' en la BD"));
-
         for (VentaDevueltaEvent.ItemAnulacionDto item : event.getItems()) {
-            
-                 Articulo articulo = articuloRepo.findById(item.getCodigoArticulo())
-                        .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado ID: " + item.getCodigoArticulo()));
 
+            Articulo articulo = articuloRepo.findById(item.getCodigoArticulo())
+                    .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado ID: " + item.getCodigoArticulo()));
 
             if (articulo != null) {
                 String tipoDevolucion = event.isEsDevolucionTotal() ? "Devolución Total" : "Devolución Parcial";
@@ -146,11 +156,46 @@ public class InventarioServiceImpl implements InventarioService {
                 movimientoInventarioService.registrarMovimiento(
                         articulo,
                         tipoEntrada,
-                        null,
+                        tipoFactura,
                         String.valueOf(event.getIdFactura()),
                         item.getCantidad(),
                         event.getUsuario(),
                         tipoDevolucion + " Venta #" + event.getIdFactura() + ". Motivo: " + event.getMotivo()
+                );
+            }
+        }
+    }
+
+
+// ... dentro de InventarioServiceImpl ...
+    @EventListener
+    @Transactional
+    public void manejarSalidaInventarioCreada(SalidaInventarioCreadaEvent event) {
+
+        // 1. Obtener los tipos de movimiento/documento correspondientes a "SALIDA" y "SALIDA DE INVENTARIO"
+        TipoMovimiento tipoSalida = tipoMovimientoRepo.getTipoMovimientoa(2); // ID o código de SALIDA
+        TipoDocumento tipoDocSalida = tipoDocumentoRepo.getTipoDocumento(2); // ID de Tipo Documento (Salida / POS)
+
+        if (event.getItems() == null || event.getItems().isEmpty()) {
+            return;
+        }
+
+        // 2. Recorrer los ítems que vienen en la Salida y registrar su movimiento en Kardex
+        for (SalidaInventarioCreadaEvent.ItemSalidaDto item : event.getItems()) {
+            if (item.getIdArticulo() != null) {
+
+                Articulo articulo = articuloRepo.findById(item.getIdArticulo())
+                        .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado ID: " + item.getIdArticulo()));
+
+                // Registrar movimiento en la tabla de inventario / kardex
+                movimientoInventarioService.registrarMovimiento(
+                        articulo,
+                        tipoSalida,
+                        tipoDocSalida,
+                        String.valueOf(event.getIdSalida()), // ID de la salida
+                        item.getCantidad(),
+                        event.getUsuario(),
+                        "Salida de inventario #" + event.getIdSalida() + " por doc: " + event.getNumeroDocumento()
                 );
             }
         }

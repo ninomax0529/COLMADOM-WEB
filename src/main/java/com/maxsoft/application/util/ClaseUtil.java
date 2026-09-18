@@ -354,7 +354,7 @@ public class ClaseUtil {
         Notification notification = new Notification();
 
 // 2. Configurar la duración (4000 ms) y la posición
-        notification.setDuration(2000);
+        notification.setDuration(4000);
         notification.setPosition(Notification.Position.TOP_CENTER);
 
 // 3. Añadir la variante de tema (ej. NotificationVariant.LUMO_SUCCESS)

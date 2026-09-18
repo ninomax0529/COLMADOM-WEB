@@ -1,5 +1,6 @@
 package com.maxsoft.application.view.inventario.entrada;
 
+import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.DetalleEntradaInventario;
 import com.maxsoft.application.modelo.EntradaInventario;
@@ -56,7 +57,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
     @Autowired
     public RegistroEntradaDeIventarioView(EntradaDeInventarioService entradaInvService,
-                                         ArticuloService articuloService) {
+            ArticuloService articuloService) {
 
         this.entradaInvService = entradaInvService;
         this.articuloService = articuloService;
@@ -107,12 +108,12 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
     }
 
     private void agregarOActualizarArticulo(Articulo articulo) {
-        
+
         boolean existe = listDet.stream()
                 .anyMatch(d -> d.getArticulo() != null && Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo()));
 
         if (existe) {
-            
+
             listDet.forEach(d -> {
                 if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
                     double nuevaCant = d.getCantidadRecibida();
@@ -121,21 +122,28 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
                 }
             });
         } else {
-            
+
             DetalleEntradaInventario det = new DetalleEntradaInventario();
             det.setCodigo(articulo.getCodigo());
             det.setArticulo(articulo);
             det.setDescripcionArticulo(articulo.getDescripcion());
-            
+
             double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
             det.setExistenciaActual(stockActual);
-            
+
             det.setCantidadPedida(0.00);
             det.setCantidadRecibida(0.00);
             det.setCantidadPendiente(0.00);
-            det.setNuevaExistencia(stockActual);
+//            det.setNuevaExistencia(stockActual);
             det.setNombreAlmacen("General");
             det.setNombreUnidad("Unidad");
+
+            det.setUnidad(articulo.getUnidadEntrada());
+            det.setPrecioCompra(articulo.getPrecioCompra());
+            det.setAlmacen(new Almacen(1));
+
+            det.setCostoUnitario(articulo.getPrecioCompra());
+            det.setPrecioVenta(articulo.getPrecioVenta());
 
             listDet.add(det);
         }
@@ -177,7 +185,8 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
                             listDet.remove(item);
                             grid.getDataProvider().refreshAll();
                         },
-                        () -> {}
+                        () -> {
+                        }
                 );
                 dialog.open();
             });
@@ -187,8 +196,10 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
         txtBuscar.addValueChangeListener(e -> dataView.addFilter(det -> {
             String term = e.getValue().trim().toLowerCase();
-            if (term.isEmpty()) return true;
-            
+            if (term.isEmpty()) {
+                return true;
+            }
+
             boolean matchDesc = det.getDescripcionArticulo() != null && det.getDescripcionArticulo().toLowerCase().contains(term);
             boolean matchCod = det.getCodigo() != null && det.getCodigo().toString().contains(term);
             return matchDesc || matchCod;
@@ -214,7 +225,9 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
         });
 
         cantidadField.addValueChangeListener(e -> {
-            if (!editor.isOpen() || editor.getItem() == null) return;
+            if (!editor.isOpen() || editor.getItem() == null) {
+                return;
+            }
 
             try {
                 double cant = Double.parseDouble(e.getValue());
@@ -263,8 +276,8 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
             });
 
             entradaInv.setDetalleEntradaInventarioCollection(listDet);
-            
-            this.entradaInvService.guardar(entradaInv,"Admin");
+
+            this.entradaInvService.guardar(entradaInv, "Admin");
 
             Notification.show("Entrada guardada exitosamente", 3000, Position.TOP_CENTER);
             listDet.clear();
