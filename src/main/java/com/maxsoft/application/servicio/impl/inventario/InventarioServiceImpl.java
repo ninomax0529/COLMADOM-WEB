@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.servicio.impl.inventario;
 
+import com.maxsoft.application.evento.AjusteInventarioCreadoEvent;
 import com.maxsoft.application.evento.SalidaInventarioCreadaEvent;
 import com.maxsoft.application.evento.VentaAnuladaEvent;
 import com.maxsoft.application.evento.VentaDevueltaEvent;
@@ -166,7 +167,6 @@ public class InventarioServiceImpl implements InventarioService {
         }
     }
 
-
 // ... dentro de InventarioServiceImpl ...
     @EventListener
     @Transactional
@@ -196,6 +196,34 @@ public class InventarioServiceImpl implements InventarioService {
                         item.getCantidad(),
                         event.getUsuario(),
                         "Salida de inventario #" + event.getIdSalida() + " por doc: " + event.getNumeroDocumento()
+                );
+            }
+        }
+    }
+
+    @EventListener
+    @Transactional
+    public void manejarAjusteInventarioCreado(AjusteInventarioCreadoEvent event) {
+        if (event.getItems() == null || event.getItems().isEmpty()) {
+            return;
+        }
+
+        TipoMovimiento tipoMovimiento = tipoMovimientoRepo.getTipoMovimientoa(event.getIdTipoMovimiento());
+        TipoDocumento tipoDocAjuste = tipoDocumentoRepo.getTipoDocumento(3); // Tipo Documento 'Ajuste de Inventario'
+
+        for (AjusteInventarioCreadoEvent.ItemAjusteDto item : event.getItems()) {
+            if (item.getIdArticulo() != null) {
+                Articulo articulo = articuloRepo.findById(item.getIdArticulo())
+                        .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado ID: " + item.getIdArticulo()));
+
+                movimientoInventarioService.registrarMovimiento(
+                        articulo,
+                        tipoMovimiento,
+                        tipoDocAjuste,
+                        "AJ-" + event.getIdAjuste(),
+                        item.getCantidad(),
+                        event.getUsuario(),
+                        "Ajuste #" + event.getIdAjuste() + ". " + (event.getObservacion() != null ? event.getObservacion() : "")
                 );
             }
         }

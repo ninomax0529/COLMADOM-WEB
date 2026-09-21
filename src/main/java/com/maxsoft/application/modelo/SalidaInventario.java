@@ -35,7 +35,7 @@ import java.util.Date;
     @NamedQuery(name = "SalidaInventario.findAll", query = "SELECT s FROM SalidaInventario s")})
 public class SalidaInventario implements Serializable {
 
-    @Size(max = 45)
+    @Size(max = 150)
     @Column(name = "observacion")
     private String observacion;
     @Size(max = 80)
