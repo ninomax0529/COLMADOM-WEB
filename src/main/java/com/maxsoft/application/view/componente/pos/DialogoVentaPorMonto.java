@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.view.componente.pos;
 
+import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -26,7 +27,7 @@ public class DialogoVentaPorMonto extends Dialog {
 
     public DialogoVentaPorMonto(
             String producto,
-            Double precioUnitario,
+            BigDecimal precioUnitario,
             BiConsumer<Double, Double> onAceptar // Recibe (monto, cantidadCalculada)
     ) {
         setHeaderTitle("Vender por Dinero (RD$)");
@@ -45,13 +46,13 @@ public class DialogoVentaPorMonto extends Dialog {
         Span resultadoSpan = new Span("Cantidad calculada: 0.00");
         resultadoSpan.getStyle().set("font-weight", "bold").set("color", "var(--lumo-primary-color)");
 
-        montoField.addValueChangeListener(e -> {
+        montoField.addValueChangeListener((AbstractField.ComponentValueChangeEvent<BigDecimalField, BigDecimal> e) -> {
             BigDecimal val = e.getValue();
             Double monto = (val != null) ? val.doubleValue() : null;
 
-            if (monto != null && monto > 0 && precioUnitario > 0) {
+            if (monto != null && monto > 0 && precioUnitario.doubleValue() > 0) {
 
-                Double cantidadCalculada = monto / precioUnitario;
+                Double cantidadCalculada = monto / precioUnitario.doubleValue();
 //              Double cantidadCalculada = montodivide(precioUnitario, 3, RoundingMode.HALF_UP);
 
                 resultadoSpan.setText("Cantidad calculada: " + CANTIDAD_FORMAT.format(cantidadCalculada));
@@ -71,17 +72,17 @@ public class DialogoVentaPorMonto extends Dialog {
         acceptBtn.addClickListener(e -> {
 
             BigDecimal val = montoField.getValue();
-            Double monto = (val != null) ? val.doubleValue() : null;
+            BigDecimal monto = (val != null) ? val: null;
 
-            if (monto != null && monto > 0) {
+            if (monto != null && monto.doubleValue() > 0) {
 //
 //              Double cantidadCalculada = monto/precioUnitario;
 //              
 //              agregarAlTicketActivo();
                 close();
                 if (onAceptar != null) {
-                    Double cantidadCalculada = (precioUnitario > 0) ? (monto / precioUnitario) : 0.0;
-                    onAceptar.accept(monto, cantidadCalculada);
+                    Double cantidadCalculada = (precioUnitario.doubleValue() > 0) ? (monto.doubleValue() / precioUnitario.doubleValue()) : 0.0;
+                    onAceptar.accept(monto.doubleValue(), cantidadCalculada);
                 }
             } else {
                 Notification.show("Ingresa un monto válido en RD$", 2500, Notification.Position.MIDDLE)

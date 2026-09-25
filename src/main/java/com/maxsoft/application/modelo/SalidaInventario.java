@@ -35,35 +35,14 @@ import java.util.Date;
     @NamedQuery(name = "SalidaInventario.findAll", query = "SELECT s FROM SalidaInventario s")})
 public class SalidaInventario implements Serializable {
 
-    @Size(max = 150)
-    @Column(name = "observacion")
-    private String observacion;
-    @Size(max = 80)
-    @Column(name = "solicitante")
-    private String solicitante;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "anulada")
-    private boolean anulada;
-    @Size(max = 45)
-    @Column(name = "numero_documento")
-    private String numeroDocumento;
-    @Size(max = 45)
-    @Column(name = "nombre_tipo_salida")
-    private String nombreTipoSalida;
-    @Size(max = 45)
-    @Column(name = "nombre_usuario")
-    private String nombreUsuario;
-    @JoinColumn(name = "tipo_documento", referencedColumnName = "codigo")
-    @ManyToOne
-    private TipoDocumento tipoDocumento;
-
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
+    @Column(name = "numero")
+    private Integer numero;
     @Column(name = "fecha")
     @Temporal(TemporalType.DATE)
     private Date fecha;
@@ -72,27 +51,42 @@ public class SalidaInventario implements Serializable {
     @Column(name = "fecha_registro")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaRegistro;
+    @Size(max = 150)
+    @Column(name = "observacion")
+    private String observacion;
     @Column(name = "fecha_contabilizacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaContabilizacion;
+    @Size(max = 45)
+    @Column(name = "numero_documento")
+    private String numeroDocumento;
     @Column(name = "moneda")
     private Integer moneda;
-    @Column(name = "tipo_salida")
-    private Integer tipoSalida;
+    @Size(max = 80)
+    @Column(name = "solicitante")
+    private String solicitante;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "anulada")
+    private boolean anulada;
     @Column(name = "fecha_anulada")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaAnulada;
     @Column(name = "anulada_por")
     private Integer anuladaPor;
-    @Column(name = "numero")
-    private Integer numero;
+    @Size(max = 45)
+    @Column(name = "nombre_usuario")
+    private String nombreUsuario;
     @JoinColumn(name = "secuencia_documento", referencedColumnName = "codigo")
     @ManyToOne
     private SecuenciaDocumento secuenciaDocumento;
+    @JoinColumn(name = "tipo_documento", referencedColumnName = "codigo")
+    @ManyToOne
+    private TipoDocumento tipoDocumento;
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
     @ManyToOne
     private Usuario usuario;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "salidaInventario" )
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "salidaInventario")
     private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
 
     public SalidaInventario() {
@@ -113,6 +107,14 @@ public class SalidaInventario implements Serializable {
 
     public void setCodigo(Integer codigo) {
         this.codigo = codigo;
+    }
+
+    public Integer getNumero() {
+        return numero;
+    }
+
+    public void setNumero(Integer numero) {
+        this.numero = numero;
     }
 
     public Date getFecha() {
@@ -139,6 +141,13 @@ public class SalidaInventario implements Serializable {
         this.fechaRegistro = fechaRegistro;
     }
 
+    public String getObservacion() {
+        return observacion;
+    }
+
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
+    }
 
     public Date getFechaContabilizacion() {
         return fechaContabilizacion;
@@ -146,6 +155,14 @@ public class SalidaInventario implements Serializable {
 
     public void setFechaContabilizacion(Date fechaContabilizacion) {
         this.fechaContabilizacion = fechaContabilizacion;
+    }
+
+    public String getNumeroDocumento() {
+        return numeroDocumento;
+    }
+
+    public void setNumeroDocumento(String numeroDocumento) {
+        this.numeroDocumento = numeroDocumento;
     }
 
     public Integer getMoneda() {
@@ -156,15 +173,21 @@ public class SalidaInventario implements Serializable {
         this.moneda = moneda;
     }
 
-
-    public Integer getTipoSalida() {
-        return tipoSalida;
+    public String getSolicitante() {
+        return solicitante;
     }
 
-    public void setTipoSalida(Integer tipoSalida) {
-        this.tipoSalida = tipoSalida;
+    public void setSolicitante(String solicitante) {
+        this.solicitante = solicitante;
     }
 
+    public boolean getAnulada() {
+        return anulada;
+    }
+
+    public void setAnulada(boolean anulada) {
+        this.anulada = anulada;
+    }
 
     public Date getFechaAnulada() {
         return fechaAnulada;
@@ -182,12 +205,12 @@ public class SalidaInventario implements Serializable {
         this.anuladaPor = anuladaPor;
     }
 
-    public Integer getNumero() {
-        return numero;
+    public String getNombreUsuario() {
+        return nombreUsuario;
     }
 
-    public void setNumero(Integer numero) {
-        this.numero = numero;
+    public void setNombreUsuario(String nombreUsuario) {
+        this.nombreUsuario = nombreUsuario;
     }
 
     public SecuenciaDocumento getSecuenciaDocumento() {
@@ -196,6 +219,14 @@ public class SalidaInventario implements Serializable {
 
     public void setSecuenciaDocumento(SecuenciaDocumento secuenciaDocumento) {
         this.secuenciaDocumento = secuenciaDocumento;
+    }
+
+    public TipoDocumento getTipoDocumento() {
+        return tipoDocumento;
+    }
+
+    public void setTipoDocumento(TipoDocumento tipoDocumento) {
+        this.tipoDocumento = tipoDocumento;
     }
 
     public Usuario getUsuario() {
@@ -237,62 +268,6 @@ public class SalidaInventario implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.SalidaInventario[ codigo=" + codigo + " ]";
-    }
-
-    public String getObservacion() {
-        return observacion;
-    }
-
-    public void setObservacion(String observacion) {
-        this.observacion = observacion;
-    }
-
-    public String getSolicitante() {
-        return solicitante;
-    }
-
-    public void setSolicitante(String solicitante) {
-        this.solicitante = solicitante;
-    }
-
-    public boolean getAnulada() {
-        return anulada;
-    }
-
-    public void setAnulada(boolean anulada) {
-        this.anulada = anulada;
-    }
-
-    public String getNumeroDocumento() {
-        return numeroDocumento;
-    }
-
-    public void setNumeroDocumento(String numeroDocumento) {
-        this.numeroDocumento = numeroDocumento;
-    }
-
-    public String getNombreTipoSalida() {
-        return nombreTipoSalida;
-    }
-
-    public void setNombreTipoSalida(String nombreTipoSalida) {
-        this.nombreTipoSalida = nombreTipoSalida;
-    }
-
-    public String getNombreUsuario() {
-        return nombreUsuario;
-    }
-
-    public void setNombreUsuario(String nombreUsuario) {
-        this.nombreUsuario = nombreUsuario;
-    }
-
-    public TipoDocumento getTipoDocumento() {
-        return tipoDocumento;
-    }
-
-    public void setTipoDocumento(TipoDocumento tipoDocumento) {
-        this.tipoDocumento = tipoDocumento;
     }
     
 }

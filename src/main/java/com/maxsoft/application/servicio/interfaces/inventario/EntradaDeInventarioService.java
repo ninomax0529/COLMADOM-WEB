@@ -5,7 +5,10 @@
 package com.maxsoft.application.servicio.interfaces.inventario;
 
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
+import com.maxsoft.application.modelo.AjusteInventario;
+import com.maxsoft.application.modelo.DetalleAjusteInventario;
 import com.maxsoft.application.modelo.DetalleEntradaInventario;
+import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import java.util.List;
@@ -28,4 +31,9 @@ public interface EntradaDeInventarioService {
     List<DetalleEntradaInventario> getDetalle(int obj);
 
     EntradaInventario crearEntradaPorDevolucion(FacturaDeVenta factura, SolicitudDevolucionDto solicitud);
+
+    EntradaInventario crearEntradaPorAnulacionVenta(FacturaDeVenta factura,List<DetalleFacturaDeVenta> listaDetFact);
+
+    EntradaInventario crearEntradaPorAjuste(AjusteInventario ajuste, List<DetalleAjusteInventario> detalleAju);
+
 }

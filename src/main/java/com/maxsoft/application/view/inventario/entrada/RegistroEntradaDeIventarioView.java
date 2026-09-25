@@ -29,6 +29,7 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
@@ -116,9 +117,9 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
             listDet.forEach(d -> {
                 if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
-                    double nuevaCant = d.getCantidadRecibida();
+                    BigDecimal nuevaCant = d.getCantidadRecibida();
                     d.setCantidadRecibida(nuevaCant);
-                    d.setNuevaExistencia(d.getExistenciaActual() + nuevaCant);
+                    d.setNuevaExistencia(d.getExistenciaActual().add(nuevaCant));
                 }
             });
         } else {
@@ -128,12 +129,12 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
             det.setArticulo(articulo);
             det.setDescripcionArticulo(articulo.getDescripcion());
 
-            double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+            BigDecimal stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
             det.setExistenciaActual(stockActual);
 
-            det.setCantidadPedida(0.00);
-            det.setCantidadRecibida(0.00);
-            det.setCantidadPendiente(0.00);
+            det.setCantidadPedida(BigDecimal.ZERO);
+            det.setCantidadRecibida(BigDecimal.ZERO);
+            det.setCantidadPendiente(BigDecimal.ZERO);
 //            det.setNuevaExistencia(stockActual);
             det.setNombreAlmacen("General");
             det.setNombreUnidad("Unidad");
@@ -230,14 +231,14 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
             }
 
             try {
-                double cant = Double.parseDouble(e.getValue());
+                Double cant = Double.valueOf(e.getValue());
                 if (cant <= 0) {
                     Notification.show("La cantidad debe ser mayor a cero", 2500, Position.MIDDLE);
                     return;
                 }
                 DetalleEntradaInventario item = editor.getItem();
-                item.setCantidadRecibida(cant);
-                item.setNuevaExistencia(item.getExistenciaActual() + cant);
+                item.setCantidadRecibida(BigDecimal.valueOf(cant));
+                item.setNuevaExistencia(item.getExistenciaActual().add(item.getCantidadRecibida()));
                 grid.getDataProvider().refreshItem(item);
 
             } catch (NumberFormatException ex) {
@@ -253,7 +254,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
         }
 
         for (DetalleEntradaInventario det : listDet) {
-            if (det.getCantidadRecibida() <= 0) {
+            if (det.getCantidadRecibida().doubleValue() <= 0) {
                 Notification.show("El artículo '" + det.getDescripcionArticulo() + "' tiene cantidad en cero", 4000, Position.TOP_CENTER);
                 return;
             }

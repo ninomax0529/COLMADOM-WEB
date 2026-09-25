@@ -18,6 +18,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  *
@@ -45,48 +46,50 @@ public class DetalleFacturaDeVenta implements Serializable {
     private String nombreUnidad;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "precio_compra")
-    private Double precioCompra;
+    private BigDecimal precioCompra;
     @Column(name = "existencia_actual")
-    private Double existenciaActual;
+    private BigDecimal existenciaActual;
     @Column(name = "nueva_existencia")
-    private Double nuevaExistencia;
+    private BigDecimal nuevaExistencia;
     @Size(max = 20)
     @Column(name = "nombre_almacen")
     private String nombreAlmacen;
     @Basic(optional = false)
     @NotNull
     @Column(name = "cantidad")
-    private Double cantidad;
+    private BigDecimal cantidad;
     @Column(name = "precio_venta")
-    private Double precioVenta;
+    private BigDecimal precioVenta;
     @Basic(optional = false)
     @NotNull
     @Column(name = "sub_total")
-    private Double subTotal;
+    private BigDecimal subTotal;
     @Basic(optional = false)
     @NotNull
     @Column(name = "total_descuento")
-    private Double totalDescuento;
+    private BigDecimal totalDescuento;
     @Basic(optional = false)
     @NotNull
     @Column(name = "porciento_descuento")
-    private Double porcientoDescuento;
+    private BigDecimal porcientoDescuento;
     @Basic(optional = false)
     @NotNull
     @Column(name = "total_itbis")
-    private Double totalItbis;
+    private BigDecimal totalItbis;
     @Basic(optional = false)
     @NotNull
     @Column(name = "porciento_itbis")
-    private Double porcientoItbis;
+    private BigDecimal porcientoItbis;
     @Basic(optional = false)
     @NotNull
     @Column(name = "total")
-    private Double total;
+    private BigDecimal total;
     @Basic(optional = false)
     @NotNull
     @Column(name = "numero_de_linea")
     private int numeroDeLinea;
+    @Column(name = "cantidad_devuelta")
+    private BigDecimal cantidadDevuelta;
     @JoinColumn(name = "almacen", referencedColumnName = "codigo")
     @ManyToOne
     private Almacen almacen;
@@ -99,20 +102,6 @@ public class DetalleFacturaDeVenta implements Serializable {
     @JoinColumn(name = "unidad", referencedColumnName = "codigo")
     @ManyToOne
     private Unidad unidad;
-    @Column(name = "cantidad_devuelta")
-    private Double cantidadDevuelta = 0.0;
-
-    // Getter y Setter
-    public Double getCantidadDevuelta() {
-        if (cantidadDevuelta == null) {
-            return 0.0;
-        }
-        return cantidadDevuelta;
-    }
-
-    public void setCantidadDevuelta(Double cantidadDevuelta) {
-        this.cantidadDevuelta = cantidadDevuelta;
-    }
 
     public DetalleFacturaDeVenta() {
     }
@@ -121,7 +110,7 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.codigo = codigo;
     }
 
-    public DetalleFacturaDeVenta(Integer codigo, String descripcionArticulo, double cantidad, double subTotal, double totalDescuento, double porcientoDescuento, double totalItbis, double porcientoItbis, double total, int numeroDeLinea) {
+    public DetalleFacturaDeVenta(Integer codigo, String descripcionArticulo, BigDecimal cantidad, BigDecimal subTotal, BigDecimal totalDescuento, BigDecimal porcientoDescuento, BigDecimal totalItbis, BigDecimal porcientoItbis, BigDecimal total, int numeroDeLinea) {
         this.codigo = codigo;
         this.descripcionArticulo = descripcionArticulo;
         this.cantidad = cantidad;
@@ -158,27 +147,27 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.nombreUnidad = nombreUnidad;
     }
 
-    public Double getPrecioCompra() {
+    public BigDecimal getPrecioCompra() {
         return precioCompra;
     }
 
-    public void setPrecioCompra(Double precioCompra) {
+    public void setPrecioCompra(BigDecimal precioCompra) {
         this.precioCompra = precioCompra;
     }
 
-    public Double getExistenciaActual() {
+    public BigDecimal getExistenciaActual() {
         return existenciaActual;
     }
 
-    public void setExistenciaActual(Double existenciaActual) {
+    public void setExistenciaActual(BigDecimal existenciaActual) {
         this.existenciaActual = existenciaActual;
     }
 
-    public Double getNuevaExistencia() {
+    public BigDecimal getNuevaExistencia() {
         return nuevaExistencia;
     }
 
-    public void setNuevaExistencia(Double nuevaExistencia) {
+    public void setNuevaExistencia(BigDecimal nuevaExistencia) {
         this.nuevaExistencia = nuevaExistencia;
     }
 
@@ -190,67 +179,67 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.nombreAlmacen = nombreAlmacen;
     }
 
-    public Double getCantidad() {
+    public BigDecimal getCantidad() {
         return cantidad;
     }
 
-    public void setCantidad(double cantidad) {
+    public void setCantidad(BigDecimal cantidad) {
         this.cantidad = cantidad;
     }
 
-    public Double getPrecioVenta() {
+    public BigDecimal getPrecioVenta() {
         return precioVenta;
     }
 
-    public void setPrecioVenta(Double precioVenta) {
+    public void setPrecioVenta(BigDecimal precioVenta) {
         this.precioVenta = precioVenta;
     }
 
-    public Double getSubTotal() {
+    public BigDecimal getSubTotal() {
         return subTotal;
     }
 
-    public void setSubTotal(double subTotal) {
+    public void setSubTotal(BigDecimal subTotal) {
         this.subTotal = subTotal;
     }
 
-    public double getTotalDescuento() {
+    public BigDecimal getTotalDescuento() {
         return totalDescuento;
     }
 
-    public void setTotalDescuento(double totalDescuento) {
+    public void setTotalDescuento(BigDecimal totalDescuento) {
         this.totalDescuento = totalDescuento;
     }
 
-    public Double getPorcientoDescuento() {
+    public BigDecimal getPorcientoDescuento() {
         return porcientoDescuento;
     }
 
-    public void setPorcientoDescuento(double porcientoDescuento) {
+    public void setPorcientoDescuento(BigDecimal porcientoDescuento) {
         this.porcientoDescuento = porcientoDescuento;
     }
 
-    public Double getTotalItbis() {
+    public BigDecimal getTotalItbis() {
         return totalItbis;
     }
 
-    public void setTotalItbis(double totalItbis) {
+    public void setTotalItbis(BigDecimal totalItbis) {
         this.totalItbis = totalItbis;
     }
 
-    public Double getPorcientoItbis() {
+    public BigDecimal getPorcientoItbis() {
         return porcientoItbis;
     }
 
-    public void setPorcientoItbis(double porcientoItbis) {
+    public void setPorcientoItbis(BigDecimal porcientoItbis) {
         this.porcientoItbis = porcientoItbis;
     }
 
-    public Double getTotal() {
+    public BigDecimal getTotal() {
         return total;
     }
 
-    public void setTotal(double total) {
+    public void setTotal(BigDecimal total) {
         this.total = total;
     }
 
@@ -260,6 +249,14 @@ public class DetalleFacturaDeVenta implements Serializable {
 
     public void setNumeroDeLinea(int numeroDeLinea) {
         this.numeroDeLinea = numeroDeLinea;
+    }
+
+    public BigDecimal getCantidadDevuelta() {
+        return cantidadDevuelta;
+    }
+
+    public void setCantidadDevuelta(BigDecimal cantidadDevuelta) {
+        this.cantidadDevuelta = cantidadDevuelta;
     }
 
     public Almacen getAlmacen() {

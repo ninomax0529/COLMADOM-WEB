@@ -13,7 +13,8 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.textfield.BigDecimalField;
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 
 public class DialogoEditarCantidad extends Dialog {
@@ -22,7 +23,7 @@ public class DialogoEditarCantidad extends Dialog {
 
     @FunctionalInterface
     public interface AccionConfirmarEditarCantidad {
-        void ejecutar(Double nuevaCantidad);
+        void ejecutar(BigDecimal nuevaCantidad);
     }
 
     public DialogoEditarCantidad(
@@ -36,9 +37,10 @@ public class DialogoEditarCantidad extends Dialog {
 
         VerticalLayout layout = new VerticalLayout();
 
-        NumberField qtyField = new NumberField("Nueva cantidad (Unidades / Libras)");
+        BigDecimalField qtyField = new BigDecimalField("Nueva cantidad (Unidades / Libras)");
         qtyField.setValue(item.getCantidad());
-        qtyField.setStep(0.25); // Permite incrementos de cuarto de libra (0.25)
+        qtyField.getValue().add(BigDecimal.valueOf(0.25));
+//        qtyField..setStep(0.25); // Permite incrementos de cuarto de libra (0.25)
         qtyField.setClearButtonVisible(true);
         qtyField.setWidthFull();
 
@@ -46,9 +48,10 @@ public class DialogoEditarCantidad extends Dialog {
         subtotalSpan.getStyle().set("font-weight", "bold");
 
         qtyField.addValueChangeListener(e -> {
-            Double val = e.getValue();
-            if (val != null && val > 0) {
-                Double tempTotal = item.getPrecioVenta() * val;
+            BigDecimal val = e.getValue();
+            
+            if (val != null && val.doubleValue() > 0) {
+                BigDecimal tempTotal = item.getPrecioVenta().multiply(val);
                 item.setSubTotal(tempTotal);
                 subtotalSpan.setText("Subtotal: RD$ " + MONEDA_FORMAT.format(tempTotal));
             } else {
@@ -65,15 +68,15 @@ public class DialogoEditarCantidad extends Dialog {
         saveBtn.addClickShortcut(Key.ENTER);
 
         saveBtn.addClickListener(e -> {
-            Double nuevaQty = qtyField.getValue();
-            if (nuevaQty != null && nuevaQty > 0) {
+            BigDecimal nuevaQty = qtyField.getValue();
+            if (nuevaQty != null && nuevaQty.doubleValue() > 0) {
                 item.setCantidad(nuevaQty);
                 ticket.updateUI();
                 close();
                 if (onGuardar != null) {
                     onGuardar.ejecutar(nuevaQty);
                 }
-            } else if (nuevaQty != null && nuevaQty <= 0) {
+            } else if (nuevaQty != null && nuevaQty.doubleValue() <= 0) {
                 close();
                 if (onEliminar != null) {
                     onEliminar.run();

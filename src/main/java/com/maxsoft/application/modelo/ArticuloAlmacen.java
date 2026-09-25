@@ -20,6 +20,7 @@ import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -38,20 +39,28 @@ public class ArticuloAlmacen implements Serializable {
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "articulo")
-    private int articulo;
-    @Size(max = 50)
-    @Column(name = "nombre_articulo")
-    private String nombreArticulo;
+    @Size(max = 100)
+    @Column(name = "descripcion_articulo")
+    private String descripcionArticulo;
     @Size(max = 50)
     @Column(name = "nombre_almacen")
     private String nombreAlmacen;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
     @NotNull
     @Column(name = "existencia")
-    private double existencia;
+    private BigDecimal existencia;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "minimo")
+    private BigDecimal minimo;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "maximo")
+    private BigDecimal maximo;
+    @Size(max = 20)
+    @Column(name = "nombre_unidad")
+    private String nombreUnidad;
     @Basic(optional = false)
     @NotNull
     @Column(name = "fecha_creacion")
@@ -66,9 +75,15 @@ public class ArticuloAlmacen implements Serializable {
     @Size(max = 50)
     @Column(name = "actualizado_por")
     private String actualizadoPor;
+    @Size(max = 45)
+    @Column(name = "ubicacion_pasillo")
+    private String ubicacionPasillo;
     @JoinColumn(name = "almacen", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Almacen almacen;
+    @JoinColumn(name = "articulo", referencedColumnName = "codigo")
+    @ManyToOne(optional = false)
+    private Articulo articulo;
     @JoinColumn(name = "unidad", referencedColumnName = "codigo")
     @ManyToOne
     private Unidad unidad;
@@ -80,10 +95,11 @@ public class ArticuloAlmacen implements Serializable {
         this.codigo = codigo;
     }
 
-    public ArticuloAlmacen(Integer codigo, int articulo, double existencia, Date fechaCreacion) {
+    public ArticuloAlmacen(Integer codigo, BigDecimal existencia, BigDecimal minimo, BigDecimal maximo, Date fechaCreacion) {
         this.codigo = codigo;
-        this.articulo = articulo;
         this.existencia = existencia;
+        this.minimo = minimo;
+        this.maximo = maximo;
         this.fechaCreacion = fechaCreacion;
     }
 
@@ -95,20 +111,12 @@ public class ArticuloAlmacen implements Serializable {
         this.codigo = codigo;
     }
 
-    public int getArticulo() {
-        return articulo;
+    public String getDescripcionArticulo() {
+        return descripcionArticulo;
     }
 
-    public void setArticulo(int articulo) {
-        this.articulo = articulo;
-    }
-
-    public String getNombreArticulo() {
-        return nombreArticulo;
-    }
-
-    public void setNombreArticulo(String nombreArticulo) {
-        this.nombreArticulo = nombreArticulo;
+    public void setDescripcionArticulo(String descripcionArticulo) {
+        this.descripcionArticulo = descripcionArticulo;
     }
 
     public String getNombreAlmacen() {
@@ -119,12 +127,36 @@ public class ArticuloAlmacen implements Serializable {
         this.nombreAlmacen = nombreAlmacen;
     }
 
-    public double getExistencia() {
+    public BigDecimal getExistencia() {
         return existencia;
     }
 
-    public void setExistencia(double existencia) {
+    public void setExistencia(BigDecimal existencia) {
         this.existencia = existencia;
+    }
+
+    public BigDecimal getMinimo() {
+        return minimo;
+    }
+
+    public void setMinimo(BigDecimal minimo) {
+        this.minimo = minimo;
+    }
+
+    public BigDecimal getMaximo() {
+        return maximo;
+    }
+
+    public void setMaximo(BigDecimal maximo) {
+        this.maximo = maximo;
+    }
+
+    public String getNombreUnidad() {
+        return nombreUnidad;
+    }
+
+    public void setNombreUnidad(String nombreUnidad) {
+        this.nombreUnidad = nombreUnidad;
     }
 
     public Date getFechaCreacion() {
@@ -159,12 +191,28 @@ public class ArticuloAlmacen implements Serializable {
         this.actualizadoPor = actualizadoPor;
     }
 
+    public String getUbicacionPasillo() {
+        return ubicacionPasillo;
+    }
+
+    public void setUbicacionPasillo(String ubicacionPasillo) {
+        this.ubicacionPasillo = ubicacionPasillo;
+    }
+
     public Almacen getAlmacen() {
         return almacen;
     }
 
     public void setAlmacen(Almacen almacen) {
         this.almacen = almacen;
+    }
+
+    public Articulo getArticulo() {
+        return articulo;
+    }
+
+    public void setArticulo(Articulo articulo) {
+        this.articulo = articulo;
     }
 
     public Unidad getUnidad() {

@@ -21,82 +21,74 @@ import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
-import java.util.Date;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  *
  * @author Maximiliano
  */
 @Entity
-@Table(name = "movimiento_caja_chica")
+@Table(name = "movimientos_caja")
 @NamedQueries({
-    @NamedQuery(name = "MovimientoCajaChica.findAll", query = "SELECT m FROM MovimientoCajaChica m")})
-public class MovimientoCajaChica implements Serializable {
+    @NamedQuery(name = "MovimientosCaja.findAll", query = "SELECT m FROM MovimientosCaja m")})
+public class MovimientosCaja implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
+    @Column(name = "id")
+    private Long id;
     @Basic(optional = false)
     @NotNull
-    @Column(name = "fecha")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fecha;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 15)
+    @Size(min = 1, max = 50)
     @Column(name = "tipo")
     private String tipo;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
     @NotNull
     @Column(name = "monto")
-    private double monto;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "metodo_pago")
-    private double metodoPago;
+    private BigDecimal monto;
     @Basic(optional = false)
     @NotNull
     @Lob
     @Size(min = 1, max = 65535)
     @Column(name = "descripcion")
     private String descripcion;
-    @JoinColumn(name = "caja_chica", referencedColumnName = "codigo")
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "fecha_hora")
+    @Temporal(TemporalType.TIMESTAMP)
+    private LocalDateTime fechaHora;
+    @Size(max = 100)
+    @Column(name = "usuario")
+    private String usuario;
+    @JoinColumn(name = "caja_turno", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private CajaChica cajaChica;
+    private CajaTurno cajaTurno;
 
-    public MovimientoCajaChica() {
+    public MovimientosCaja() {
     }
 
-    public MovimientoCajaChica(Integer codigo) {
-        this.codigo = codigo;
+    public MovimientosCaja(Long id) {
+        this.id = id;
     }
 
-    public MovimientoCajaChica(Integer codigo, Date fecha, String tipo, double monto, double metodoPago, String descripcion) {
-        this.codigo = codigo;
-        this.fecha = fecha;
+    public MovimientosCaja(Long id, String tipo, BigDecimal monto, String descripcion, LocalDateTime fechaHora) {
+        this.id = id;
         this.tipo = tipo;
         this.monto = monto;
-        this.metodoPago = metodoPago;
         this.descripcion = descripcion;
+        this.fechaHora = fechaHora;
     }
 
-    public Integer getCodigo() {
-        return codigo;
+    public Long getId() {
+        return id;
     }
 
-    public void setCodigo(Integer codigo) {
-        this.codigo = codigo;
-    }
-
-    public Date getFecha() {
-        return fecha;
-    }
-
-    public void setFecha(Date fecha) {
-        this.fecha = fecha;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getTipo() {
@@ -107,20 +99,12 @@ public class MovimientoCajaChica implements Serializable {
         this.tipo = tipo;
     }
 
-    public double getMonto() {
+    public BigDecimal getMonto() {
         return monto;
     }
 
-    public void setMonto(double monto) {
+    public void setMonto(BigDecimal monto) {
         this.monto = monto;
-    }
-
-    public double getMetodoPago() {
-        return metodoPago;
-    }
-
-    public void setMetodoPago(double metodoPago) {
-        this.metodoPago = metodoPago;
     }
 
     public String getDescripcion() {
@@ -131,29 +115,45 @@ public class MovimientoCajaChica implements Serializable {
         this.descripcion = descripcion;
     }
 
-    public CajaChica getCajaChica() {
-        return cajaChica;
+    public LocalDateTime getFechaHora() {
+        return fechaHora;
     }
 
-    public void setCajaChica(CajaChica cajaChica) {
-        this.cajaChica = cajaChica;
+    public void setFechaHora(LocalDateTime fechaHora) {
+        this.fechaHora = fechaHora;
+    }
+
+    public String getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(String usuario) {
+        this.usuario = usuario;
+    }
+
+    public CajaTurno getCajaTurnoId() {
+        return cajaTurno;
+    }
+
+    public void setCajaTurnoId(CajaTurno cajaTurno) {
+        this.cajaTurno = cajaTurno;
     }
 
     @Override
     public int hashCode() {
         int hash = 0;
-        hash += (codigo != null ? codigo.hashCode() : 0);
+        hash += (id != null ? id.hashCode() : 0);
         return hash;
     }
 
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof MovimientoCajaChica)) {
+        if (!(object instanceof MovimientosCaja)) {
             return false;
         }
-        MovimientoCajaChica other = (MovimientoCajaChica) object;
-        if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
+        MovimientosCaja other = (MovimientosCaja) object;
+        if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
         return true;
@@ -161,7 +161,7 @@ public class MovimientoCajaChica implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.MovimientoCajaChica[ codigo=" + codigo + " ]";
+        return "com.maxsoft.application.modelo.MovimientosCaja[ id=" + id + " ]";
     }
     
 }

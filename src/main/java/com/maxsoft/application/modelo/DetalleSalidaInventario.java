@@ -18,6 +18,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  *
@@ -40,23 +41,23 @@ public class DetalleSalidaInventario implements Serializable {
     @Size(min = 1, max = 200)
     @Column(name = "descripcion_articulo")
     private String descripcionArticulo;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
     @NotNull
     @Column(name = "cantidad")
-    private Double cantidad;
-    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
+    private BigDecimal cantidad;
     @Column(name = "existencia")
-    private Double existencia;
+    private BigDecimal existencia;
     @Column(name = "precio_compra")
-    private Double precioCompra;
+    private BigDecimal precioCompra;
     @Column(name = "precio_venta")
-    private Double precioVenta;
+    private BigDecimal precioVenta;
     @Column(name = "costo_unitario")
-    private Double costoUnitario;
+    private BigDecimal costoUnitario;
     @Column(name = "existencia_anterior")
-    private Double existenciaAnterior;
+    private BigDecimal existenciaAnterior;
     @Column(name = "cantidad_solicitada")
-    private Double cantidadSolicitada;
+    private BigDecimal cantidadSolicitada;
     @Column(name = "almacen")
     private Integer almacen;
     @JoinColumn(name = "articulo", referencedColumnName = "codigo")
@@ -69,34 +70,6 @@ public class DetalleSalidaInventario implements Serializable {
     @ManyToOne(optional = false)
     private Unidad unidad;
 
-    /**
-     * @return the costoUnitario
-     */
-    public Double getCostoUnitario() {
-        return costoUnitario;
-    }
-
-    /**
-     * @param costoUnitario the costoUnitario to set
-     */
-    public void setCostoUnitario(Double costoUnitario) {
-        this.costoUnitario = costoUnitario;
-    }
-
-    /**
-     * @return the precioVenta
-     */
-    public Double getPrecioVenta() {
-        return precioVenta;
-    }
-
-    /**
-     * @param precioVenta the precioVenta to set
-     */
-    public void setPrecioVenta(Double precioVenta) {
-        this.precioVenta = precioVenta;
-    }
-
     public DetalleSalidaInventario() {
     }
 
@@ -104,7 +77,7 @@ public class DetalleSalidaInventario implements Serializable {
         this.codigo = codigo;
     }
 
-    public DetalleSalidaInventario(Integer codigo, String descripcionArticulo, double cantidad) {
+    public DetalleSalidaInventario(Integer codigo, String descripcionArticulo, BigDecimal cantidad) {
         this.codigo = codigo;
         this.descripcionArticulo = descripcionArticulo;
         this.cantidad = cantidad;
@@ -126,43 +99,59 @@ public class DetalleSalidaInventario implements Serializable {
         this.descripcionArticulo = descripcionArticulo;
     }
 
-    public Double getCantidad() {
+    public BigDecimal getCantidad() {
         return cantidad;
     }
 
-    public void setCantidad(Double cantidad) {
+    public void setCantidad(BigDecimal cantidad) {
         this.cantidad = cantidad;
     }
 
-    public Double getExistencia() {
+    public BigDecimal getExistencia() {
         return existencia;
     }
 
-    public void setExistencia(Double existencia) {
+    public void setExistencia(BigDecimal existencia) {
         this.existencia = existencia;
     }
 
-    public Double getprecioCompra() {
+    public BigDecimal getPrecioCompra() {
         return precioCompra;
     }
 
-    public void setprecioCompra(Double precio) {
-        this.precioCompra = precio;
+    public void setPrecioCompra(BigDecimal precioCompra) {
+        this.precioCompra = precioCompra;
     }
 
-    public Double getExistenciaAnterior() {
+    public BigDecimal getPrecioVenta() {
+        return precioVenta;
+    }
+
+    public void setPrecioVenta(BigDecimal precioVenta) {
+        this.precioVenta = precioVenta;
+    }
+
+    public BigDecimal getCostoUnitario() {
+        return costoUnitario;
+    }
+
+    public void setCostoUnitario(BigDecimal costoUnitario) {
+        this.costoUnitario = costoUnitario;
+    }
+
+    public BigDecimal getExistenciaAnterior() {
         return existenciaAnterior;
     }
 
-    public void setExistenciaAnterior(Double existenciaAnterior) {
+    public void setExistenciaAnterior(BigDecimal existenciaAnterior) {
         this.existenciaAnterior = existenciaAnterior;
     }
 
-    public Double getCantidadSolicitada() {
+    public BigDecimal getCantidadSolicitada() {
         return cantidadSolicitada;
     }
 
-    public void setCantidadSolicitada(Double cantidadSolicitada) {
+    public void setCantidadSolicitada(BigDecimal cantidadSolicitada) {
         this.cantidadSolicitada = cantidadSolicitada;
     }
 
@@ -222,5 +211,5 @@ public class DetalleSalidaInventario implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.DetalleSalidaInventario[ codigo=" + codigo + " ]";
     }
-
+    
 }

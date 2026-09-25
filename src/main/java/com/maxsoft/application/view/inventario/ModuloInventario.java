@@ -10,6 +10,7 @@ import com.maxsoft.application.view.inventario.ajuste.RegistroAjusteDeInventario
 import com.maxsoft.application.view.inventario.entrada.EntradaDeIventarioView;
 import com.maxsoft.application.view.inventario.movimiento.MovimientosInventarioView;
 import com.maxsoft.application.view.inventario.salida.SalidaDeIventarioView;
+import com.maxsoft.application.view.inventario.traslado.TrasladoInventarioView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.html.H3;
@@ -34,7 +35,7 @@ import org.vaadin.lineawesome.LineAwesomeIconUrl;
 @Route("mdlInv")
 //@JsModule("./gestion-colmado/themes/views/inventario-view.css")
 @Layout(value = "inventario")
-@Menu(order = 1, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
+@Menu(order = 2, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 
 public class ModuloInventario extends AppLayout {
 
@@ -51,6 +52,7 @@ public class ModuloInventario extends AppLayout {
         RouterLink linkSalida = createLink(VaadinIcon.FILE_TABLE, "Salida ", SalidaDeIventarioView.class);
         RouterLink linkAjuste = createLink(VaadinIcon.FILE_TABLE, "Ajuste", RegistroAjusteDeInventarioView.class);
         RouterLink linkMovimiento = createLink(VaadinIcon.FILE_TABLE, "Movimiento", MovimientosInventarioView.class);
+        RouterLink linkTrasladoInventario = createLink(VaadinIcon.FILE_TABLE, "Traslado", TrasladoInventarioView.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
         ////
@@ -60,6 +62,7 @@ public class ModuloInventario extends AppLayout {
                 linkEntrada,
                 linkSalida,
                 linkAjuste,
+                linkTrasladoInventario,
                 linkMovimiento,
                 linkModulo);
 

@@ -35,6 +35,7 @@ import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -42,6 +43,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
@@ -155,7 +157,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
 
             listDet.forEach(d -> {
                 if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
-                    double nuevaCant = d.getCantidad();
+                    BigDecimal nuevaCant = d.getCantidad();
                     d.setCantidad(nuevaCant);
                     d.setNuevaExistencia(calcularNuevaExistencia(d.getExistencia(), nuevaCant));
                 }
@@ -166,12 +168,12 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
             DetalleAjusteInventario det = new DetalleAjusteInventario();
             det.setCodigo(articulo.getCodigo());
             det.setArticulo(articulo);
-            det.setDecripcionArticulo(articulo.getDescripcion());
+            det.setDescripcionArticulo(articulo.getDescripcion());
 
-            double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+            BigDecimal stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
             det.setExistencia(stockActual);
 
-            det.setCantidad(0.00);
+            det.setCantidad(BigDecimal.ZERO);
             det.setNuevaExistencia(stockActual);
             det.setUnidad(articulo.getUnidadEntrada());
             det.setNombreUnidad(det.getUnidad().getDescripcion());
@@ -184,7 +186,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         grid.getDataProvider().refreshAll();
     }
 
-    private double calcularNuevaExistencia(double existenciaActual, double cantidad) {
+    private BigDecimal calcularNuevaExistencia(BigDecimal existenciaActual, BigDecimal cantidad) {
         // 1. Obtener el valor de forma segura
         TipoAjuste tipo = cbTipoAjuste.getValue();
 
@@ -196,9 +198,9 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
 //        }
         // 3. Evaluar según el tipo seleccionado
         if ("INCREMENTO".equalsIgnoreCase(tipo.getDescripcion())) {
-            return existenciaActual + cantidad;
+            return existenciaActual.add(cantidad);
         } else {
-            return existenciaActual - cantidad;
+            return existenciaActual.subtract(cantidad);
         }
     }
 
@@ -217,7 +219,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
 
         GridListDataView<DetalleAjusteInventario> dataView = grid.setItems(listDet);
 
-        grid.addColumn(DetalleAjusteInventario::getDecripcionArticulo)
+        grid.addColumn(DetalleAjusteInventario::getDescripcionArticulo)
                 .setHeader("Artículo")
                 .setAutoWidth(true);
 
@@ -237,7 +239,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         grid.addColumn(new ComponentRenderer<>(item -> {
             Button deleteButton = new Button(new Icon(VaadinIcon.TRASH), click -> {
                 ConfirmDialog dialog = new ConfirmDialog(
-                        "¿Seguro que desea remover '" + item.getDecripcionArticulo() + "' del ajuste?",
+                        "¿Seguro que desea remover '" + item.getDescripcionArticulo() + "' del ajuste?",
                         () -> {
                             listDet.remove(item);
                             grid.getDataProvider().refreshAll();
@@ -257,7 +259,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
                 return true;
             }
 
-            boolean matchDesc = det.getDecripcionArticulo() != null && det.getDecripcionArticulo().toLowerCase().contains(term);
+            boolean matchDesc = det.getDescripcionArticulo() != null && det.getDescripcionArticulo().toLowerCase().contains(term);
             boolean matchCod = det.getArticulo() != null && det.getArticulo().getCodigo().toString().contains(term);
             return matchDesc || matchCod;
         }));
@@ -269,7 +271,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         editor = grid.getEditor();
         editor.setBuffered(false);
 
-        NumberField cantidadField = new NumberField();
+        BigDecimalField cantidadField = new BigDecimalField();
         cantidadField.setWidthFull();
 
         grid.getColumnByKey("cantidad").setEditorComponent(cantidadField);
@@ -287,8 +289,9 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
             }
 
             try {
-                double cant = e.getValue();
-                if (cant <= 0 && cbTipoAjuste.getValue() != null) {
+                
+                BigDecimal cant = e.getValue();
+                if (cant.doubleValue()<=0.00 && cbTipoAjuste.getValue()!= null) {
 
                     Notification.show("La cantidad debe ser mayor a cero", 2500, Position.MIDDLE);
                     return;
@@ -308,7 +311,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
                     ClaseUtil.mostrarNotificacion("Tiene que seleccionar el tipo de ajuste", NotificationVariant.LUMO_WARNING);
 
 //                    cantidadField.setValue(0.00);
-                    item.setCantidad(0.0);
+                    item.setCantidad(BigDecimal.ZERO);
                 }
 
                 grid.getDataProvider().refreshItem(item);

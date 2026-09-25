@@ -12,10 +12,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.NamedQueries;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  *
@@ -23,6 +26,8 @@ import java.io.Serializable;
  */
 @Entity
 @Table(name = "detalle_ajuste_inventario")
+@NamedQueries({
+    @NamedQuery(name = "DetalleAjusteInventario.findAll", query = "SELECT d FROM DetalleAjusteInventario d")})
 public class DetalleAjusteInventario implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -34,20 +39,21 @@ public class DetalleAjusteInventario implements Serializable {
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 120)
-    @Column(name = "decripcion_articulo")
-    private String decripcionArticulo;
+    @Column(name = "descripcion_articulo")
+    private String descripcionArticulo;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
     @NotNull
     @Column(name = "existencia")
-    private Double existencia;
+    private BigDecimal existencia;
     @Basic(optional = false)
     @NotNull
     @Column(name = "cantidad")
-    private Double cantidad;
+    private BigDecimal cantidad;
     @Basic(optional = false)
     @NotNull
     @Column(name = "nueva_existencia")
-    private Double nuevaExistencia;
+    private BigDecimal nuevaExistencia;
     @Size(max = 20)
     @Column(name = "nombre_unidad")
     private String nombreUnidad;
@@ -74,9 +80,9 @@ public class DetalleAjusteInventario implements Serializable {
         this.codigo = codigo;
     }
 
-    public DetalleAjusteInventario(Integer codigo, String decripcionArticulo, double existencia, double cantidad, double nuevaExistencia) {
+    public DetalleAjusteInventario(Integer codigo, String descripcionArticulo, BigDecimal existencia, BigDecimal cantidad, BigDecimal nuevaExistencia) {
         this.codigo = codigo;
-        this.decripcionArticulo = decripcionArticulo;
+        this.descripcionArticulo = descripcionArticulo;
         this.existencia = existencia;
         this.cantidad = cantidad;
         this.nuevaExistencia = nuevaExistencia;
@@ -90,35 +96,35 @@ public class DetalleAjusteInventario implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getDecripcionArticulo() {
-        return decripcionArticulo;
+    public String getDescripcionArticulo() {
+        return descripcionArticulo;
     }
 
-    public void setDecripcionArticulo(String decripcionArticulo) {
-        this.decripcionArticulo = decripcionArticulo;
+    public void setDescripcionArticulo(String descripcionArticulo) {
+        this.descripcionArticulo = descripcionArticulo;
     }
 
-    public Double getExistencia() {
+    public BigDecimal getExistencia() {
         return existencia;
     }
 
-    public void setExistencia(Double existencia) {
+    public void setExistencia(BigDecimal existencia) {
         this.existencia = existencia;
     }
 
-    public Double getCantidad() {
+    public BigDecimal getCantidad() {
         return cantidad;
     }
 
-    public void setCantidad(Double cantidad) {
+    public void setCantidad(BigDecimal cantidad) {
         this.cantidad = cantidad;
     }
 
-    public Double getNuevaExistencia() {
+    public BigDecimal getNuevaExistencia() {
         return nuevaExistencia;
     }
 
-    public void setNuevaExistencia(Double nuevaExistencia) {
+    public void setNuevaExistencia(BigDecimal nuevaExistencia) {
         this.nuevaExistencia = nuevaExistencia;
     }
 
@@ -161,7 +167,6 @@ public class DetalleAjusteInventario implements Serializable {
     public void setArticulo(Articulo articulo) {
         this.articulo = articulo;
     }
-
 
     public Unidad getUnidad() {
         return unidad;

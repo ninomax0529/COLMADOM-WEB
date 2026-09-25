@@ -14,6 +14,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.NamedQueries;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
@@ -30,6 +32,8 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "ajuste_inventario")
+@NamedQueries({
+    @NamedQuery(name = "AjusteInventario.findAll", query = "SELECT a FROM AjusteInventario a")})
 public class AjusteInventario implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -64,14 +68,14 @@ public class AjusteInventario implements Serializable {
     @Column(name = "fecha_anulado")
     @Temporal(TemporalType.DATE)
     private Date fechaAnulado;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "ajusteInventario")
+    private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
     @JoinColumn(name = "tipo_ajuste", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private TipoAjuste tipoAjuste;
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Usuario usuario;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "ajusteInventario")
-    private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
 
     public AjusteInventario() {
     }
@@ -84,7 +88,6 @@ public class AjusteInventario implements Serializable {
         this.codigo = codigo;
         this.fecha = fecha;
         this.fechaRegistro = fechaRegistro;
-    
         this.observacion = observacion;
         this.anulado = anulado;
     }
@@ -145,6 +148,14 @@ public class AjusteInventario implements Serializable {
         this.fechaAnulado = fechaAnulado;
     }
 
+    public Collection<DetalleAjusteInventario> getDetalleAjusteInventarioCollection() {
+        return detalleAjusteInventarioCollection;
+    }
+
+    public void setDetalleAjusteInventarioCollection(Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection) {
+        this.detalleAjusteInventarioCollection = detalleAjusteInventarioCollection;
+    }
+
     public TipoAjuste getTipoAjuste() {
         return tipoAjuste;
     }
@@ -159,14 +170,6 @@ public class AjusteInventario implements Serializable {
 
     public void setUsuario(Usuario usuario) {
         this.usuario = usuario;
-    }
-
-    public Collection<DetalleAjusteInventario> getDetalleAjusteInventarioCollection() {
-        return detalleAjusteInventarioCollection;
-    }
-
-    public void setDetalleAjusteInventarioCollection(Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection) {
-        this.detalleAjusteInventarioCollection = detalleAjusteInventarioCollection;
     }
 
     @Override

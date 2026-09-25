@@ -48,7 +48,7 @@ public class DialogoSeleccionCliente extends Dialog {
         layout.setPadding(false);
         layout.setWidthFull();
 
-        Double subtotalProductos = ticket.getTotalAmount();
+        Double subtotalProductos = ticket.getTotalAmount().doubleValue();
 
         ComboBox<Cliente> clientCombo = new ComboBox<>("Seleccionar Cliente (Fiado)");
         clientCombo.setItems(listaClientes);

@@ -79,12 +79,12 @@ public class InventarioServiceImpl implements InventarioService {
         }
 
         // 2. Si PERMITE ventas sin existencia (stock negativo), omitir validación
-        if (Boolean.TRUE.equals(articulo.isPermitirVentaSinExistencia())) {
+        if (Boolean.TRUE.equals(articulo.getPermitirVentaSinExistencia())) {
             return;
         }
 
         // 3. Validar existencia real
-        double existencia = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+        double existencia = articulo.getExistencia() != null ? articulo.getExistencia().doubleValue() : 0.0;
 
         // Ejemplo de mejora en tu MovimientoInventarioServiceImpl:
         if (existencia < cantidad && !articulo.getPermitirVentaSinExistencia()) {

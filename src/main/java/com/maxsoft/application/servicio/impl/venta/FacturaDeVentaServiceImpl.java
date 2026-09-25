@@ -5,7 +5,6 @@
 package com.maxsoft.application.servicio.impl.venta;
 
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
-import com.maxsoft.application.evento.VentaAnuladaEvent;
 import com.maxsoft.application.evento.VentaDevueltaEvent;
 import com.maxsoft.application.evento.VentaRealizadaEvent;
 import com.maxsoft.application.modelo.Articulo;
@@ -26,7 +25,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -73,7 +71,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             }
 
             for (DetalleFacturaDeVenta det : ticketVenta.getItems()) {
-                if (det.getCantidad() <= 0) {
+                if (det.getCantidad().doubleValue() <= 0) {
                     throw new IllegalArgumentException("El artículo '" + det.getDescripcionArticulo() + "' tiene la cantidad en cero.");
                 }
 
@@ -84,7 +82,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
                     System.out.println("det.getArticulo().getCodigo() " + det.getArticulo().getCodigo());
                     System.out.println("d  det.getCantidad()" + det.getCantidad());
 
-                    inventarioService.validarStockDisponible(det.getArticulo().getCodigo(), det.getCantidad());
+                    inventarioService.validarStockDisponible(det.getArticulo().getCodigo(), det.getCantidad().doubleValue());
                 }
             }
 
@@ -114,7 +112,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
 
             ticketVenta.getItems().forEach(item -> {
                 item.setFactura(factura);
-                item.setCantidadDevuelta(0.00);
+                item.setCantidadDevuelta(BigDecimal.ZERO);
                 item.setPrecioCompra(item.getArticulo().getPrecioCompra());
 
                 item.setCodigo(null);
@@ -124,7 +122,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
 
             System.out.println("facttRepo " + facttRepo);
             // 4. Persistencia de la factura
-            facturaGuardada = facttRepo.save(factura);
+            facturaGuardada = facttRepo.saveAndFlush(factura);
 
             // 3. Generar la Salida de Inventario explícita
             SalidaInventario salida = this.SalidaInventarioService.crearSalidaPorVenta(facturaGuardada);
@@ -134,7 +132,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             cajaService.registrarMovimientoPos(
                     turnoActual.getId().intValue(),
                     facturaGuardada.getTipoVenta().getNombre(),
-                    BigDecimal.valueOf(facturaGuardada.getTotal()),
+                  facturaGuardada.getTotal(),
                     "Ingreso por venta #" + facturaGuardada.getCodigo(),
                     nombreUsuario
             );
@@ -145,10 +143,10 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
                     .map(item -> {
                         // Asegurar la extracción del ID del artículo (probando getCodigo() o getId())
                         Integer idArticulo = item.getArticulo().getCodigo();
-                        return new VentaRealizadaEvent.ItemVentaDto(idArticulo, item.getCantidad());
+                        return new VentaRealizadaEvent.ItemVentaDto(idArticulo, item.getCantidad().doubleValue());
                     })
                     // Filtrar DTOs cuyo idArticulo no sea nulo
-                    .filter(dto -> dto.getIdArticulo() != null)
+                    .filter(dto -> dto!= null)
                     .collect(Collectors.toList());
 
 // Log de depuración para confirmar cuántos ítems viajan en el evento
@@ -187,31 +185,40 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         factura.setFechaAnulada(new Date());
 
         FacturaDeVenta facturaAnulada = facttRepo.save(factura);
+        
+              // 5. Mapear ítems inventariables para el evento de devolución
+        List<DetalleFacturaDeVenta> itemsDto = facturaAnulada.getDetalleFacturaDeVentaCollection()
+                .stream()
+                .filter(item -> Boolean.TRUE.equals(item.getArticulo().getInventariable()))
+                .map(item ->  item)
+                .collect(Collectors.toList());
+
+        this.entradaInventarioService.crearEntradaPorAnulacionVenta(factura, itemsDto);
 
         // 4. Revertir dinero de Caja (Movimiento de Egreso o Ajuste)
         cajaService.registrarMovimientoPos(
                 turnoActual.getId().intValue(),
                 facturaAnulada.getTipoVenta().getNombre(),
-                BigDecimal.valueOf(facturaAnulada.getTotal()).negate(),
+                facturaAnulada.getTotal().negate(),
                 "Anulación de Venta #" + facturaAnulada.getCodigo() + ". Motivo: " + motivoAnulacion,
                 nombreUsuario
         );
 
         // 5. Mapear ítems inventariables para el evento de devolución
-        List<VentaAnuladaEvent.ItemAnulacionDto> itemsDto = facturaAnulada.getDetalleFacturaDeVentaCollection().stream()
-                .filter(item -> item.getArticulo() != null
-                && item.getArticulo().getCodigo() != null
-                && Boolean.TRUE.equals(item.getArticulo().getInventariable()))
-                .map(item -> new VentaAnuladaEvent.ItemAnulacionDto(item.getArticulo().getCodigo(), item.getCantidad()))
-                .collect(Collectors.toList());
+//        List<VentaAnuladaEvent.ItemAnulacionDto> itemsDto = facturaAnulada.getDetalleFacturaDeVentaCollection().stream()
+//                .filter(item -> item.getArticulo() != null
+//                && item.getArticulo().getCodigo() != null
+//                && Boolean.TRUE.equals(item.getArticulo().getInventariable()))
+//                .map(item -> new VentaAnuladaEvent.ItemAnulacionDto(item.getArticulo().getCodigo(), item.getCantidad()))
+//                .collect(Collectors.toList());
 
 // 6. Disparar Evento para la Entrada en Kardex e Incremento de Inventario
-        eventPublisher.publishEvent(new VentaAnuladaEvent(
-                facturaAnulada.getCodigo(),
-                nombreUsuario,
-                motivoAnulacion,
-                itemsDto
-        ));
+//        eventPublisher.publishEvent(new VentaAnuladaEvent(
+//                facturaAnulada.getCodigo(),
+//                nombreUsuario,
+//                motivoAnulacion,
+//                itemsDto
+//        ));
 
         return facturaAnulada;
     }
@@ -247,8 +254,8 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
                         .findFirst()
                         .orElseThrow(() -> new IllegalArgumentException("El detalle enviado no pertenece a la factura #" + factura.getCodigo()));
 
-                double devueltoPrevio = detalle.getCantidadDevuelta() != null ? detalle.getCantidadDevuelta() : 0.0;
-                double disponibleParaDevolver = detalle.getCantidad() - devueltoPrevio;
+                double devueltoPrevio = detalle.getCantidadDevuelta() != null ? detalle.getCantidadDevuelta().doubleValue() : 0.0;
+                double disponibleParaDevolver = detalle.getCantidad().doubleValue() - devueltoPrevio;
 
                 if (itemDev.getCantidadADevolver() <= 0 || itemDev.getCantidadADevolver() > disponibleParaDevolver) {
                     throw new IllegalArgumentException("Cantidad inválida para " + detalle.getArticulo().getDescripcion()
@@ -256,10 +263,12 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
                 }
 
                 // Actualizar acumulado devuelto en la BD
-                detalle.setCantidadDevuelta(devueltoPrevio + itemDev.getCantidadADevolver());
+                detalle.setCantidadDevuelta(BigDecimal.valueOf(devueltoPrevio + itemDev.getCantidadADevolver()));
 
                 // CORRECCIÓN: Usar precio de VENTA (o precio unitario cobrado), NO precio de compra
-                double precioVentaReal = detalle.getPrecioVenta() != null ? detalle.getPrecioVenta() : detalle.getPrecioCompra();
+                Double precioVentaReal = detalle.getPrecioVenta() != null ? detalle.getPrecioVenta().doubleValue()
+                        : detalle.getPrecioCompra().doubleValue();
+                
                 BigDecimal subtotal = BigDecimal.valueOf(precioVentaReal)
                         .multiply(BigDecimal.valueOf(itemDev.getCantidadADevolver()));
                 montoTotalReembolso = montoTotalReembolso.add(subtotal);
@@ -278,8 +287,8 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             // 4. Evaluar si la devolución terminó cubriendo TODOS los ítems de la factura
             boolean esDevolucionTotal = factura.getDetalleFacturaDeVentaCollection().stream()
                     .allMatch(d -> {
-                        double devuelto = d.getCantidadDevuelta() != null ? d.getCantidadDevuelta() : 0.0;
-                        return Double.compare(devuelto, d.getCantidad()) == 0;
+                        double devuelto = d.getCantidadDevuelta() != null ? d.getCantidadDevuelta().doubleValue() : 0.0;
+                        return Double.compare(devuelto, d.getCantidad().doubleValue() ) == 0;
                     });
 
             if (esDevolucionTotal) {

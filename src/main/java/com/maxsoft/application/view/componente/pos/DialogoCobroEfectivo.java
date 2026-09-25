@@ -53,7 +53,7 @@ public class DialogoCobroEfectivo extends Dialog {
         VerticalLayout dialogLayout = new VerticalLayout();
         dialogLayout.setSpacing(true);
 
-        Double subtotalProductos = ticket.getTotalAmount();
+        Double subtotalProductos = ticket.getTotalAmount().doubleValue();
 
         // Contenedor para selección rápida de tipo de entrega
         HorizontalLayout tipoEntregaLayout = new HorizontalLayout();

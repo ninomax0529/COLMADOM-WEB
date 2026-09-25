@@ -28,6 +28,7 @@ import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
@@ -42,9 +43,9 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
     Binder<Articulo> binder = new Binder<>(Articulo.class);
 
     TextField txtDescripcion = new TextField("Descripcion");
-    NumberField txtPrecioCompra = new NumberField("Precio de Compra Unitario");
-    NumberField txtPrecioVenta = new NumberField("Precio de Venta Unitario");
-      NumberField txtExistencia = new NumberField("Existencia");
+    BigDecimalField txtPrecioCompra = new BigDecimalField("Precio de Compra Unitario");
+    BigDecimalField txtPrecioVenta = new BigDecimalField("Precio de Venta Unitario");
+    BigDecimalField txtExistencia = new BigDecimalField("Existencia");
     IntegerField txtCodigo = new IntegerField("Codigo");
     RadioButtonGroup<UnidadDeVenta> rdbGrupo = new RadioButtonGroup<>();
     ToolBarBotonera botonera = new ToolBarBotonera(false, true, true);
@@ -63,7 +64,7 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
         this.articuloService = articuloServiceArg;
         this.unidaService = UnidadDeVentaServiceArg;
 //       articuloActual=new Articulo();
-               
+
         setSizeFull();
         setSpacing(false);
 
@@ -91,7 +92,7 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
 
         txtCodigo.setEnabled(false);
         txtCodigo.setWidth("100px");
-        HorizontalLayout hbPrecio = new HorizontalLayout(txtPrecioCompra, txtPrecioVenta,txtExistencia);
+        HorizontalLayout hbPrecio = new HorizontalLayout(txtPrecioCompra, txtPrecioVenta, txtExistencia);
         HorizontalLayout hlArt = new HorizontalLayout(txtCodigo, txtDescripcion);
         hlArt.addAndExpand(txtDescripcion);
 
@@ -101,7 +102,7 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
         binder.bind(txtDescripcion, Articulo::getDescripcion, Articulo::setDescripcion);
         binder.bind(txtPrecioCompra, Articulo::getPrecioCompra, Articulo::setPrecioCompra);
         binder.bind(txtPrecioVenta, Articulo::getPrecioVenta, Articulo::setPrecioVenta);
-         binder.bind(txtExistencia, Articulo::getExistencia, Articulo::setExistencia);
+        binder.bind(txtExistencia, Articulo::getExistencia, Articulo::setExistencia);
         binder.bind(rdbGrupo, Articulo::getUnidadDeVenta, Articulo::setUnidadDeVenta);
 
         add(formLayout);
@@ -116,7 +117,6 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
 
     private void guardarArticulo() {
 
-      
         articuloService.guardar(articuloActual);
         Notification.show("Artículo guardado", 2000, Notification.Position.TOP_CENTER);
         articuloActual = new Articulo();

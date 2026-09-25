@@ -5,7 +5,6 @@
 package com.maxsoft.application.modelo;
 
 import jakarta.persistence.Basic;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -13,14 +12,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Date;
 
 /**
@@ -75,8 +72,6 @@ public class CajaChica implements Serializable {
     @NotNull
     @Column(name = "abierta")
     private boolean abierta;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "cajaChica")
-    private Collection<MovimientoCajaChica> movimientoCajaChicaCollection;
 
     public CajaChica() {
     }
@@ -180,14 +175,6 @@ public class CajaChica implements Serializable {
 
     public void setAbierta(boolean abierta) {
         this.abierta = abierta;
-    }
-
-    public Collection<MovimientoCajaChica> getMovimientoCajaChicaCollection() {
-        return movimientoCajaChicaCollection;
-    }
-
-    public void setMovimientoCajaChicaCollection(Collection<MovimientoCajaChica> movimientoCajaChicaCollection) {
-        this.movimientoCajaChicaCollection = movimientoCajaChicaCollection;
     }
 
     @Override

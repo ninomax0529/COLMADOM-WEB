@@ -5,7 +5,6 @@
 package com.maxsoft.application.view.venta;
 
 import com.maxsoft.application.view.ModuloPrincipal;
-import com.maxsoft.application.view.venta.cajaChica.CajaChicaView;
 import com.maxsoft.application.view.venta.cliente.ClienteView;
 import com.maxsoft.application.view.venta.factura.FacturaDeVentaView;
 import com.vaadin.flow.component.Component;
@@ -32,7 +31,7 @@ import org.vaadin.lineawesome.LineAwesomeIconUrl;
 @PageTitle("Venta")
 @Route("mdlVenta")
 @Layout(value = "venta")
-@Menu(order = 2, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
+@Menu(order = 3, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 public class ModuloVenta extends AppLayout {
 
     public ModuloVenta() {
@@ -44,15 +43,15 @@ public class ModuloVenta extends AppLayout {
 
         RouterLink linkCliente = createLink(VaadinIcon.DASHBOARD, "Cliente", ClienteView.class);
         RouterLink linkFacturaVenta = createLink(VaadinIcon.FILE_TABLE, "Factura Venta", FacturaDeVentaView.class);
-        RouterLink linkCajaChica = createLink(VaadinIcon.COG, "Caja Chica ", CajaChicaView.class);
-//        RouterLink linkMovimientoSilo = createLink(VaadinIcon.COG, "Silos", MovimientoSiloView.class);
-//        RouterLink linkInventario = createLink(VaadinIcon.COG, "Inventario de Productos ", InventarioDeProductoView.class);
-//        RouterLink linkFundasVacia = createLink(VaadinIcon.COG, "Fundas Vacias ", ControlFundaVaciaView.class);
-//            RouterLink linkRptEmpacadora = createLink(VaadinIcon.EXIT, "Reporte Empacadora", ReportView.class);
+
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
 ////
 //        // Layout vertical que contiene los enlaces del menú
-        VerticalLayout menuLayout = new VerticalLayout(linkCliente,linkFacturaVenta,linkCajaChica,linkModulo);
+        VerticalLayout menuLayout = new VerticalLayout(
+                linkCliente,
+                linkFacturaVenta,
+//                linkCajaChica,
+                linkModulo);
 
         menuLayout.setPadding(false);
         menuLayout.setSpacing(false);

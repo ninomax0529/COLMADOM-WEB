@@ -12,6 +12,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import java.math.BigDecimal;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -22,7 +23,7 @@ public class TarjetaProductoCompo extends VerticalLayout {
     public TarjetaProductoCompo(
             Articulo articulo,
             String imageUrl,
-            BiConsumer<Articulo, Double> onCantidadChanged,
+            BiConsumer<Articulo, BigDecimal> onCantidadChanged,
             Consumer<Articulo> onVentaPorMontoRequested
     ) {
         this.articulo = articulo;
@@ -66,7 +67,7 @@ public class TarjetaProductoCompo extends VerticalLayout {
         // Botón Restar (-)
         Button minusBtn = new Button(VaadinIcon.MINUS.create(), e -> {
             if (onCantidadChanged != null) {
-                onCantidadChanged.accept(articulo, -1.00);
+                onCantidadChanged.accept(articulo, BigDecimal.valueOf(-1.00));
             }
         });
         minusBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
@@ -83,7 +84,7 @@ public class TarjetaProductoCompo extends VerticalLayout {
         // Botón Sumar (+)
         Button plusBtn = new Button(VaadinIcon.PLUS.create(), e -> {
             if (onCantidadChanged != null) {
-                onCantidadChanged.accept(articulo, 1.00);
+                onCantidadChanged.accept(articulo,BigDecimal.valueOf(1.00));
             }
         });
         plusBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);

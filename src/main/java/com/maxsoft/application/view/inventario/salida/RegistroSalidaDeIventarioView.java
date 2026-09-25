@@ -18,7 +18,6 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.grid.editor.Editor;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -31,6 +30,7 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
@@ -118,15 +118,22 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         }
 
         if (Boolean.TRUE.equals(articulo.getInventariable())) {
-            double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+            double stockActual = articulo.getExistencia().doubleValue();
+
+            BigDecimal cantidadYaEnGrid = listDet.stream()
+        .filter(d -> d.getArticulo().getCodigo().equals(articulo.getCodigo()))
+        // Mapeamos al objeto BigDecimal directamente
+        .map(DetalleSalidaInventario::getCantidad) 
+        // Sumamos acumulando con .add(), empezando desde CERO
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             // Sumar cantidades del mismo artículo que YA están agregadas en la Grid
-            double cantidadYaEnGrid = listDet.stream()
-                    .filter(d -> d.getArticulo().getCodigo().equals(articulo.getCodigo()))
-                    .mapToDouble(DetalleSalidaInventario::getCantidad)
-                    .sum();
+//            double cantidadYaEnGrid = listDet.stream()
+//                    .filter(d -> d.getArticulo().getCodigo().equals(articulo.getCodigo()))                   
+//                    .mapToDouble(DetalleSalidaInventario:: getCantidad() )
+//                    .sum();
 
-            double totalSolicitado = cantidadYaEnGrid;
+            double totalSolicitado = cantidadYaEnGrid.doubleValue();
 
             if (totalSolicitado > stockActual) {
                 Notification.show(
@@ -145,9 +152,8 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
             listDet.forEach(d -> {
                 if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
-                    double nuevaCantSalida = d.getCantidad();
-                    d.setCantidad(nuevaCantSalida);
-                    d.setExistencia(d.getExistencia() - nuevaCantSalida); // Nueva existencia tras la salida
+  
+                    d.setExistencia(d.getExistencia().subtract(d.getCantidad())); // Nueva existencia tras la salida
                 }
             });
 
@@ -159,11 +165,11 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
             det.setArticulo(articulo);
             det.setDescripcionArticulo(articulo.getDescripcion());
 
-            double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
-            det.setExistenciaAnterior(stockActual);
+//            double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+            det.setExistenciaAnterior(articulo.getExistencia());
 
-            det.setCantidad(0.00); // Cantidad inicial a sacar
-            det.setExistencia(stockActual); // Nueva existencia (Resta)
+            det.setCantidad(BigDecimal.ZERO); // Cantidad inicial a sacar
+            det.setExistencia(articulo.getExistencia()); // Nueva existencia (Resta)
             det.setUnidad(new Unidad(1));
 
             listDet.add(det);
@@ -260,16 +266,16 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
                 if (articulo != null && Boolean.TRUE.equals(articulo.getInventariable())) {
 
                     // 1. Stock real en el maestro del artículo
-                    double stockDisponible = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+                    BigDecimal stockDisponible = articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
 
                     // 2. Calcular la suma de cantidades agregadas en OTRAS filas para este mismo artículo
-                    double cantidadEnOtrasFilas = listDet.stream()
+                    Double cantidadEnOtrasFilas = listDet.stream()
                             .filter(d -> !d.equals(itemActual) && d.getArticulo() != null && d.getArticulo().getCodigo().equals(articulo.getCodigo()))
-                            .mapToDouble(d -> d.getCantidad() != null ? d.getCantidad() : 0.0)
+                            .mapToDouble(d -> d.getCantidad().doubleValue() )
                             .sum();
 
                     // 3. Validar si la nueva cantidad excede el disponible
-                    if ((cantidadEnOtrasFilas + cant) > stockDisponible) {
+                    if ((cantidadEnOtrasFilas + cant) > stockDisponible.doubleValue()) {
                         Notification.show(
                                 String.format("Stock insuficiente para '%s'. Disponible: %.2f (Ya en uso en otras filas: %.2f)",
                                         articulo.getDescripcion(), stockDisponible, cantidadEnOtrasFilas),
@@ -282,10 +288,11 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
                     }
                 }
 
+              BigDecimal cant1= BigDecimal.valueOf(cant);
                 // 4. Si la validación pasa, actualizamos el modelo y recalculamos existencia en pantalla
-                itemActual.setCantidad(cant);
+                itemActual.setCantidad(cant1);
                 if (articulo != null && articulo.getExistencia() != null) {
-                    itemActual.setExistencia(articulo.getExistencia() - cant);
+                    itemActual.setExistencia(articulo.getExistencia().subtract(cant1));
                 }
 
                 grid.getDataProvider().refreshItem(itemActual);
@@ -305,7 +312,7 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
         for (DetalleSalidaInventario det : listDet) {
 
-            if (det.getCantidad() == null || det.getCantidad() <= 0) {
+            if (det.getCantidad() == null || det.getCantidad().doubleValue() <= 0) {
                 Notification.show("El artículo '" + det.getArticulo().getDescripcion() + "' tiene una cantidad inválida.", 4000, Position.TOP_CENTER);
                 return;
             }
@@ -351,44 +358,4 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         }
     }
 
-//    private void procesarGuardado() {
-//        if (listDet.isEmpty()) {
-//            Notification.show("La salida no tiene artículos registrados", 3000, Position.TOP_CENTER);
-//            return;
-//        }
-//
-//        for (DetalleSalidaInventario det : listDet) {
-//            if (det.getCantidad() <= 0) {
-//                Notification.show("El artículo '" + det.getDescripcionArticulo() + "' tiene cantidad en cero", 4000, Position.TOP_CENTER);
-//                return;
-//            }
-//        }
-//
-//        try {
-//            LocalDate localFecha = dpFecha.getValue();
-//            Date fecha = ClaseUtil.asDate(localFecha);
-//
-//            SalidaInventario salidaInv = new SalidaInventario();
-//            salidaInv.setFecha(fecha);
-//            salidaInv.setFechaRegistro(new Date());
-//
-//            listDet.forEach(e -> {
-//                e.setSalidaInventario(salidaInv);
-//                e.setCodigo(null);
-//            });
-//
-//            salidaInv.setDetalleSalidaInventarioCollection(listDet);
-//
-//            // Persistir la salida y actualizar/descontar el stock en la BD
-//            this.salidaInvService.guardar(salidaInv);
-//
-//            Notification.show("Salida guardada exitosamente", 3000, Position.TOP_CENTER);
-//            listDet.clear();
-//            grid.getDataProvider().refreshAll();
-//
-//        } catch (Exception e) {
-//            Notification.show("Error guardando la salida: " + e.getMessage(), 3000, Position.TOP_CENTER);
-//            e.printStackTrace();
-//        }
-//    }
 }

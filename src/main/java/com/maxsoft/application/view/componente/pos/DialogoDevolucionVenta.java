@@ -8,7 +8,6 @@ import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
 
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
 import com.maxsoft.application.modelo.FacturaDeVenta;
-import com.maxsoft.application.servicio.interfaces.reporte.ReporteService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -19,10 +18,7 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.server.StreamResource;
-
-import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -89,11 +85,16 @@ public class DialogoDevolucionVenta extends Dialog {
         // Cargar Ítems disponibles de la factura
         List<ItemDevolucionModel> itemsModel = new ArrayList<>();
         factura.getDetalleFacturaDeVentaCollection().forEach(det -> {
-            double devuelto = det.getCantidadDevuelta() != null ? det.getCantidadDevuelta() : 0.0;
-            double disponible = det.getCantidad() - devuelto;
-            if (disponible > 0) {
-                double precio = det.getPrecioVenta() != null ? det.getPrecioVenta() : det.getPrecioCompra();
-                itemsModel.add(new ItemDevolucionModel(det.getCodigo(), det.getArticulo().getDescripcion(), det.getCantidad(), disponible, precio));
+            
+            BigDecimal devuelto = det.getCantidadDevuelta() != null ? det.getCantidadDevuelta() : BigDecimal.ZERO;
+            BigDecimal disponible = det.getCantidad().subtract(devuelto);
+            
+            if (disponible.doubleValue() > 0) {
+                
+                BigDecimal precio = det.getPrecioVenta() != null ? det.getPrecioVenta() : det.getPrecioVenta();
+                
+                itemsModel.add(new ItemDevolucionModel(det.getCodigo(), det.getArticulo().getDescripcion(),
+                        det.getCantidad().doubleValue(), disponible.doubleValue(), precio.doubleValue()));
             }
         });
         gridItems.setItems(itemsModel);

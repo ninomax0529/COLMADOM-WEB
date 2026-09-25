@@ -33,6 +33,12 @@ import java.util.Date;
     @NamedQuery(name = "Almacen.findAll", query = "SELECT a FROM Almacen a")})
 public class Almacen implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Size(max = 50)
     @Column(name = "nombre")
     private String nombre;
@@ -50,20 +56,17 @@ public class Almacen implements Serializable {
     @Column(name = "creado_por")
     private String creadoPor;
     @OneToMany(mappedBy = "almacen")
-    private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
-
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
-    @OneToMany(mappedBy = "almacen")
     private Collection<DetalleEntradaInventario> detalleEntradaInventarioCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacenDestino")
+    private Collection<TrasladoInventario> trasladoInventarioCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacenOrigen")
+    private Collection<TrasladoInventario> trasladoInventarioCollection1;
     @OneToMany(mappedBy = "almacen")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacen")
     private Collection<ArticuloAlmacen> articuloAlmacenCollection;
+    @OneToMany(mappedBy = "almacen")
+    private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
 
     public Almacen() {
     }
@@ -86,6 +89,21 @@ public class Almacen implements Serializable {
         this.codigo = codigo;
     }
 
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getUbicacion() {
+        return ubicacion;
+    }
+
+    public void setUbicacion(String ubicacion) {
+        this.ubicacion = ubicacion;
+    }
 
     public Date getFechaCreacion() {
         return fechaCreacion;
@@ -111,6 +129,22 @@ public class Almacen implements Serializable {
         this.detalleEntradaInventarioCollection = detalleEntradaInventarioCollection;
     }
 
+    public Collection<TrasladoInventario> getTrasladoInventarioCollection() {
+        return trasladoInventarioCollection;
+    }
+
+    public void setTrasladoInventarioCollection(Collection<TrasladoInventario> trasladoInventarioCollection) {
+        this.trasladoInventarioCollection = trasladoInventarioCollection;
+    }
+
+    public Collection<TrasladoInventario> getTrasladoInventarioCollection1() {
+        return trasladoInventarioCollection1;
+    }
+
+    public void setTrasladoInventarioCollection1(Collection<TrasladoInventario> trasladoInventarioCollection1) {
+        this.trasladoInventarioCollection1 = trasladoInventarioCollection1;
+    }
+
     public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
         return detalleFacturaDeVentaCollection;
     }
@@ -125,6 +159,14 @@ public class Almacen implements Serializable {
 
     public void setArticuloAlmacenCollection(Collection<ArticuloAlmacen> articuloAlmacenCollection) {
         this.articuloAlmacenCollection = articuloAlmacenCollection;
+    }
+
+    public Collection<DetalleAjusteInventario> getDetalleAjusteInventarioCollection() {
+        return detalleAjusteInventarioCollection;
+    }
+
+    public void setDetalleAjusteInventarioCollection(Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection) {
+        this.detalleAjusteInventarioCollection = detalleAjusteInventarioCollection;
     }
 
     @Override
@@ -150,30 +192,6 @@ public class Almacen implements Serializable {
     @Override
     public String toString() {
         return nombre;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getUbicacion() {
-        return ubicacion;
-    }
-
-    public void setUbicacion(String ubicacion) {
-        this.ubicacion = ubicacion;
-    }
-
-    public Collection<DetalleAjusteInventario> getDetalleAjusteInventarioCollection() {
-        return detalleAjusteInventarioCollection;
-    }
-
-    public void setDetalleAjusteInventarioCollection(Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection) {
-        this.detalleAjusteInventarioCollection = detalleAjusteInventarioCollection;
     }
     
 }

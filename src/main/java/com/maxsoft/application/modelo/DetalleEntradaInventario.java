@@ -18,6 +18,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  *
@@ -45,17 +46,17 @@ public class DetalleEntradaInventario implements Serializable {
     private String nombreUnidad;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "cantidad_pedida")
-    private Double cantidadPedida;
+    private BigDecimal cantidadPedida;
     @Column(name = "cantidad_recibida")
-    private Double cantidadRecibida;
+    private BigDecimal cantidadRecibida;
     @Column(name = "cantidad_pendiente")
-    private Double cantidadPendiente;
+    private BigDecimal cantidadPendiente;
     @Column(name = "precio_compra")
-    private Double precioCompra;
+    private BigDecimal precioCompra;
     @Column(name = "precio_compra_anterior")
-    private Double precioCompraAnterior;
+    private BigDecimal precioCompraAnterior;
     @Column(name = "costo_unitario")
-    private Double costoUnitario;
+    private BigDecimal costoUnitario;
     @Column(name = "orden_compra")
     private Integer ordenCompra;
     @Size(max = 20)
@@ -70,13 +71,13 @@ public class DetalleEntradaInventario implements Serializable {
     @Column(name = "nombre_suplidor")
     private String nombreSuplidor;
     @Column(name = "existencia_actual")
-    private Double existenciaActual;
+    private BigDecimal existenciaActual;
     @Column(name = "nueva_existencia")
-    private Double nuevaExistencia;
+    private BigDecimal nuevaExistencia;
     @Column(name = "precio_venta_anterior")
-    private Double precioVentaAnterior;
+    private BigDecimal precioVentaAnterior;
     @Column(name = "precio_venta")
-    private Double precioVenta;
+    private BigDecimal precioVenta;
     @Size(max = 20)
     @Column(name = "nombre_almacen")
     private String nombreAlmacen;
@@ -129,51 +130,51 @@ public class DetalleEntradaInventario implements Serializable {
         this.nombreUnidad = nombreUnidad;
     }
 
-    public Double getCantidadPedida() {
+    public BigDecimal getCantidadPedida() {
         return cantidadPedida;
     }
 
-    public void setCantidadPedida(Double cantidadPedida) {
+    public void setCantidadPedida(BigDecimal cantidadPedida) {
         this.cantidadPedida = cantidadPedida;
     }
 
-    public Double getCantidadRecibida() {
+    public BigDecimal getCantidadRecibida() {
         return cantidadRecibida;
     }
 
-    public void setCantidadRecibida(Double cantidadRecibida) {
+    public void setCantidadRecibida(BigDecimal cantidadRecibida) {
         this.cantidadRecibida = cantidadRecibida;
     }
 
-    public Double getCantidadPendiente() {
+    public BigDecimal getCantidadPendiente() {
         return cantidadPendiente;
     }
 
-    public void setCantidadPendiente(Double cantidadPendiente) {
+    public void setCantidadPendiente(BigDecimal cantidadPendiente) {
         this.cantidadPendiente = cantidadPendiente;
     }
 
-    public Double getPrecioCompra() {
+    public BigDecimal getPrecioCompra() {
         return precioCompra;
     }
 
-    public void setPrecioCompra(Double precioCompra) {
+    public void setPrecioCompra(BigDecimal precioCompra) {
         this.precioCompra = precioCompra;
     }
 
-    public Double getPrecioCompraAnterior() {
+    public BigDecimal getPrecioCompraAnterior() {
         return precioCompraAnterior;
     }
 
-    public void setPrecioCompraAnterior(Double precioCompraAnterior) {
+    public void setPrecioCompraAnterior(BigDecimal precioCompraAnterior) {
         this.precioCompraAnterior = precioCompraAnterior;
     }
 
-    public Double getCostoUnitario() {
+    public BigDecimal getCostoUnitario() {
         return costoUnitario;
     }
 
-    public void setCostoUnitario(Double costoUnitario) {
+    public void setCostoUnitario(BigDecimal costoUnitario) {
         this.costoUnitario = costoUnitario;
     }
 
@@ -217,35 +218,35 @@ public class DetalleEntradaInventario implements Serializable {
         this.nombreSuplidor = nombreSuplidor;
     }
 
-    public Double getExistenciaActual() {
+    public BigDecimal getExistenciaActual() {
         return existenciaActual;
     }
 
-    public void setExistenciaActual(Double existenciaActual) {
+    public void setExistenciaActual(BigDecimal existenciaActual) {
         this.existenciaActual = existenciaActual;
     }
 
-    public Double getNuevaExistencia() {
+    public BigDecimal getNuevaExistencia() {
         return nuevaExistencia;
     }
 
-    public void setNuevaExistencia(Double nuevaExistencia) {
+    public void setNuevaExistencia(BigDecimal nuevaExistencia) {
         this.nuevaExistencia = nuevaExistencia;
     }
 
-    public Double getPrecioVentaAnterior() {
+    public BigDecimal getPrecioVentaAnterior() {
         return precioVentaAnterior;
     }
 
-    public void setPrecioVentaAnterior(Double precioVentaAnterior) {
+    public void setPrecioVentaAnterior(BigDecimal precioVentaAnterior) {
         this.precioVentaAnterior = precioVentaAnterior;
     }
 
-    public Double getPrecioVenta() {
+    public BigDecimal getPrecioVenta() {
         return precioVenta;
     }
 
-    public void setPrecioVenta(Double precioVenta) {
+    public void setPrecioVenta(BigDecimal precioVenta) {
         this.precioVenta = precioVenta;
     }
 

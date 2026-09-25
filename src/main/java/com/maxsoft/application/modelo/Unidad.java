@@ -46,12 +46,6 @@ public class Unidad implements Serializable {
     @NotNull
     @Column(name = "habilitada")
     private boolean habilitada;
-    @OneToMany(mappedBy = "unidadEntrada")
-    private Collection<Articulo> articuloCollection;
-    @OneToMany(mappedBy = "unidadSalida")
-    private Collection<Articulo> articuloCollection1;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "unidad")
-    private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -67,7 +61,15 @@ public class Unidad implements Serializable {
     @OneToMany(mappedBy = "unidad")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @OneToMany(mappedBy = "unidad")
+    private Collection<DetalleTrasladoInventario> detalleTrasladoInventarioCollection;
+    @OneToMany(mappedBy = "unidad")
     private Collection<ArticuloAlmacen> articuloAlmacenCollection;
+    @OneToMany(mappedBy = "unidadEntrada")
+    private Collection<Articulo> articuloCollection;
+    @OneToMany(mappedBy = "unidadSalida")
+    private Collection<Articulo> articuloCollection1;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "unidad")
+    private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "unidad")
     private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
 
@@ -125,12 +127,44 @@ public class Unidad implements Serializable {
         this.detalleFacturaDeVentaCollection = detalleFacturaDeVentaCollection;
     }
 
+    public Collection<DetalleTrasladoInventario> getDetalleTrasladoInventarioCollection() {
+        return detalleTrasladoInventarioCollection;
+    }
+
+    public void setDetalleTrasladoInventarioCollection(Collection<DetalleTrasladoInventario> detalleTrasladoInventarioCollection) {
+        this.detalleTrasladoInventarioCollection = detalleTrasladoInventarioCollection;
+    }
+
     public Collection<ArticuloAlmacen> getArticuloAlmacenCollection() {
         return articuloAlmacenCollection;
     }
 
     public void setArticuloAlmacenCollection(Collection<ArticuloAlmacen> articuloAlmacenCollection) {
         this.articuloAlmacenCollection = articuloAlmacenCollection;
+    }
+
+    public Collection<Articulo> getArticuloCollection() {
+        return articuloCollection;
+    }
+
+    public void setArticuloCollection(Collection<Articulo> articuloCollection) {
+        this.articuloCollection = articuloCollection;
+    }
+
+    public Collection<Articulo> getArticuloCollection1() {
+        return articuloCollection1;
+    }
+
+    public void setArticuloCollection1(Collection<Articulo> articuloCollection1) {
+        this.articuloCollection1 = articuloCollection1;
+    }
+
+    public Collection<DetalleAjusteInventario> getDetalleAjusteInventarioCollection() {
+        return detalleAjusteInventarioCollection;
+    }
+
+    public void setDetalleAjusteInventarioCollection(Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection) {
+        this.detalleAjusteInventarioCollection = detalleAjusteInventarioCollection;
     }
 
     public Collection<DetalleSalidaInventario> getDetalleSalidaInventarioCollection() {
@@ -164,32 +198,6 @@ public class Unidad implements Serializable {
     @Override
     public String toString() {
         return descripcion;
-    }
-
-
-    public Collection<DetalleAjusteInventario> getDetalleAjusteInventarioCollection() {
-        return detalleAjusteInventarioCollection;
-    }
-
-    public void setDetalleAjusteInventarioCollection(Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection) {
-        this.detalleAjusteInventarioCollection = detalleAjusteInventarioCollection;
-    }
-
-
-    public Collection<Articulo> getArticuloCollection() {
-        return articuloCollection;
-    }
-
-    public void setArticuloCollection(Collection<Articulo> articuloCollection) {
-        this.articuloCollection = articuloCollection;
-    }
-
-    public Collection<Articulo> getArticuloCollection1() {
-        return articuloCollection1;
-    }
-
-    public void setArticuloCollection1(Collection<Articulo> articuloCollection1) {
-        this.articuloCollection1 = articuloCollection1;
     }
 
     public String getDescripcion() {

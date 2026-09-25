@@ -23,6 +23,7 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Date;
 
@@ -53,9 +54,6 @@ public class FacturaDeVenta implements Serializable {
     @Size(max = 25)
     @Column(name = "ncf")
     private String ncf;
-    @Size(max = 45)
-    @Column(name = "direccion")
-    private String direccion;
     @Size(max = 200)
     @Column(name = "nombre_cliente")
     private String nombreCliente;
@@ -90,21 +88,24 @@ public class FacturaDeVenta implements Serializable {
     private String anuladaPor;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "sub_total")
-    private Double subTotal;
+    private BigDecimal subTotal;
     @Column(name = "total_descuento")
-    private Double totalDescuento;
+    private BigDecimal totalDescuento;
     @Column(name = "porciento_descuento")
-    private Double porcientoDescuento;
+    private BigDecimal porcientoDescuento;
     @Column(name = "total_itbis")
-    private Double totalItbis;
+    private BigDecimal totalItbis;
     @Column(name = "porciento_itbis")
-    private Double porcientoItbis;
+    private BigDecimal porcientoItbis;
     @Column(name = "total")
-    private Double total;
+    private BigDecimal total;
     @Column(name = "total_abonado")
-    private Double totalAbonado;
+    private BigDecimal totalAbonado;
     @Column(name = "total_pendiente")
-    private Double totalPendiente;
+    private BigDecimal totalPendiente;
+    @Size(max = 45)
+    @Column(name = "direccion")
+    private String direccion;
     @JoinColumn(name = "cliente", referencedColumnName = "codigo")
     @ManyToOne
     private Cliente cliente;
@@ -117,7 +118,7 @@ public class FacturaDeVenta implements Serializable {
     @JoinColumn(name = "tipo_venta", referencedColumnName = "codigo")
     @ManyToOne
     private TipoVenta tipoVenta;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura",fetch = FetchType.EAGER, orphanRemoval = true)//cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura",fetch = FetchType.EAGER)
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
 
     public FacturaDeVenta() {
@@ -134,22 +135,6 @@ public class FacturaDeVenta implements Serializable {
     public void setCodigo(Integer codigo) {
         this.codigo = codigo;
     }
-    
-    
-    /**
-     * @return the direccion
-     */
-    public String getDireccion() {
-        return direccion;
-    }
-
-    /**
-     * @param direccion the direccion to set
-     */
-    public void setDireccion(String direccion) {
-        this.direccion = direccion;
-    }
-
 
     public Integer getNumeroDocumento() {
         return numeroDocumento;
@@ -279,68 +264,76 @@ public class FacturaDeVenta implements Serializable {
         this.anuladaPor = anuladaPor;
     }
 
-    public Double getSubTotal() {
+    public BigDecimal getSubTotal() {
         return subTotal;
     }
 
-    public void setSubTotal(Double subTotal) {
+    public void setSubTotal(BigDecimal subTotal) {
         this.subTotal = subTotal;
     }
 
-    public Double getTotalDescuento() {
+    public BigDecimal getTotalDescuento() {
         return totalDescuento;
     }
 
-    public void setTotalDescuento(Double totalDescuento) {
+    public void setTotalDescuento(BigDecimal totalDescuento) {
         this.totalDescuento = totalDescuento;
     }
 
-    public Double getPorcientoDescuento() {
+    public BigDecimal getPorcientoDescuento() {
         return porcientoDescuento;
     }
 
-    public void setPorcientoDescuento(Double porcientoDescuento) {
+    public void setPorcientoDescuento(BigDecimal porcientoDescuento) {
         this.porcientoDescuento = porcientoDescuento;
     }
 
-    public Double getTotalItbis() {
+    public BigDecimal getTotalItbis() {
         return totalItbis;
     }
 
-    public void setTotalItbis(Double totalItbis) {
+    public void setTotalItbis(BigDecimal totalItbis) {
         this.totalItbis = totalItbis;
     }
 
-    public Double getPorcientoItbis() {
+    public BigDecimal getPorcientoItbis() {
         return porcientoItbis;
     }
 
-    public void setPorcientoItbis(Double porcientoItbis) {
+    public void setPorcientoItbis(BigDecimal porcientoItbis) {
         this.porcientoItbis = porcientoItbis;
     }
 
-    public Double getTotal() {
+    public BigDecimal getTotal() {
         return total;
     }
 
-    public void setTotal(Double total) {
+    public void setTotal(BigDecimal total) {
         this.total = total;
     }
 
-    public Double getTotalAbonado() {
+    public BigDecimal getTotalAbonado() {
         return totalAbonado;
     }
 
-    public void setTotalAbonado(Double totalAbonado) {
+    public void setTotalAbonado(BigDecimal totalAbonado) {
         this.totalAbonado = totalAbonado;
     }
 
-    public Double getTotalPendiente() {
+    public BigDecimal getTotalPendiente() {
         return totalPendiente;
     }
 
-    public void setTotalPendiente(Double totalPendiente) {
+    public void setTotalPendiente(BigDecimal totalPendiente) {
         this.totalPendiente = totalPendiente;
+    }
+
+    public String getDireccion() {
+        return direccion;
+    }
+
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
     }
 
     public Cliente getCliente() {
@@ -407,5 +400,5 @@ public class FacturaDeVenta implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.FacturaDeVenta[ codigo=" + codigo + " ]";
     }
-
+    
 }

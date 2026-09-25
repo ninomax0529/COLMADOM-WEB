@@ -93,7 +93,7 @@ public class TipoVenta implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.TipoVanta[ codigo=" + codigo + " ]";
+        return nombre;
     }
     
 }

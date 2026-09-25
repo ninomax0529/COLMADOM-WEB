@@ -1,4 +1,4 @@
-///*
+ ///*
 // * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
 // * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
 // */
@@ -182,6 +182,7 @@ import com.maxsoft.application.modelo.TipoVenta;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.data.provider.ListDataProvider;
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -207,16 +208,17 @@ public class TicketVenta {
     // 1. Definir la interfaz funcional para notificar cuando se pida editar una fila
     @FunctionalInterface
     public interface AccionEditarDetalle {
+
         void ejecutar(DetalleFacturaDeVenta detalle);
     }
 
     public TicketVenta(int numeroTicket, String id) {
         this.numeroTicket = numeroTicket;
         this.id = id;
-        
+
         // Asignar el DataProvider al Grid
         this.grid.setDataProvider(this.dataProvider);
-        
+
         totalSpan.getStyle()
                 .set("font-size", "1.8rem")
                 .set("font-weight", "bold")
@@ -224,61 +226,129 @@ public class TicketVenta {
     }
 
     /**
-     * Permite escuchar el doble clic sobre cualquier fila del Grid de este ticket.
+     * Permite escuchar el doble clic sobre cualquier fila del Grid de este
+     * ticket.
+     *
      * @param listener
      */
     public void alHacerDobleClicEnFila(AccionEditarDetalle listener) {
-        
+
         grid.addItemDoubleClickListener(e -> {
-            
+
             DetalleFacturaDeVenta item = e.getItem();
-            
+
             if (item != null && listener != null) {
                 grid.select(item); // Garantizar la selección visual
                 listener.ejecutar(item);
             }
         });
-        
-        
-        
+
     }
 
     /**
-     * Retorna el elemento seleccionado actualmente en el Grid (útil para atajos de teclado).
-     * @return 
+     * Retorna el elemento seleccionado actualmente en el Grid (útil para atajos
+     * de teclado).
+     *
+     * @return
      */
     public Optional<DetalleFacturaDeVenta> getDetalleSeleccionado() {
         return grid.getSelectedItems().stream().findFirst();
     }
 
     // ... (Tus métodos getters y setters actuales se mantienen igual) ...
+    public String getId() {
+        return id;
+    }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getNombreCliente() { return nombreCliente; }
-    public void setNombreCliente(String nombreCliente) { this.nombreCliente = nombreCliente; }
-    public String getDireccion() { return direccion; }
-    public void setDireccion(String direccion) { this.direccion = direccion; }
-    public int getNumeroTicket() { return numeroTicket; }
-    public List<DetalleFacturaDeVenta> getItems() { return items; }
-    public ListDataProvider<DetalleFacturaDeVenta> getDataProvider() { return dataProvider; }
-    public Grid<DetalleFacturaDeVenta> getGrid() { return grid; }
-    public EstadoFactura getEstadoFactura() { return estadoFactura; }
-    public void setEstadoFactura(EstadoFactura estadoFactura) { this.estadoFactura = estadoFactura; }
-    public Cliente getCliente() { return cliente; }
-    public void setCliente(Cliente cliente) { this.cliente = cliente; }
-    public Delivery getDelivery() { return delivery; }
-    public void setDelivery(Delivery delivery) { this.delivery = delivery; }
-    public TipoVenta getTipoVenta() { return tipoVenta; }
-    public void setTipoVenta(TipoVenta tipoVenta) { this.tipoVenta = tipoVenta; }
-    public Span getTotalSpan() { return totalSpan; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public Double getTotalAmount() {
-        Double subTotal = 0.00;
+    public String getNombreCliente() {
+        return nombreCliente;
+    }
+
+    public void setNombreCliente(String nombreCliente) {
+        this.nombreCliente = nombreCliente;
+    }
+
+    public String getDireccion() {
+        return direccion;
+    }
+
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
+    }
+
+    public int getNumeroTicket() {
+        return numeroTicket;
+    }
+
+    public List<DetalleFacturaDeVenta> getItems() {
+        return items;
+    }
+
+    public ListDataProvider<DetalleFacturaDeVenta> getDataProvider() {
+        return dataProvider;
+    }
+
+    public Grid<DetalleFacturaDeVenta> getGrid() {
+        return grid;
+    }
+
+    public EstadoFactura getEstadoFactura() {
+        return estadoFactura;
+    }
+
+    public void setEstadoFactura(EstadoFactura estadoFactura) {
+        this.estadoFactura = estadoFactura;
+    }
+
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
+    }
+
+    public Delivery getDelivery() {
+        return delivery;
+    }
+
+    public void setDelivery(Delivery delivery) {
+        this.delivery = delivery;
+    }
+
+    public TipoVenta getTipoVenta() {
+        return tipoVenta;
+    }
+
+    public void setTipoVenta(TipoVenta tipoVenta) {
+        this.tipoVenta = tipoVenta;
+    }
+
+    public Span getTotalSpan() {
+        return totalSpan;
+    }
+
+    public BigDecimal getTotalAmount() {
+
+        BigDecimal subTotal = BigDecimal.ZERO; // Inicializar en CERO
+
         for (DetalleFacturaDeVenta det : items) {
-            subTotal += det.getCantidad() * det.getPrecioVenta();
+            // Multiplicamos cantidad por precio y acumulamos el resultado en subTotal
+            BigDecimal totalItem = det.getCantidad().multiply(det.getPrecioVenta());
+            subTotal = subTotal.add(totalItem);
         }
+
         return subTotal;
+
+//        BigDecimal subTotal;
+//        for (DetalleFacturaDeVenta det : items) {
+//            subTotal += det.getCantidad().multiply(det.getPrecioVenta());
+//        }
+//        return subTotal;
     }
 
     public void updateUI() {

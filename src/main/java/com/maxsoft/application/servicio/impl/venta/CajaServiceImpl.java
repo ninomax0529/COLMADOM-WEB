@@ -6,7 +6,7 @@ package com.maxsoft.application.servicio.impl.venta;
 
 import com.maxsoft.application.modelo.CajaTurno;
 import com.maxsoft.application.modelo.DesgloseCaja;
-import com.maxsoft.application.modelo.MovimientoCaja;
+import com.maxsoft.application.modelo.MovimientosCaja;
 import com.maxsoft.application.repo.CajaTurnoRepo;
 import com.maxsoft.application.repo.DesgloseCajaRepo;
 import com.maxsoft.application.repo.MovimientoCajaRepo;
@@ -60,7 +60,7 @@ public class CajaServiceImpl implements CajaService {
 
     @Override
     @Transactional
-    public MovimientoCaja registrarMovimiento(Integer cajaTurnoId, String tipo, BigDecimal monto, String descripcion, String usuario) {
+    public MovimientosCaja registrarMovimiento(Integer cajaTurnoId, String tipo, BigDecimal monto, String descripcion, String usuario) {
         CajaTurno turno = cajaTurnoRepo.findById(cajaTurnoId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno de caja no encontrado."));
 
@@ -68,8 +68,8 @@ public class CajaServiceImpl implements CajaService {
             throw new IllegalStateException("No se pueden registrar movimientos en una caja cerrada.");
         }
 
-        MovimientoCaja movimiento = new MovimientoCaja();
-        movimiento.setCajaTurno(turno);
+        MovimientosCaja movimiento = new MovimientosCaja();
+        movimiento.setCajaTurnoId(turno);
         movimiento.setTipo(tipo); // "RETIRO", "GASTO_MENOR", "INGRESO_EXTRA"
         movimiento.setMonto(monto);
         movimiento.setDescripcion(descripcion);
@@ -84,24 +84,24 @@ public class CajaServiceImpl implements CajaService {
     public CajaTurno cerrarCaja(Integer cajaTurnoId, String cajeroCierre, List<DesgloseCaja> desglosesEntrada,
             BigDecimal ventasEfectivoColmado, BigDecimal ventasTarjeta, BigDecimal ventasFiado) {
 
-        CajaTurno turno = cajaTurnoRepo.findById(cajaTurnoId)
+        CajaTurno cajaTurnoDb = cajaTurnoRepo.findById(cajaTurnoId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno de caja no encontrado."));
 
-        if (!"ABIERTA".equals(turno.getEstado())) {
+        if (!"ABIERTA".equals(cajaTurnoDb.getEstado())) {
             throw new IllegalStateException("La caja ya se encuentra cerrada.");
         }
 
         BigDecimal montoCierreReal = BigDecimal.ZERO;
         for (DesgloseCaja d : desglosesEntrada) {
-            d.setCajaTurno(turno);
+            d.setCajaTurno(cajaTurnoDb);
             BigDecimal subtotal = d.getDenominacion().multiply(BigDecimal.valueOf(d.getCantidad()));
             d.setSubtotal(subtotal);
             montoCierreReal = montoCierreReal.add(subtotal);
         }
 
-        List<MovimientoCaja> movimientos = movimientoCajaRepository.findByCajaTurnoId(cajaTurnoId);
+        List<MovimientosCaja> movimientos = movimientoCajaRepository.findByCajaTurno(cajaTurnoDb);
         BigDecimal totalMovimientos = BigDecimal.ZERO;
-        for (MovimientoCaja m : movimientos) {
+        for (MovimientosCaja m : movimientos) {
             if ("RETIRO".equals(m.getTipo()) || "GASTO_MENOR".equals(m.getTipo())) {
                 totalMovimientos = totalMovimientos.subtract(m.getMonto());
             } else if ("INGRESO_EXTRA".equals(m.getTipo())) {
@@ -109,22 +109,22 @@ public class CajaServiceImpl implements CajaService {
             }
         }
 
-        BigDecimal efectivoEsperado = turno.getMontoApertura()
+        BigDecimal efectivoEsperado = cajaTurnoDb.getMontoApertura()
                 .add(ventasEfectivoColmado)
                 .add(totalMovimientos);
 
         BigDecimal diferencia = montoCierreReal.subtract(efectivoEsperado);
 
-        turno.setFechaCierre(LocalDateTime.now());
-        turno.setMontoCierreReal(montoCierreReal);
-        turno.setVentasEfectivoEsperadas(efectivoEsperado);
-        turno.setVentasTarjeta(ventasTarjeta);
-        turno.setVentasFiado(ventasFiado);
-        turno.setDiferencia(diferencia);
-        turno.setCajeroCierre(cajeroCierre);
-        turno.setEstado("CERRADA");
+        cajaTurnoDb.setFechaCierre(LocalDateTime.now());
+        cajaTurnoDb.setMontoCierreReal(montoCierreReal);
+        cajaTurnoDb.setVentasEfectivoEsperadas(efectivoEsperado);
+        cajaTurnoDb.setVentasTarjeta(ventasTarjeta);
+        cajaTurnoDb.setVentasFiado(ventasFiado);
+        cajaTurnoDb.setDiferencia(diferencia);
+        cajaTurnoDb.setCajeroCierre(cajeroCierre);
+        cajaTurnoDb.setEstado("CERRADA");
 
-        CajaTurno cajaGuardada = cajaTurnoRepo.save(turno);
+        CajaTurno cajaGuardada = cajaTurnoRepo.save(cajaTurnoDb);
 
         for (DesgloseCaja d : desglosesEntrada) {
             desgloseCajaRepository.save(d);
@@ -135,7 +135,7 @@ public class CajaServiceImpl implements CajaService {
 
     @Override
     @Transactional
-    public MovimientoCaja registrarMovimientoPos(Integer cajaTurnoId, String tipoPos, BigDecimal monto, String descripcion, String usuario) {
+    public MovimientosCaja registrarMovimientoPos(Integer cajaTurnoId, String tipoPos, BigDecimal monto, String descripcion, String usuario) {
         
         CajaTurno turno = cajaTurnoRepo.findById(cajaTurnoId)
                 .orElseThrow(() -> new IllegalArgumentException("Turno de caja no encontrado."));
@@ -144,8 +144,8 @@ public class CajaServiceImpl implements CajaService {
             throw new IllegalStateException("No se pueden registrar movimientos en una caja cerrada.");
         }
 
-        MovimientoCaja movimiento = new MovimientoCaja();
-        movimiento.setCajaTurno(turno);
+        MovimientosCaja movimiento = new MovimientosCaja();
+        movimiento.setCajaTurnoId(turno);
         movimiento.setTipo("POS_" + tipoPos);
         movimiento.setMonto(monto);
         movimiento.setDescripcion(descripcion);

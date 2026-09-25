@@ -19,15 +19,16 @@ public final class CalculoFacturaUtil {
      * Recalcula subtotal, descuento, ITBIS y total para una línea de detalle.Seguro ante valores nulos e imprecisiones decimales.
      * @param detalle
      */
+    
     public static void calcularTotales(DetalleFacturaDeVenta detalle) {
         if (detalle == null) {
             return;
         }
 
-        double cantidad = detalle.getCantidad() != null ? detalle.getCantidad() : 0.0;
-        double precio = detalle.getPrecioVenta() != null ? detalle.getPrecioVenta() : 0.0;
-        double pctDesc = detalle.getPorcientoDescuento() != null ? detalle.getPorcientoDescuento() : 0.0;
-        double pctItbis = detalle.getPorcientoItbis() != null ? detalle.getPorcientoItbis() : 0.0;
+        double cantidad = detalle.getCantidad() != null ? detalle.getCantidad().doubleValue() : 0.0;
+        double precio = detalle.getPrecioVenta() != null ? detalle.getPrecioVenta().doubleValue() : 0.0;
+        double pctDesc = detalle.getPorcientoDescuento() != null ? detalle.getPorcientoDescuento().doubleValue() : 0.0;
+        double pctItbis = detalle.getPorcientoItbis() != null ? detalle.getPorcientoItbis().doubleValue() : 0.0;
 
         double subTotal = redondear(cantidad * precio);
         double totalDescuento = redondear(subTotal * (pctDesc / 100.0));
@@ -35,10 +36,10 @@ public final class CalculoFacturaUtil {
         double totalItbis = redondear(subTotalNeto * (pctItbis / 100.0));
         double total = redondear(subTotalNeto + totalItbis);
 
-        detalle.setSubTotal(subTotal);
-        detalle.setTotalDescuento(totalDescuento);
-        detalle.setTotalItbis(totalItbis);
-        detalle.setTotal(total);
+        detalle.setSubTotal(BigDecimal.valueOf(subTotal));
+        detalle.setTotalDescuento(BigDecimal.valueOf(totalDescuento));
+        detalle.setTotalItbis(BigDecimal.valueOf(totalItbis));
+        detalle.setTotal(BigDecimal.valueOf(total));
     }
 
     /**

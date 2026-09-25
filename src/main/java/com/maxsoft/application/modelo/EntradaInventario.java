@@ -41,8 +41,9 @@ public class EntradaInventario implements Serializable {
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
+    @Size(max = 20)
     @Column(name = "numero_documento")
-    private Integer numeroDocumento;
+    private String numeroDocumento;
     @Column(name = "tipo_documento")
     private Integer tipoDocumento;
     @Column(name = "fecha")
@@ -66,11 +67,6 @@ public class EntradaInventario implements Serializable {
     @Size(max = 100)
     @Column(name = "nombre_moneda")
     private String nombreMoneda;
-    @Column(name = "tipo_entrada")
-    private Integer tipoEntrada;
-    @Size(max = 20)
-    @Column(name = "nombre_tipo_entrada")
-    private String nombreTipoEntrada;
     @Column(name = "anulada")
     private Boolean anulada;
     @Column(name = "fecha_anulada")
@@ -106,11 +102,11 @@ public class EntradaInventario implements Serializable {
         this.codigo = codigo;
     }
 
-    public Integer getNumeroDocumento() {
+    public String getNumeroDocumento() {
         return numeroDocumento;
     }
 
-    public void setNumeroDocumento(Integer numeroDocumento) {
+    public void setNumeroDocumento(String numeroDocumento) {
         this.numeroDocumento = numeroDocumento;
     }
 
@@ -176,22 +172,6 @@ public class EntradaInventario implements Serializable {
 
     public void setNombreMoneda(String nombreMoneda) {
         this.nombreMoneda = nombreMoneda;
-    }
-
-    public Integer getTipoEntrada() {
-        return tipoEntrada;
-    }
-
-    public void setTipoEntrada(Integer tipoEntrada) {
-        this.tipoEntrada = tipoEntrada;
-    }
-
-    public String getNombreTipoEntrada() {
-        return nombreTipoEntrada;
-    }
-
-    public void setNombreTipoEntrada(String nombreTipoEntrada) {
-        this.nombreTipoEntrada = nombreTipoEntrada;
     }
 
     public Boolean getAnulada() {

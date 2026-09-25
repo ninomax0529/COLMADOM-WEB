@@ -97,7 +97,7 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
     private static final BigDecimal ITBIS_POR_DEFECTO
             = BigDecimal.valueOf(18);
 
-    private static final double DESCUENTO_POR_DEFECTO = 0.00;
+    private static final BigDecimal DESCUENTO_POR_DEFECTO =BigDecimal.ZERO;
 
     private static final String ALMACEN_POR_DEFECTO = "General";
 
@@ -511,12 +511,12 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
     // ============================================================
     private void agregarAlTicketActivo(Articulo articulo) {
 
-        agregarAlTicketActivo(articulo, 1.0);
+        agregarAlTicketActivo(articulo, BigDecimal.ZERO);
     }
 
     private void agregarAlTicketActivo(
             Articulo articulo,
-            Double cantidad) {
+            BigDecimal cantidad) {
 
         if (articulo == null || ticketActivo == null) {
             return;
@@ -524,9 +524,9 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
 
         // Advertencia discreta si el producto se venderá sin stock en sistema
         if (Boolean.TRUE.equals(articulo.getInventariable())) {
-            double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+            double stockActual = articulo.getExistencia() != null ? articulo.getExistencia().doubleValue() : 0.0;
 
-            if (stockActual < cantidad) {
+            if (stockActual < cantidad.doubleValue()) {
                 Notification notif = Notification.show(
                         "⚠️ Notificación: " + articulo.getDescripcion() + " no tiene stock suficiente en sistema (" + stockActual + "). Se venderá en negativo.",
                         3000,
@@ -544,7 +544,7 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
         }
 
         if (cantidad == null
-                || cantidad <= 0) {
+                || cantidad.doubleValue() <= 0) {
 
             ClaseUtil.mostrarNotificacion(
                     "La cantidad debe ser mayor que cero.",
@@ -586,15 +586,15 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
     private void actualizarCantidadItem(
             TicketVenta ticket,
             DetalleFacturaDeVenta item,
-            double cantidad) {
+            BigDecimal cantidad) {
 
-        double cantidadActual
+        BigDecimal cantidadActual
                 = valorSeguro(item.getCantidad());
 
-        double nuevaCantidad
-                = cantidadActual + cantidad;
+        BigDecimal nuevaCantidad
+                = cantidadActual.add(cantidad);
 
-        if (nuevaCantidad <= 0) {
+        if (nuevaCantidad.doubleValue() <= 0) {
 
             confirmarEliminarItem(
                     ticket,
@@ -612,7 +612,7 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
     private void agregarNuevoItem(
             TicketVenta ticket,
             Articulo articulo,
-            double cantidad) {
+            BigDecimal cantidad) {
 
         DetalleFacturaDeVenta nuevoDetalle
                 = new DetalleFacturaDeVenta();
@@ -646,7 +646,7 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
         );
 
         nuevoDetalle.setPorcientoItbis(
-                ITBIS_POR_DEFECTO.doubleValue()
+                ITBIS_POR_DEFECTO
         );
 
         nuevoDetalle.setNombreAlmacen(
@@ -751,28 +751,28 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
                 );
     }
 
-    private BigDecimal decimalSeguro(Double valor) {
+    private BigDecimal decimalSeguro(BigDecimal valor) {
 
         if (valor == null) {
             return BigDecimal.ZERO;
         }
 
-        return BigDecimal.valueOf(valor);
+        return valor;
     }
 
-    private double valorSeguro(Double valor) {
+    private BigDecimal valorSeguro(BigDecimal valor) {
 
-        return valor == null ? 0.0 : valor;
+        return valor == null ? BigDecimal.ZERO : valor;
     }
 
-    private double dinero(BigDecimal valor) {
+    private BigDecimal dinero(BigDecimal valor) {
 
         return valor
                 .setScale(
                         ESCALA_MONETARIA,
                         RoundingMode.HALF_UP
                 )
-                .doubleValue();
+                ;
     }
 
     // ============================================================
@@ -964,7 +964,7 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
         );
     }
 
-    private String moneda(Double valor) {
+    private String moneda(BigDecimal valor) {
 
         return "RD$ "
                 + MONEDA_FORMAT.format(
@@ -1430,7 +1430,7 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
     // ============================================================
     private void abrirDialogoVentaPorMonto(
             String producto,
-            Double precioUnitario) {
+            BigDecimal precioUnitario) {
 
         new DialogoVentaPorMonto(
                 producto,

@@ -13,6 +13,7 @@ import com.maxsoft.application.repo.MovimientoInventarioRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,7 +58,7 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         Articulo articulo = articuloRepo.findById(articuloInput.getCodigo())
                 .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado con ID: " + articuloInput.getCodigo()));
 
-        double stockAnterior = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+        double stockAnterior = articulo.getExistencia() != null ? articulo.getExistencia().doubleValue() : 0.0;
         double stockNuevo;
 
         String tipoUpper = tipoMovimiento.getNombre().toUpperCase();
@@ -70,20 +71,20 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
             case "SALIDA", "AJUSTE_DECREMENTO" -> {
 
                 // Solo bloquea si NO permite ventas sin existencia y la cantidad requerida supera el stock
-                boolean permiteSinStock = Boolean.TRUE.equals(articulo.isPermitirVentaSinExistencia());
+                boolean permiteSinStock = Boolean.TRUE.equals(articulo.getPermitirVentaSinExistencia());
 
                 if (!permiteSinStock && stockAnterior < cantidad) {
                     
 //                      ClaseUtil.mostrarNotificacion("Existencia insuficiente para: " + articulo.getDescripcion()
 //                    + ". Disponible: " + stockAnterior + ", Solicitado: " + cantidad, NotificationVariant.LUMO_PRIMARY);
-                    throw new IllegalStateException("Stock insuficiente para '" + articulo.getDescripcion()
-                            + "'. Existencia actual: " + stockAnterior + ", Cantidad requerida: " + cantidad);
+//                    throw new IllegalStateException("Stock insuficiente para '" + articulo.getDescripcion()
+//                            + "'. Existencia actual: " + stockAnterior + ", Cantidad requerida: " + cantidad);
                 }
 
                 if (stockAnterior < cantidad) {
 
-                    throw new IllegalStateException("Stock insuficiente para '" + articulo.getDescripcion()
-                            + "'. Existencia actual: " + stockAnterior + ", Cantidad requerida: " + cantidad);
+//                    throw new IllegalStateException("Stock insuficiente para '" + articulo.getDescripcion()
+//                            + "'. Existencia actual: " + stockAnterior + ", Cantidad requerida: " + cantidad);
                 }
                 stockNuevo = stockAnterior - cantidad;
             }
@@ -94,7 +95,7 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
 
         System.out.println("stockNuevo:" + stockNuevo);
         // 3. Impactar el stock en la entidad Articulo
-        articulo.setExistencia(stockNuevo);
+        articulo.setExistencia(BigDecimal.valueOf(stockNuevo));
         articuloRepo.save(articulo);
 
         // 4. Crear la auditoría en la tabla movimiento_inventario

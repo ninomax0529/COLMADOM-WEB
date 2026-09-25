@@ -23,6 +23,7 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import java.math.BigDecimal;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -33,10 +34,11 @@ public class PanelProductos extends VerticalLayout {
     FacturaDeVentaService facturaDeVentaService;
 
     public PanelProductos(
+            
             ArticuloService articuloServicel,
             Consumer<Articulo> onAgregarAlTicketActivo,
-            BiConsumer<Articulo, Double> onAgregarCantidadAlTicketActivo,
-            BiConsumer<String, Double> onAbrirVentaPorMonto,
+            BiConsumer<Articulo, BigDecimal> onAgregarCantidadAlTicketActivo,
+            BiConsumer<String, BigDecimal> onAbrirVentaPorMonto,
             Runnable onAbrirAperturaCaja,
             Runnable onAbrirCierreCaja,
             Runnable onAbrirMovimientoPos,
@@ -113,7 +115,7 @@ public class PanelProductos extends VerticalLayout {
                     "https://images.unsplash.com/photo-1528825871115-3581a5387919?w=300&auto=format&fit=crop&q=60",
                     (articulo, cantidad) -> {
                         if (onAgregarCantidadAlTicketActivo != null) {
-                            onAgregarCantidadAlTicketActivo.accept(articulo, cantidad);
+                            onAgregarCantidadAlTicketActivo.accept(articulo, cantidad );
                         }
                     },
                     (articulo) -> {
