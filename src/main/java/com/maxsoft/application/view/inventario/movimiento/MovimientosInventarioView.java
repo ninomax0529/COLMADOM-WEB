@@ -124,6 +124,10 @@ public class MovimientosInventarioView extends VerticalLayout {
                 .setHeader("Artículo")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
+          grid.addColumn(m -> m.getAlmacen()!= null ? m.getAlmacen().getNombre(): "")
+                .setHeader("Almacen")
+                .setAutoWidth(true)
+                .setFlexGrow(1);
 
         // Columna de Tipo con Badges de colores
         grid.addComponentColumn(this::crearBadgeTipoMovimiento)

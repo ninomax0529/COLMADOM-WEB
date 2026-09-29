@@ -105,8 +105,6 @@ public class Articulo implements Serializable {
     @NotNull
     @Column(name = "habilitado")
     private boolean habilitado;
-    @OneToMany(mappedBy = "articulo")
-    private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -161,6 +159,8 @@ public class Articulo implements Serializable {
     private Date fechaVencimiento;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleEntradaInventario> detalleEntradaInventarioCollection;
+    @OneToMany(mappedBy = "articulo")
+    private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
@@ -178,6 +178,8 @@ public class Articulo implements Serializable {
     private UnidadDeVenta unidadDeVenta;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
+    private Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
@@ -474,6 +476,14 @@ public class Articulo implements Serializable {
         this.detalleEntradaInventarioCollection = detalleEntradaInventarioCollection;
     }
 
+    public Collection<DetalleOrdendeDeCompra> getDetalleOrdendeDeCompraCollection() {
+        return detalleOrdendeDeCompraCollection;
+    }
+
+    public void setDetalleOrdendeDeCompraCollection(Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection) {
+        this.detalleOrdendeDeCompraCollection = detalleOrdendeDeCompraCollection;
+    }
+
     public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
         return detalleFacturaDeVentaCollection;
     }
@@ -528,6 +538,14 @@ public class Articulo implements Serializable {
 
     public void setDetalleAjusteInventarioCollection(Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection) {
         this.detalleAjusteInventarioCollection = detalleAjusteInventarioCollection;
+    }
+
+    public Collection<DetalleRecepcionMercancia> getDetalleRecepcionMercanciaCollection() {
+        return detalleRecepcionMercanciaCollection;
+    }
+
+    public void setDetalleRecepcionMercanciaCollection(Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection) {
+        this.detalleRecepcionMercanciaCollection = detalleRecepcionMercanciaCollection;
     }
 
     public Collection<DetalleSalidaInventario> getDetalleSalidaInventarioCollection() {
@@ -604,6 +622,7 @@ public class Articulo implements Serializable {
         this.inventariable = inventariable;
     }
 
+
     public String getModelo() {
         return modelo;
     }
@@ -643,14 +662,6 @@ public class Articulo implements Serializable {
 
     public void setHabilitado(boolean habilitado) {
         this.habilitado = habilitado;
-    }
-
-    public Collection<DetalleOrdendeDeCompra> getDetalleOrdendeDeCompraCollection() {
-        return detalleOrdendeDeCompraCollection;
-    }
-
-    public void setDetalleOrdendeDeCompraCollection(Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection) {
-        this.detalleOrdendeDeCompraCollection = detalleOrdendeDeCompraCollection;
     }
     
 }

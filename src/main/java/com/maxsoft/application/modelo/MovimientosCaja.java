@@ -23,6 +23,7 @@ import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  *
@@ -131,11 +132,11 @@ public class MovimientosCaja implements Serializable {
         this.usuario = usuario;
     }
 
-    public CajaTurno getCajaTurnoId() {
+    public CajaTurno getCajaTurno() {
         return cajaTurno;
     }
 
-    public void setCajaTurnoId(CajaTurno cajaTurno) {
+    public void setCajaTurno(CajaTurno cajaTurno) {
         this.cajaTurno = cajaTurno;
     }
 

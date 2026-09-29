@@ -1,14 +1,17 @@
 package com.maxsoft.application.servicio.impl.inventario;
 
 import com.maxsoft.application.modelo.AjusteInventario;
+import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.DetalleAjusteInventario;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
+import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.SalidaInventario;
 import com.maxsoft.application.modelo.TipoDocumento;
 import com.maxsoft.application.modelo.TipoMovimiento;
+import com.maxsoft.application.modelo.TrasladoInventario;
 import com.maxsoft.application.modelo.Usuario;
 import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.repo.SalidaInventarioRepo;
@@ -42,7 +45,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
             MovimientoInventarioService movimientoService,
             TipoDocumentoService tipoDocumentoService,
             TipoMovimientoService tipoMovimientoService) {
-        
+
         this.salidaRepo = salidaRepo;
         this.articuloRepo = articuloRepo;
         this.movimientoService = movimientoService;
@@ -81,10 +84,13 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                             .orElse(articuloProxy);
 
                     double cantidadSalida = detalle.getCantidad() != null ? detalle.getCantidad().doubleValue() : 0.0;
+                    
+                       Almacen alm=new Almacen(2) ;
 
                     if (cantidadSalida > 0) {
                         movimientoService.registrarMovimiento(
                                 articulo,
+                                alm,
                                 tm,
                                 tp,
                                 numDocumento,
@@ -130,16 +136,16 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setDescripcionArticulo(detFactura.getArticulo().getDescripcion());
                 detSalida.setCantidad(detFactura.getCantidad());
 
-                double stockActual = detFactura.getArticulo().getExistencia() != null 
+                double stockActual = detFactura.getArticulo().getExistencia() != null
                         ? detFactura.getArticulo().getExistencia().doubleValue() : 0.0;
-                
+
                 detSalida.setExistenciaAnterior(BigDecimal.valueOf(stockActual));
                 detSalida.setExistencia(BigDecimal.valueOf(stockActual));
                 detSalida.setUnidad(detFactura.getArticulo().getUnidadSalida());
                 detSalida.setCostoUnitario(detFactura.getPrecioCompra());
-                
+
                 detSalida.setPrecioCompra(detFactura.getPrecioCompra());
-                detSalida.setPrecioVenta(detFactura.getPrecioVenta() != null ? detFactura.getPrecioVenta() : BigDecimal.ZERO );
+                detSalida.setPrecioVenta(detFactura.getPrecioVenta() != null ? detFactura.getPrecioVenta() : BigDecimal.ZERO);
 
                 detalles.add(detSalida);
             }
@@ -161,12 +167,12 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
         salida.setTipoDocumento(this.tipoDocumentoService.getTipoDocumento(3)); // Asignar Tipo Ajuste
         salida.setNumeroDocumento(ajuste.getCodigo().toString());
         salida.setUsuario(ajuste.getUsuario() != null ? ajuste.getUsuario() : new Usuario(1));
-        
-        String nombreUsuario = (ajuste.getUsuario() != null && ajuste.getUsuario().getNombre() != null) 
+
+        String nombreUsuario = (ajuste.getUsuario() != null && ajuste.getUsuario().getNombre() != null)
                 ? ajuste.getUsuario().getNombre() : "SISTEMA";
-        
+
         salida.setNombreUsuario(nombreUsuario);
-        salida.setObservacion("Salida por Ajuste de Inventario #" + ajuste.getCodigo() + ". " 
+        salida.setObservacion("Salida por Ajuste de Inventario #" + ajuste.getCodigo() + ". "
                 + (ajuste.getObservacion() != null ? ajuste.getObservacion() : ""));
 
         List<DetalleSalidaInventario> detallesSalida = new ArrayList<>();
@@ -185,10 +191,10 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setExistenciaAnterior(BigDecimal.valueOf(stockActual));
                 detSalida.setExistencia(BigDecimal.valueOf(stockActual));
                 detSalida.setUnidad(det.getArticulo().getUnidadSalida());
-                detSalida.setCostoUnitario(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO  );
-                
-                detSalida.setPrecioCompra(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO );
-                
+                detSalida.setCostoUnitario(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
+
+                detSalida.setPrecioCompra(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
+
                 detSalida.setPrecioVenta(det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO);
 
                 detallesSalida.add(detSalida);
@@ -216,5 +222,55 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
     @Transactional(readOnly = true)
     public List<SalidaInventario> getLista(boolean estado) {
         return salidaRepo.getLista(estado);
+    }
+
+    @Override
+    public SalidaInventario crearSalidaPorTraslado(TrasladoInventario traslado, List<DetalleTrasladoInventario> detalles) {
+
+        SalidaInventario salida = new SalidaInventario();
+
+        salida.setFechaRegistro(new Date());
+        salida.setFecha(traslado.getFechaEmision());
+        salida.setTipoDocumento(this.tipoDocumentoService.getTipoDocumento(3)); // Asignar Tipo Ajuste
+        salida.setNumeroDocumento(traslado.getCodigo().toString());
+        salida.setUsuario(traslado.getUsuarioEnvia()!= null ? traslado.getUsuarioEnvia(): new Usuario(1));
+
+        String nombreUsuario = (traslado.getUsuarioEnvia()!= null && traslado.getUsuarioEnvia().getNombre() != null)
+                ? traslado.getUsuarioEnvia().getNombre() : "SISTEMA";
+
+        salida.setNombreUsuario(nombreUsuario);
+        salida.setObservacion("Salida por Traslado de Inventario #" + traslado.getCodigo() + ". "
+                + (traslado.getObservacion() != null ? traslado.getObservacion() : ""));
+
+        List<DetalleSalidaInventario> detallesSalida = new ArrayList<>();
+
+        for (DetalleTrasladoInventario det : detalles) {
+
+            if (det.getArticulo() != null && det.getCantidadEnviada()!= null && det.getCantidadEnviada().doubleValue() > 0) {
+
+                DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
+                detSalida.setSalidaInventario(salida);
+                detSalida.setArticulo(det.getArticulo());
+                detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
+                detSalida.setCantidad(det.getCantidadEnviada());
+
+                double stockActual = det.getArticulo().getExistencia() != null ? det.getArticulo().getExistencia().doubleValue() : 0.0;
+                detSalida.setExistenciaAnterior(BigDecimal.valueOf(stockActual));
+                detSalida.setExistencia(BigDecimal.valueOf(stockActual));
+                detSalida.setUnidad(det.getArticulo().getUnidadSalida());
+                detSalida.setCostoUnitario(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
+
+                detSalida.setPrecioCompra(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
+
+                detSalida.setPrecioVenta(det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO);
+
+                detallesSalida.add(detSalida);
+            }
+        }
+
+        salida.setDetalleSalidaInventarioCollection(detallesSalida);
+
+        return guardar(salida, nombreUsuario);
+
     }
 }

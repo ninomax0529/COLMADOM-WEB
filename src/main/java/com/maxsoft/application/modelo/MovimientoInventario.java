@@ -32,19 +32,13 @@ import java.util.Date;
     @NamedQuery(name = "MovimientoInventario.findAll", query = "SELECT m FROM MovimientoInventario m")})
 public class MovimientoInventario implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 50)
     @Column(name = "numero_documento")
     private String numeroDocumento;
     @Basic(optional = false)
-    @NotNull
+    @NotNull()
     @Column(name = "cantidad")
     private double cantidad;
     @Basic(optional = false)
@@ -66,6 +60,15 @@ public class MovimientoInventario implements Serializable {
     @Size(max = 255)
     @Column(name = "observacion")
     private String observacion;
+    @JoinColumn(name = "almacen", referencedColumnName = "codigo")
+    @ManyToOne(optional = false)
+    private Almacen almacen;
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @JoinColumn(name = "articulo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Articulo articulo;
@@ -108,13 +111,6 @@ public class MovimientoInventario implements Serializable {
         this.numeroDocumento = numeroDocumento;
     }
 
-    public double getCantidad() {
-        return cantidad;
-    }
-
-    public void setCantidad(double cantidad) {
-        this.cantidad = cantidad;
-    }
 
     public double getExistenciaAnterior() {
         return existenciaAnterior;
@@ -138,22 +134,6 @@ public class MovimientoInventario implements Serializable {
 
     public void setFechaMovimiento(Date fechaMovimiento) {
         this.fechaMovimiento = fechaMovimiento;
-    }
-
-    public String getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(String usuario) {
-        this.usuario = usuario;
-    }
-
-    public String getObservacion() {
-        return observacion;
-    }
-
-    public void setObservacion(String observacion) {
-        this.observacion = observacion;
     }
 
     public Articulo getArticulo() {
@@ -203,6 +183,40 @@ public class MovimientoInventario implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.MovimientoInventario[ codigo=" + codigo + " ]";
+    }
+
+
+    public double getCantidad() {
+        return cantidad;
+    }
+
+    public void setCantidad(double cantidad) {
+        this.cantidad = cantidad;
+    }
+
+
+    public String getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(String usuario) {
+        this.usuario = usuario;
+    }
+
+    public String getObservacion() {
+        return observacion;
+    }
+
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
+    }
+
+    public Almacen getAlmacen() {
+        return almacen;
+    }
+
+    public void setAlmacen(Almacen almacen) {
+        this.almacen = almacen;
     }
     
 }

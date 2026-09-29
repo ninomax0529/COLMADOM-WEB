@@ -54,11 +54,6 @@ public class TrasladoInventario implements Serializable {
     @Column(name = "fecha_recepcion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaRecepcion;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 20)
-    @Column(name = "estado")
-    private String estado;
     @Size(max = 255)
     @Column(name = "observacion")
     private String observacion;
@@ -68,6 +63,9 @@ public class TrasladoInventario implements Serializable {
     @JoinColumn(name = "almacen_origen", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Almacen almacenOrigen;
+    @JoinColumn(name = "estado", referencedColumnName = "codigo")
+    @ManyToOne(optional = false)
+    private EstadoDocumento estado;
     @JoinColumn(name = "usuario_envia", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Usuario usuarioEnvia;
@@ -84,11 +82,10 @@ public class TrasladoInventario implements Serializable {
         this.codigo = codigo;
     }
 
-    public TrasladoInventario(Integer codigo, String numeroDocumento, Date fechaEmision, String estado) {
+    public TrasladoInventario(Integer codigo, String numeroDocumento, Date fechaEmision) {
         this.codigo = codigo;
         this.numeroDocumento = numeroDocumento;
         this.fechaEmision = fechaEmision;
-        this.estado = estado;
     }
 
     public Integer getCodigo() {
@@ -123,14 +120,6 @@ public class TrasladoInventario implements Serializable {
         this.fechaRecepcion = fechaRecepcion;
     }
 
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
-
     public String getObservacion() {
         return observacion;
     }
@@ -153,6 +142,14 @@ public class TrasladoInventario implements Serializable {
 
     public void setAlmacenOrigen(Almacen almacenOrigen) {
         this.almacenOrigen = almacenOrigen;
+    }
+
+    public EstadoDocumento getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoDocumento estado) {
+        this.estado = estado;
     }
 
     public Usuario getUsuarioEnvia() {

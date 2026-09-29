@@ -9,6 +9,7 @@ import com.maxsoft.application.evento.SalidaInventarioCreadaEvent;
 import com.maxsoft.application.evento.VentaAnuladaEvent;
 import com.maxsoft.application.evento.VentaDevueltaEvent;
 import com.maxsoft.application.evento.VentaRealizadaEvent;
+import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.TipoDocumento;
 import com.maxsoft.application.modelo.TipoMovimiento;
@@ -52,10 +53,13 @@ public class InventarioServiceImpl implements InventarioService {
             if (item.getIdArticulo() != null) {
                 Articulo articulo = articuloRepo.findById(item.getIdArticulo())
                         .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado ID: " + item.getIdArticulo()));
+                
+                   Almacen alm=new Almacen(item.getIdAlmacen()) ;
 
                 // Reutilizas directamente tu servicio de movimientos
                 movimientoInventarioService.registrarMovimiento(
                         articulo,
+                        alm,
                         tipoSalida,
                         tipoFactura,
                         event.getIdFactura().toString(),
@@ -121,10 +125,13 @@ public class InventarioServiceImpl implements InventarioService {
 
                 Articulo articulo = articuloRepo.findById(item.getIdArticulo())
                         .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado ID: " + item.getIdArticulo()));
+                
+                    Almacen alm=new Almacen(2) ;
 
                 // Se usa el servicio existente: incrementa stock y crea la auditoría
                 movimientoInventarioService.registrarMovimiento(
                         articulo,
+                        alm,
                         tipoEntrada,
                         tipoFactura,
                         String.valueOf(event.getIdFactura()),
@@ -153,9 +160,12 @@ public class InventarioServiceImpl implements InventarioService {
 
             if (articulo != null) {
                 String tipoDevolucion = event.isEsDevolucionTotal() ? "Devolución Total" : "Devolución Parcial";
+                
+                  Almacen alm=new Almacen(2) ;
 
                 movimientoInventarioService.registrarMovimiento(
                         articulo,
+                        alm,
                         tipoEntrada,
                         tipoFactura,
                         String.valueOf(event.getIdFactura()),
@@ -186,10 +196,13 @@ public class InventarioServiceImpl implements InventarioService {
 
                 Articulo articulo = articuloRepo.findById(item.getIdArticulo())
                         .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado ID: " + item.getIdArticulo()));
+                
+                   Almacen alm=new Almacen(2) ;
 
                 // Registrar movimiento en la tabla de inventario / kardex
                 movimientoInventarioService.registrarMovimiento(
                         articulo,
+                        alm,
                         tipoSalida,
                         tipoDocSalida,
                         String.valueOf(event.getIdSalida()), // ID de la salida
@@ -215,9 +228,12 @@ public class InventarioServiceImpl implements InventarioService {
             if (item.getIdArticulo() != null) {
                 Articulo articulo = articuloRepo.findById(item.getIdArticulo())
                         .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado ID: " + item.getIdArticulo()));
+                
+                   Almacen alm=new Almacen(2) ;
 
                 movimientoInventarioService.registrarMovimiento(
                         articulo,
+                        alm,
                         tipoMovimiento,
                         tipoDocAjuste,
                         "AJ-" + event.getIdAjuste(),

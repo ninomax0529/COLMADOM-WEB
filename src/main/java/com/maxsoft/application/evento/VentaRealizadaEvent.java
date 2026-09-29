@@ -7,7 +7,6 @@ package com.maxsoft.application.evento;
 import java.io.Serializable;
 import java.util.List;
 
-
 public class VentaRealizadaEvent {
 
     private final Integer idFactura;
@@ -18,19 +17,41 @@ public class VentaRealizadaEvent {
         this.items = items;
     }
 
-    public Integer getIdFactura() { return idFactura; }
-    public List<ItemVentaDto> getItems() { return items; }
+    public Integer getIdFactura() {
+        return idFactura;
+    }
+
+    public List<ItemVentaDto> getItems() {
+        return items;
+    }
 
     public static class ItemVentaDto implements Serializable {
-        private final Integer idArticulo;
-        private final Double cantidad;
 
-        public ItemVentaDto(Integer idArticulo, Double cantidad) {
+        private final Integer idArticulo;
+        private final Integer idAlmacen;
+        private final Double cantidad;
+        
+
+        public ItemVentaDto(Integer idArticulo, Double cantidad, Integer idAlmacen) {
             this.idArticulo = idArticulo;
             this.cantidad = cantidad;
+            this.idAlmacen = idAlmacen;
         }
 
-        public Integer getIdArticulo() { return idArticulo; }
-        public Double getCantidad() { return cantidad; }
+        public Integer getIdArticulo() {
+            return idArticulo;
+        }
+
+        public Double getCantidad() {
+            return cantidad;
+        }
+
+        /**
+         * @return the idAlmacen
+         */
+        public Integer getIdAlmacen() {
+            return idAlmacen;
+        }
+
     }
 }

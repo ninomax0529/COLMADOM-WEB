@@ -71,6 +71,8 @@ public class Unidad implements Serializable {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "unidad")
     private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "unidad")
+    private Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "unidad")
     private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
 
     public Unidad() {
@@ -165,6 +167,14 @@ public class Unidad implements Serializable {
 
     public void setDetalleAjusteInventarioCollection(Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection) {
         this.detalleAjusteInventarioCollection = detalleAjusteInventarioCollection;
+    }
+
+    public Collection<DetalleRecepcionMercancia> getDetalleRecepcionMercanciaCollection() {
+        return detalleRecepcionMercanciaCollection;
+    }
+
+    public void setDetalleRecepcionMercanciaCollection(Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection) {
+        this.detalleRecepcionMercanciaCollection = detalleRecepcionMercanciaCollection;
     }
 
     public Collection<DetalleSalidaInventario> getDetalleSalidaInventarioCollection() {

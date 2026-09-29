@@ -7,6 +7,7 @@ package com.maxsoft.application.servicio.impl.venta;
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
 import com.maxsoft.application.evento.VentaDevueltaEvent;
 import com.maxsoft.application.evento.VentaRealizadaEvent;
+import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.CajaTurno;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
@@ -75,6 +76,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
                     throw new IllegalArgumentException("El artículo '" + det.getDescripcionArticulo() + "' tiene la cantidad en cero.");
                 }
 
+                 det.setAlmacen(new Almacen(2));
                 // Validar stock solo si el artículo existe y es inventariable
                 if (det.getArticulo() != null && det.getArticulo().getCodigo() != null
                         && Boolean.TRUE.equals(det.getArticulo().getInventariable())) {
@@ -143,7 +145,8 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
                     .map(item -> {
                         // Asegurar la extracción del ID del artículo (probando getCodigo() o getId())
                         Integer idArticulo = item.getArticulo().getCodigo();
-                        return new VentaRealizadaEvent.ItemVentaDto(idArticulo, item.getCantidad().doubleValue());
+                        Integer idalm=item.getAlmacen().getCodigo();
+                        return new VentaRealizadaEvent.ItemVentaDto(idArticulo,item.getCantidad().doubleValue(),idalm);
                     })
                     // Filtrar DTOs cuyo idArticulo no sea nulo
                     .filter(dto -> dto!= null)

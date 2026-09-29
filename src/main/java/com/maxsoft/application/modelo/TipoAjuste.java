@@ -94,7 +94,7 @@ public class TipoAjuste implements Serializable {
 
     @Override
     public String toString() {
-        return descripcion;
+        return "com.maxsoft.application.modelo.TipoAjuste[ codigo=" + codigo + " ]";
     }
     
 }

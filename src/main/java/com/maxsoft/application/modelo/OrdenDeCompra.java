@@ -8,7 +8,6 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -120,6 +119,8 @@ public class OrdenDeCompra implements Serializable {
     @Size(max = 50)
     @Column(name = "nombre_solicitante")
     private String nombreSolicitante;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "ordenDeCompra")
+    private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
     @JoinColumn(name = "moneda", referencedColumnName = "codigo")
     @ManyToOne
     private Moneda moneda;
@@ -132,8 +133,6 @@ public class OrdenDeCompra implements Serializable {
     @JoinColumn(name = "tipo_compra", referencedColumnName = "codigo")
     @ManyToOne
     private TipoCompra tipoCompra;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "ordenDeCompra" ,fetch = FetchType.EAGER)
-    private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
 
     public OrdenDeCompra() {
     }
@@ -395,6 +394,14 @@ public class OrdenDeCompra implements Serializable {
         this.nombreSolicitante = nombreSolicitante;
     }
 
+    public Collection<DetalleOrdendeDeCompra> getDetalleOrdendeDeCompraCollection() {
+        return detalleOrdendeDeCompraCollection;
+    }
+
+    public void setDetalleOrdendeDeCompraCollection(Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection) {
+        this.detalleOrdendeDeCompraCollection = detalleOrdendeDeCompraCollection;
+    }
+
     public Moneda getMoneda() {
         return moneda;
     }
@@ -425,14 +432,6 @@ public class OrdenDeCompra implements Serializable {
 
     public void setTipoCompra(TipoCompra tipoCompra) {
         this.tipoCompra = tipoCompra;
-    }
-
-    public Collection<DetalleOrdendeDeCompra> getDetalleOrdendeDeCompraCollection() {
-        return detalleOrdendeDeCompraCollection;
-    }
-
-    public void setDetalleOrdendeDeCompraCollection(Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection) {
-        this.detalleOrdendeDeCompraCollection = detalleOrdendeDeCompraCollection;
     }
 
     @Override

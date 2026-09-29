@@ -69,7 +69,7 @@ public class CajaServiceImpl implements CajaService {
         }
 
         MovimientosCaja movimiento = new MovimientosCaja();
-        movimiento.setCajaTurnoId(turno);
+        movimiento.setCajaTurno(turno);
         movimiento.setTipo(tipo); // "RETIRO", "GASTO_MENOR", "INGRESO_EXTRA"
         movimiento.setMonto(monto);
         movimiento.setDescripcion(descripcion);
@@ -145,7 +145,7 @@ public class CajaServiceImpl implements CajaService {
         }
 
         MovimientosCaja movimiento = new MovimientosCaja();
-        movimiento.setCajaTurnoId(turno);
+        movimiento.setCajaTurno(turno);
         movimiento.setTipo("POS_" + tipoPos);
         movimiento.setMonto(monto);
         movimiento.setDescripcion(descripcion);

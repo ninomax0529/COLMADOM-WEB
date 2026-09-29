@@ -108,7 +108,7 @@ public class OrdenDeCompraView extends VerticalLayout {
         FormLayout formLayout = new FormLayout();
 
         cbSuplidor.setItems(proveedorService.getLista());
-        cbSuplidor.setItemLabelGenerator(s -> s.getRnc() != null ? s.getnombre() + " (" + s.getRnc() + ")" : s.getnombre());
+        cbSuplidor.setItemLabelGenerator(s -> s.getRnc() != null ? s.getNombre() + " (" + s.getRnc() + ")" : s.getNombre());
         cbSuplidor.setRequired(true);
         cbSuplidor.addValueChangeListener(e -> actualizarDatosProveedor(e.getValue()));
 

@@ -7,9 +7,11 @@ package com.maxsoft.application.servicio.impl.inventario;
 import com.maxsoft.application.modelo.ArticuloAlmacen;
 import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.TrasladoInventario;
-import com.maxsoft.application.repo.ArticuloAlmacenRepo;
 import com.maxsoft.application.repo.TrasladoInventarioRepo;
+import com.maxsoft.application.servicio.interfaces.EstadoDocumentoService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
+import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
+import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.TrasladoInventarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,19 +19,31 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class TrasladoInventarioServiceImpl implements TrasladoInventarioService {
 
     private final TrasladoInventarioRepo trasladoRepo;
     private final ArticuloAlmacenService articuloAlmacenService;
+    EstadoDocumentoService estadoDocumentoService;
+    private EntradaDeInventarioService entradaInventarioService;
+
+    SalidaInventarioService SalidaInventarioService;
 
     @Autowired
     public TrasladoInventarioServiceImpl(TrasladoInventarioRepo trasladoRepo,
-            ArticuloAlmacenService articuloAlmacenService) {
-        
+            ArticuloAlmacenService articuloAlmacenService,
+            EstadoDocumentoService estadoDocumentoService,
+            EntradaDeInventarioService entradaInventarioService,
+            SalidaInventarioService SalidaInventarioService
+    ) {
+
         this.trasladoRepo = trasladoRepo;
         this.articuloAlmacenService = articuloAlmacenService;
+        this.estadoDocumentoService = estadoDocumentoService;
+        this.entradaInventarioService = entradaInventarioService;
+        this.SalidaInventarioService = SalidaInventarioService;
     }
 
     @Override
@@ -89,7 +103,7 @@ public class TrasladoInventarioServiceImpl implements TrasladoInventarioService 
                         // Si el producto nunca ha existido en el almacén destino, se crea el registro inicial con stock 0
                         ArticuloAlmacen nuevoStock = new ArticuloAlmacen();
                         nuevoStock.setArticulo(detalle.getArticulo());
-                        nuevoStock.setAlmacen(traslado.getAlmacenDestino());
+//                        nuevoStock.setAlmacen(stockDestino.getAlmacen());
                         nuevoStock.setExistencia(BigDecimal.ZERO);
                         nuevoStock.setMinimo(BigDecimal.ZERO);
                         nuevoStock.setMaximo(BigDecimal.ZERO);
@@ -111,9 +125,20 @@ public class TrasladoInventarioServiceImpl implements TrasladoInventarioService 
         // 3. ACTUALIZACIÓN DE ESTADOS Y PERSISTENCIA FINAL
         // -----------------------------------------------------------------
         traslado.setFechaEmision(new Date());
-        traslado.setEstado("COMPLETADO");
+
+        traslado.setEstado(this.estadoDocumentoService.getEstado(3));
+
+        traslado = trasladoRepo.save(traslado);
+
+        List<DetalleTrasladoInventario> lista = traslado.getDetalleTrasladoInventarioCollection()
+                .stream()
+                .toList();
+
+        this.entradaInventarioService.crearEntradaPorTraslado(traslado, lista);
+
+        this.SalidaInventarioService.crearSalidaPorTraslado(traslado, lista);
 
         // Guarda la cabecera y en cascada guarda todos los detalles
-        return trasladoRepo.save(traslado);
+        return traslado;
     }
 }

@@ -15,9 +15,10 @@ public interface ArticuloService {
 
     Articulo guardar(Articulo art);
 
+    Articulo buscarPorCodigo(int codigo);
+
     void eliminarArticulo(int codigo);
 
     List<Articulo> getLista();
-
 
 }

@@ -29,12 +29,6 @@ import java.util.Collection;
     @NamedQuery(name = "Plazo.findAll", query = "SELECT p FROM Plazo p")})
 public class Plazo implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Size(max = 100)
     @Column(name = "descripcion")
     private String descripcion;
@@ -42,6 +36,13 @@ public class Plazo implements Serializable {
     @NotNull
     @Column(name = "dias")
     private int dias;
+
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @OneToMany(mappedBy = "plazo")
     private Collection<OrdenDeCompra> ordenDeCompraCollection;
     @OneToMany(mappedBy = "plazo")
@@ -67,21 +68,6 @@ public class Plazo implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public int getDias() {
-        return dias;
-    }
-
-    public void setDias(int dias) {
-        this.dias = dias;
-    }
 
     public Collection<OrdenDeCompra> getOrdenDeCompraCollection() {
         return ordenDeCompraCollection;
@@ -121,7 +107,23 @@ public class Plazo implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Plazo[ codigo=" + codigo + " ]";
+        return descripcion;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public int getDias() {
+        return dias;
+    }
+
+    public void setDias(int dias) {
+        this.dias = dias;
     }
     
 }

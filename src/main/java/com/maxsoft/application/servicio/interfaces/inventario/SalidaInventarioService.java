@@ -7,8 +7,10 @@ package com.maxsoft.application.servicio.interfaces.inventario;
 import com.maxsoft.application.modelo.AjusteInventario;
 import com.maxsoft.application.modelo.DetalleAjusteInventario;
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
+import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.SalidaInventario;
+import com.maxsoft.application.modelo.TrasladoInventario;
 import java.util.List;
 
 /**
@@ -36,6 +38,8 @@ public interface SalidaInventarioService {
     List<SalidaInventario> getLista(boolean estado);
 
     SalidaInventario crearSalidaPorVenta(FacturaDeVenta factura);
-
+    
     SalidaInventario crearSalidaPorAjuste(AjusteInventario ajuste, List<DetalleAjusteInventario> detalles);
+
+    SalidaInventario crearSalidaPorTraslado(TrasladoInventario traslado, List<DetalleTrasladoInventario> detalles);
 }

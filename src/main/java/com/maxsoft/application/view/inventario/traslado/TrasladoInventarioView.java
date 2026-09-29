@@ -8,8 +8,8 @@ import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.ArticuloAlmacen;
 import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.TrasladoInventario;
+import com.maxsoft.application.modelo.Usuario;
 import com.maxsoft.application.repo.AlmacenRepo;
-import com.maxsoft.application.repo.ArticuloAlmacenRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.TrasladoInventarioService;
 import com.vaadin.flow.component.button.Button;
@@ -33,8 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-
-
 
 @PermitAll
 @PageTitle("Traslado de Inventario | MaxSoft ERP")
@@ -63,8 +61,8 @@ public class TrasladoInventarioView extends VerticalLayout {
 
     @Autowired
     public TrasladoInventarioView(TrasladoInventarioService trasladoService,
-                                  AlmacenRepo almacenRepo,
-                                  ArticuloAlmacenService articuloAlmacenService) {
+            AlmacenRepo almacenRepo,
+            ArticuloAlmacenService articuloAlmacenService) {
         this.trasladoService = trasladoService;
         this.almacenRepo = almacenRepo;
         this.articuloAlmacenService = articuloAlmacenService;
@@ -143,7 +141,17 @@ public class TrasladoInventarioView extends VerticalLayout {
 
         btnAgregar = new Button("Agregar", VaadinIcon.PLUS.create());
         btnAgregar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        btnAgregar.addClickListener(e -> agregarDetalleGrid());
+        btnAgregar.addClickListener(e -> {
+
+            try {
+
+                agregarDetalleGrid();
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+        });
 
         layoutDetalle.add(cbArticulo, nfStockDisponible, nfCantidad, btnAgregar);
         return layoutDetalle;
@@ -177,7 +185,16 @@ public class TrasladoInventarioView extends VerticalLayout {
 
         btnProcesar = new Button("Procesar Traslado", VaadinIcon.CHECK.create());
         btnProcesar.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        btnProcesar.addClickListener(e -> procesarTraslado());
+        btnProcesar.addClickListener(e -> {
+            try {
+
+                procesarTraslado();
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+        });
 
         btnLimpiar = new Button("Limpiar Formulario", VaadinIcon.REFRESH.create());
         btnLimpiar.addClickListener(e -> limpiarFormulario());
@@ -189,7 +206,6 @@ public class TrasladoInventarioView extends VerticalLayout {
     // -----------------------------------------------------------------
     // LÓGICA DE CONTROL Y EVENTOS
     // -----------------------------------------------------------------
-
     private void cargarAlmacenes() {
         List<Almacen> almacenes = almacenRepo.findAll();
         cbAlmacenOrigen.setItems(almacenes);
@@ -206,14 +222,13 @@ public class TrasladoInventarioView extends VerticalLayout {
     }
 
     private void actualizarComboArticulos() {
-        
+
         if (cbAlmacenOrigen.getValue() != null) {
-            
+
             // Cargar artículos que estén asignados al almacén origen
             List<ArticuloAlmacen> articulosOrigen = articuloAlmacenService.buscarPorAlmacen(
-                    cbAlmacenOrigen.getValue().getCodigo() ).get();
-            
-                    
+                    cbAlmacenOrigen.getValue().getCodigo()).get();
+
             cbArticulo.setItems(articulosOrigen);
             cbArticulo.setEnabled(true);
         } else {
@@ -223,6 +238,7 @@ public class TrasladoInventarioView extends VerticalLayout {
     }
 
     private void agregarDetalleGrid() {
+
         ArticuloAlmacen stockSeleccionado = cbArticulo.getValue();
         Double cantidad = nfCantidad.getValue();
 
@@ -243,9 +259,15 @@ public class TrasladoInventarioView extends VerticalLayout {
 
         // Crear detalle
         DetalleTrasladoInventario detalle = new DetalleTrasladoInventario();
+        detalle.setCodigo(stockSeleccionado.getArticulo().getCodigo());
         detalle.setArticulo(stockSeleccionado.getArticulo());
         detalle.setCantidadEnviada(BigDecimal.valueOf(cantidad));
         detalle.setCostoUnitario(stockSeleccionado.getArticulo().getPrecioCompra());
+        detalle.setPrecioCompra(stockSeleccionado.getArticulo().getPrecioCompra());
+        detalle.setDescripcionArticulo(stockSeleccionado.getArticulo().getDescripcion());
+        detalle.setUnidad(stockSeleccionado.getArticulo().getUnidadEntrada());
+        detalle.setNombreUnidad(stockSeleccionado.getArticulo().getUnidadEntrada().getAbreviatura());
+      
 
         listaDetalles.add(detalle);
         gridDetalle.setItems(listaDetalles);
@@ -257,6 +279,7 @@ public class TrasladoInventarioView extends VerticalLayout {
     }
 
     private void procesarTraslado() {
+
         if (cbAlmacenOrigen.getValue() == null || cbAlmacenDestino.getValue() == null) {
             mostrarNotificacion("Debe seleccionar origen y destino.", NotificationVariant.LUMO_ERROR);
             return;
@@ -268,12 +291,20 @@ public class TrasladoInventarioView extends VerticalLayout {
         }
 
         try {
-            
+
             TrasladoInventario traslado = new TrasladoInventario();
             traslado.setAlmacenOrigen(cbAlmacenOrigen.getValue());
             traslado.setAlmacenDestino(cbAlmacenDestino.getValue());
             traslado.setObservacion(txtObservacion.getValue());
             traslado.setNumeroDocumento("TR-" + System.currentTimeMillis());
+            traslado.setUsuarioEnvia(new Usuario(1));
+    
+
+            listaDetalles.forEach(o -> {
+                o.setTraslado(traslado);
+                o.setCodigo(null);
+            });
+
             traslado.setDetalleTrasladoInventarioCollection(listaDetalles);
 
             trasladoService.procesarTraslado(traslado);
@@ -282,6 +313,7 @@ public class TrasladoInventarioView extends VerticalLayout {
             limpiarFormulario();
 
         } catch (Exception ex) {
+            ex.printStackTrace();
             mostrarNotificacion("Error al procesar traslado: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }

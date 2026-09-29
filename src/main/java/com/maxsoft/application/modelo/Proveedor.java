@@ -5,6 +5,7 @@
 package com.maxsoft.application.modelo;
 
 import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -31,20 +32,13 @@ import java.util.Collection;
     @NamedQuery(name = "Proveedor.findAll", query = "SELECT p FROM Proveedor p")})
 public class Proveedor implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Size(max = 45)
     @Column(name = "rnc")
     private String rnc;
-    @Lob
-    @Size(max = 65535)
+    @Size(max = 150)
     @Column(name = "nombre")
     private String nombre;
-    @Lob
+    @Lob()
     @Size(max = 65535)
     @Column(name = "direccion")
     private String direccion;
@@ -58,6 +52,7 @@ public class Proveedor implements Serializable {
     @Size(max = 100)
     @Column(name = "contacto")
     private String contacto;
+    // @Pattern(regexp="[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", message="Invalid email")//if the field contains email address consider using this annotation to enforce field validation
     @Size(max = 45)
     @Column(name = "celular")
     private String celular;
@@ -65,17 +60,26 @@ public class Proveedor implements Serializable {
     @Size(max = 45)
     @Column(name = "fax")
     private String fax;
-    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
-    @Column(name = "limite_credito")
-    private Double limiteCredito;
     @Size(max = 45)
     @Column(name = "cuenta_contable")
     private String cuentaContable;
+    // @Pattern(regexp="^\\(?(\\d{3})\\)?[- ]?(\\d{3})[- ]?(\\d{4})$", message="Invalid phone/fax format, should be as xxx-xxx-xxxx")//if the field contains phone or fax number consider using this annotation to enforce field validation
     @Size(max = 50)
     @Column(name = "web")
     private String web;
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
+    @Column(name = "limite_credito")
+    private Double limiteCredito;
     @OneToMany(mappedBy = "proveedor")
     private Collection<OrdenDeCompra> ordenDeCompraCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "proveedor")
+    private Collection<RecepcionMercancia> recepcionMercanciaCollection;
     @JoinColumn(name = "plazo", referencedColumnName = "codigo")
     @ManyToOne
     private Plazo plazo;
@@ -98,6 +102,81 @@ public class Proveedor implements Serializable {
         this.codigo = codigo;
     }
 
+
+    public Double getLimiteCredito() {
+        return limiteCredito;
+    }
+
+    public void setLimiteCredito(Double limiteCredito) {
+        this.limiteCredito = limiteCredito;
+    }
+
+    public String getCuentaContable() {
+        return cuentaContable;
+    }
+
+    public void setCuentaContable(String cuentaContable) {
+        this.cuentaContable = cuentaContable;
+    }
+
+
+    public Collection<OrdenDeCompra> getOrdenDeCompraCollection() {
+        return ordenDeCompraCollection;
+    }
+
+    public void setOrdenDeCompraCollection(Collection<OrdenDeCompra> ordenDeCompraCollection) {
+        this.ordenDeCompraCollection = ordenDeCompraCollection;
+    }
+
+    public Collection<RecepcionMercancia> getRecepcionMercanciaCollection() {
+        return recepcionMercanciaCollection;
+    }
+
+    public void setRecepcionMercanciaCollection(Collection<RecepcionMercancia> recepcionMercanciaCollection) {
+        this.recepcionMercanciaCollection = recepcionMercanciaCollection;
+    }
+
+    public Plazo getPlazo() {
+        return plazo;
+    }
+
+    public void setPlazo(Plazo plazo) {
+        this.plazo = plazo;
+    }
+
+    public TipoSuplidor getTipoSuplidor() {
+        return tipoSuplidor;
+    }
+
+    public void setTipoSuplidor(TipoSuplidor tipoSuplidor) {
+        this.tipoSuplidor = tipoSuplidor;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 0;
+        hash += (codigo != null ? codigo.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        // TODO: Warning - this method won't work in the case the id fields are not set
+        if (!(object instanceof Proveedor)) {
+            return false;
+        }
+        Proveedor other = (Proveedor) object;
+        if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return nombre;
+    }
+
     public String getRnc() {
         return rnc;
     }
@@ -106,11 +185,11 @@ public class Proveedor implements Serializable {
         this.rnc = rnc;
     }
 
-    public String getnombre() {
+    public String getNombre() {
         return nombre;
     }
 
-    public void setnombre(String nombre) {
+    public void setNombre(String nombre) {
         this.nombre = nombre;
     }
 
@@ -162,77 +241,12 @@ public class Proveedor implements Serializable {
         this.fax = fax;
     }
 
-    public Double getLimiteCredito() {
-        return limiteCredito;
-    }
-
-    public void setLimiteCredito(Double limiteCredito) {
-        this.limiteCredito = limiteCredito;
-    }
-
-    public String getCuentaContable() {
-        return cuentaContable;
-    }
-
-    public void setCuentaContable(String cuentaContable) {
-        this.cuentaContable = cuentaContable;
-    }
-
     public String getWeb() {
         return web;
     }
 
     public void setWeb(String web) {
         this.web = web;
-    }
-
-    public Collection<OrdenDeCompra> getOrdenDeCompraCollection() {
-        return ordenDeCompraCollection;
-    }
-
-    public void setOrdenDeCompraCollection(Collection<OrdenDeCompra> ordenDeCompraCollection) {
-        this.ordenDeCompraCollection = ordenDeCompraCollection;
-    }
-
-    public Plazo getPlazo() {
-        return plazo;
-    }
-
-    public void setPlazo(Plazo plazo) {
-        this.plazo = plazo;
-    }
-
-    public TipoSuplidor getTipoSuplidor() {
-        return tipoSuplidor;
-    }
-
-    public void setTipoSuplidor(TipoSuplidor tipoSuplidor) {
-        this.tipoSuplidor = tipoSuplidor;
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 0;
-        hash += (codigo != null ? codigo.hashCode() : 0);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Proveedor)) {
-            return false;
-        }
-        Proveedor other = (Proveedor) object;
-        if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public String toString() {
-        return "com.maxsoft.application.modelo.Proveedor[ codigo=" + codigo + " ]";
     }
     
 }

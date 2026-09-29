@@ -15,32 +15,34 @@ import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Date;
 
 /**
  *
  * @author Maximiliano
  */
 @Entity
-@Table(name = "tipo_movimiento")
+@Table(name = "estado_documento")
 @NamedQueries({
-    @NamedQuery(name = "TipoMovimiento.findAll", query = "SELECT t FROM TipoMovimiento t")})
-public class TipoMovimiento implements Serializable {
+    @NamedQuery(name = "EstadoDocumento.findAll", query = "SELECT e FROM EstadoDocumento e")})
+public class EstadoDocumento implements Serializable {
 
     @Basic(optional = false)
     @NotNull
-    @Size(min = 1, max = 45)
+    @Size(min = 1, max = 50)
     @Column(name = "nombre")
     private String nombre;
-    @Size(max = 50)
-    @Column(name = "creado_por")
-    private String creadoPor;
+    @Basic(optional = false)
+    @NotNull
+    @Size(min = 1, max = 30)
+    @Column(name = "nombre_modulo")
+    private String nombreModulo;
+    @Size(max = 20)
+    @Column(name = "color_badge")
+    private String colorBadge;
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -48,22 +50,24 @@ public class TipoMovimiento implements Serializable {
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @Column(name = "fecha_creacion")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaCreacion;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoMovimiento")
-    private Collection<MovimientoInventario> movimientoInventarioCollection;
+    @Column(name = "modulo")
+    private Integer modulo;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "estado")
+    private Collection<TrasladoInventario> trasladoInventarioCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "estadoDocumento")
+    private Collection<RecepcionMercancia> recepcionMercanciaCollection;
 
-    public TipoMovimiento() {
+    public EstadoDocumento() {
     }
 
-    public TipoMovimiento(Integer codigo) {
+    public EstadoDocumento(Integer codigo) {
         this.codigo = codigo;
     }
 
-    public TipoMovimiento(Integer codigo, String nombre) {
+    public EstadoDocumento(Integer codigo, String nombre, String nombreModulo) {
         this.codigo = codigo;
         this.nombre = nombre;
+        this.nombreModulo = nombreModulo;
     }
 
     public Integer getCodigo() {
@@ -75,28 +79,44 @@ public class TipoMovimiento implements Serializable {
     }
 
 
-    public Date getFechaCreacion() {
-        return fechaCreacion;
+    public String getNombreModulo() {
+        return nombreModulo;
     }
 
-    public void setFechaCreacion(Date fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
+    public void setNombreModulo(String nombreModulo) {
+        this.nombreModulo = nombreModulo;
     }
 
-    public String getCreadoPor() {
-        return creadoPor;
+    public String getColorBadge() {
+        return colorBadge;
     }
 
-    public void setCreadoPor(String creadoPor) {
-        this.creadoPor = creadoPor;
+    public void setColorBadge(String colorBadge) {
+        this.colorBadge = colorBadge;
     }
 
-    public Collection<MovimientoInventario> getMovimientoInventarioCollection() {
-        return movimientoInventarioCollection;
+    public Integer getModulo() {
+        return modulo;
     }
 
-    public void setMovimientoInventarioCollection(Collection<MovimientoInventario> movimientoInventarioCollection) {
-        this.movimientoInventarioCollection = movimientoInventarioCollection;
+    public void setModulo(Integer modulo) {
+        this.modulo = modulo;
+    }
+
+    public Collection<TrasladoInventario> getTrasladoInventarioCollection() {
+        return trasladoInventarioCollection;
+    }
+
+    public void setTrasladoInventarioCollection(Collection<TrasladoInventario> trasladoInventarioCollection) {
+        this.trasladoInventarioCollection = trasladoInventarioCollection;
+    }
+
+    public Collection<RecepcionMercancia> getRecepcionMercanciaCollection() {
+        return recepcionMercanciaCollection;
+    }
+
+    public void setRecepcionMercanciaCollection(Collection<RecepcionMercancia> recepcionMercanciaCollection) {
+        this.recepcionMercanciaCollection = recepcionMercanciaCollection;
     }
 
     @Override
@@ -109,10 +129,10 @@ public class TipoMovimiento implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof TipoMovimiento)) {
+        if (!(object instanceof EstadoDocumento)) {
             return false;
         }
-        TipoMovimiento other = (TipoMovimiento) object;
+        EstadoDocumento other = (EstadoDocumento) object;
         if ((this.codigo == null && other.codigo != null) || (this.codigo != null && !this.codigo.equals(other.codigo))) {
             return false;
         }
@@ -131,5 +151,6 @@ public class TipoMovimiento implements Serializable {
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
+
     
 }

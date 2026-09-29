@@ -4,15 +4,17 @@
  */
 package com.maxsoft.application.servicio.impl.inventario;
 
+import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.ArticuloAlmacen;
 import com.maxsoft.application.modelo.MovimientoInventario;
 import com.maxsoft.application.modelo.TipoDocumento;
 import com.maxsoft.application.modelo.TipoMovimiento;
 import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.repo.MovimientoInventarioRepo;
+import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
-import com.maxsoft.application.util.ClaseUtil;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,17 +29,26 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
 
     private final MovimientoInventarioRepo movimientoRepo;
     private final ArticuloRepo articuloRepo;
+    AlmacenService almacenService;
+    ArticuloAlmacenService articuloAlmacenService;
 
     @Autowired
     public MovimientoInventarioServiceImpl(MovimientoInventarioRepo movimientoRepo,
-            ArticuloRepo articuloRepo) {
+            ArticuloRepo articuloRepo,
+            AlmacenService almacenService,
+            ArticuloAlmacenService articuloAlmacenService
+    ) {
         this.movimientoRepo = movimientoRepo;
         this.articuloRepo = articuloRepo;
+        this.almacenService = almacenService;
+        this.articuloAlmacenService = articuloAlmacenService;
+
     }
 
     @Override
     @Transactional
     public MovimientoInventario registrarMovimiento(Articulo articuloInput,
+            Almacen alm,
             TipoMovimiento tipoMovimiento,
             TipoDocumento tipoDocumento,
             String numeroDoc,
@@ -58,7 +69,9 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         Articulo articulo = articuloRepo.findById(articuloInput.getCodigo())
                 .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado con ID: " + articuloInput.getCodigo()));
 
-        double stockAnterior = articulo.getExistencia() != null ? articulo.getExistencia().doubleValue() : 0.0;
+       ArticuloAlmacen artiAlm= this.articuloAlmacenService.buscarPorArticuloYAlmacen(articulo.getCodigo(), alm.getCodigo()).get();
+        
+        double stockAnterior = artiAlm.getExistencia().doubleValue();
         double stockNuevo;
 
         String tipoUpper = tipoMovimiento.getNombre().toUpperCase();
@@ -74,7 +87,7 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
                 boolean permiteSinStock = Boolean.TRUE.equals(articulo.getPermitirVentaSinExistencia());
 
                 if (!permiteSinStock && stockAnterior < cantidad) {
-                    
+
 //                      ClaseUtil.mostrarNotificacion("Existencia insuficiente para: " + articulo.getDescripcion()
 //                    + ". Disponible: " + stockAnterior + ", Solicitado: " + cantidad, NotificationVariant.LUMO_PRIMARY);
 //                    throw new IllegalStateException("Stock insuficiente para '" + articulo.getDescripcion()
@@ -102,6 +115,7 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         MovimientoInventario mov = new MovimientoInventario();
 
         mov.setArticulo(articulo);
+        mov.setAlmacen(alm);
         mov.setTipoMovimiento(tipoMovimiento);
         mov.setTipoDocumento(tipoDocumento);
         mov.setNumeroDocumento(numeroDoc);
@@ -126,4 +140,5 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
     public List<MovimientoInventario> getMovimientosPorFechas(LocalDateTime inicio, LocalDateTime fin) {
         return movimientoRepo.findByFechaMovimientoBetweenOrderByFechaMovimientoDesc(inicio, fin);
     }
+
 }

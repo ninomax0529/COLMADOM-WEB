@@ -15,19 +15,19 @@ import org.springframework.stereotype.Service;
 public class ArticuloServiceImpl implements ArticuloService {
 
     @Autowired 
-    ArticuloRepo articuloRepo;
+    ArticuloRepo repo;
     
     @Override
     public Articulo guardar(Articulo art) {
        
-        return articuloRepo.save(art);
+        return repo.save(art);
     }
 
     @Override
     public List<Articulo> getLista() {
        
          List<Articulo> lista=null;
-         lista=articuloRepo.findAll();
+         lista=repo.findAll();
 //        
         return lista;
         
@@ -36,7 +36,12 @@ public class ArticuloServiceImpl implements ArticuloService {
     @Override
     public void eliminarArticulo(int codigo) {
         
-         articuloRepo.deleteById(codigo);
+         repo.deleteById(codigo);
+    }
+
+    @Override
+    public Articulo buscarPorCodigo(int codigo) {
+       return repo.findById(codigo).get();
     }
 
   

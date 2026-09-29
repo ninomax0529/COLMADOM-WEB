@@ -9,8 +9,12 @@ import com.maxsoft.application.modelo.AjusteInventario;
 import com.maxsoft.application.modelo.DetalleAjusteInventario;
 import com.maxsoft.application.modelo.DetalleEntradaInventario;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
+import com.maxsoft.application.modelo.DetalleRecepcionMercancia;
+import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
+import com.maxsoft.application.modelo.RecepcionMercancia;
+import com.maxsoft.application.modelo.TrasladoInventario;
 import java.util.List;
 
 public interface EntradaDeInventarioService {
@@ -32,8 +36,12 @@ public interface EntradaDeInventarioService {
 
     EntradaInventario crearEntradaPorDevolucion(FacturaDeVenta factura, SolicitudDevolucionDto solicitud);
 
-    EntradaInventario crearEntradaPorAnulacionVenta(FacturaDeVenta factura,List<DetalleFacturaDeVenta> listaDetFact);
+    EntradaInventario crearEntradaPorAnulacionVenta(FacturaDeVenta factura, List<DetalleFacturaDeVenta> listaDetFact);
 
     EntradaInventario crearEntradaPorAjuste(AjusteInventario ajuste, List<DetalleAjusteInventario> detalleAju);
+
+    EntradaInventario crearEntradaPorRecepcion(RecepcionMercancia ajuste, List<DetalleRecepcionMercancia> detalles);
+
+    EntradaInventario crearEntradaPorTraslado(TrasladoInventario ajuste, List<DetalleTrasladoInventario> detalles);
 
 }

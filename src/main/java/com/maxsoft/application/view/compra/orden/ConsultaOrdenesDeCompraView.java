@@ -104,7 +104,7 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
         txtBuscar.setClearButtonVisible(true);
 
         cbSuplidor.setItems(proveedorService.getLista());
-        cbSuplidor.setItemLabelGenerator(s -> s.getRnc() != null ? s.getnombre() + " (" + s.getRnc() + ")" : s.getnombre());
+        cbSuplidor.setItemLabelGenerator(s -> s.getRnc() != null ? s.getNombre()+ " (" + s.getRnc() + ")" : s.getNombre());
         cbSuplidor.setPlaceholder("Todos los suplidores");
         cbSuplidor.setClearButtonVisible(true);
 
@@ -141,7 +141,7 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
         SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
 
         gridOrdenes.addColumn(OrdenDeCompra::getNumero).setHeader("Número").setAutoWidth(true).setSortable(true);
-        gridOrdenes.addColumn(o -> o.getProveedor() != null ? o.getProveedor().getnombre() : "-").setHeader("Suplidor").setFlexGrow(2).setSortable(true);
+        gridOrdenes.addColumn(o -> o.getProveedor() != null ? o.getProveedor().getNombre() : "-").setHeader("Suplidor").setFlexGrow(2).setSortable(true);
         gridOrdenes.addColumn(o -> o.getFecha() != null ? df.format(o.getFecha()) : "-").setHeader("Fecha").setAutoWidth(true).setSortable(true);
         gridOrdenes.addColumn(o -> o.getFechaDeEntrega() != null ? df.format(o.getFechaDeEntrega()) : "-").setHeader("F. Entrega").setAutoWidth(true);
         

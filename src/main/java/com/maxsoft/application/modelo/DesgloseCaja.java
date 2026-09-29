@@ -102,8 +102,8 @@ public class DesgloseCaja implements Serializable {
         return cajaTurno;
     }
 
-    public void setCajaTurno(CajaTurno cajaTurnoId) {
-        this.cajaTurno = cajaTurnoId;
+    public void setCajaTurno(CajaTurno cajaTurno) {
+        this.cajaTurno = cajaTurno;
     }
 
     @Override

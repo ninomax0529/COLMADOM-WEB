@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.servicio.interfaces.inventario;
 
+import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.MovimientoInventario;
 import com.maxsoft.application.modelo.TipoDocumento;
@@ -31,6 +32,7 @@ public interface MovimientoInventarioService {
      */
     MovimientoInventario registrarMovimiento(
             Articulo articulo,
+            Almacen almacen,
             TipoMovimiento tipoMovimiento,
             TipoDocumento tipoDocumento,
             String numeroDoc,
