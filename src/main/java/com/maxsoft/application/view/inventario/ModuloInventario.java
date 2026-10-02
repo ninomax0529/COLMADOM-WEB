@@ -7,6 +7,8 @@ package com.maxsoft.application.view.inventario;
 import com.maxsoft.application.view.inventario.articulo.ArticuloView;
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.inventario.ajuste.RegistroAjusteDeInventarioView;
+import com.maxsoft.application.view.inventario.articulo.ArticuloAlmacenView;
+import com.maxsoft.application.view.inventario.articulo.RegistrarArticuloViewV1;
 import com.maxsoft.application.view.inventario.entrada.EntradaDeIventarioView;
 import com.maxsoft.application.view.inventario.movimiento.MovimientosInventarioView;
 import com.maxsoft.application.view.inventario.salida.SalidaDeIventarioView;
@@ -53,18 +55,23 @@ public class ModuloInventario extends AppLayout {
         RouterLink linkAjuste = createLink(VaadinIcon.FILE_TABLE, "Ajuste", RegistroAjusteDeInventarioView.class);
         RouterLink linkMovimiento = createLink(VaadinIcon.FILE_TABLE, "Movimiento", MovimientosInventarioView.class);
         RouterLink linkTrasladoInventario = createLink(VaadinIcon.FILE_TABLE, "Traslado", TrasladoInventarioView.class);
+        RouterLink linkTrasladoArticalmacen = createLink(VaadinIcon.FILE_TABLE, "Articulo Almacen", ArticuloAlmacenView.class);
+//        RouterLink linkRegistrarArticuloViewV1 = createLink(VaadinIcon.FILE_TABLE, "Articulo v1", RegistrarArticuloViewV1.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
         ////
 //        // Layout vertical que contiene los enlaces del menú
         VerticalLayout menuLayout = new VerticalLayout(
                 linkArticulo,
+//                linkRegistrarArticuloViewV1,
                 linkEntrada,
                 linkSalida,
                 linkAjuste,
                 linkTrasladoInventario,
                 linkMovimiento,
-                linkModulo);
+                linkTrasladoArticalmacen,
+                linkModulo
+        );
 
         menuLayout.setPadding(false);
         menuLayout.setSpacing(false);

@@ -3,6 +3,7 @@ package com.maxsoft.application.servicio.impl.inventario;
 import com.maxsoft.application.modelo.AjusteInventario;
 import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.ArticuloAlmacen;
 import com.maxsoft.application.modelo.DetalleAjusteInventario;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
@@ -15,6 +16,7 @@ import com.maxsoft.application.modelo.TrasladoInventario;
 import com.maxsoft.application.modelo.Usuario;
 import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.repo.SalidaInventarioRepo;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
@@ -38,19 +40,22 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
     private final MovimientoInventarioService movimientoService;
     private final TipoDocumentoService tipoDocumentoService;
     private final TipoMovimientoService tipoMovimientoService;
+    ArticuloAlmacenService articuloAlmacenService;
 
     @Autowired
     public SalidaInventarioServiceImpl(SalidaInventarioRepo salidaRepo,
             ArticuloRepo articuloRepo,
             MovimientoInventarioService movimientoService,
             TipoDocumentoService tipoDocumentoService,
-            TipoMovimientoService tipoMovimientoService) {
+            TipoMovimientoService tipoMovimientoService,
+            ArticuloAlmacenService articuloAlmacenService) {
 
         this.salidaRepo = salidaRepo;
         this.articuloRepo = articuloRepo;
         this.movimientoService = movimientoService;
         this.tipoDocumentoService = tipoDocumentoService;
         this.tipoMovimientoService = tipoMovimientoService;
+        this.articuloAlmacenService = articuloAlmacenService;
     }
 
     @Override
@@ -84,8 +89,8 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                             .orElse(articuloProxy);
 
                     double cantidadSalida = detalle.getCantidad() != null ? detalle.getCantidad().doubleValue() : 0.0;
-                    
-                       Almacen alm=new Almacen(2) ;
+
+                    Almacen alm = new Almacen(detalle.getAlmacen().getCodigo());
 
                     if (cantidadSalida > 0) {
                         movimientoService.registrarMovimiento(
@@ -135,6 +140,8 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setArticulo(detFactura.getArticulo());
                 detSalida.setDescripcionArticulo(detFactura.getArticulo().getDescripcion());
                 detSalida.setCantidad(detFactura.getCantidad());
+                detSalida.setAlmacen(detFactura.getAlmacen());
+                detSalida.setNombreAlmacen(detFactura.getNombreAlmacen());
 
                 double stockActual = detFactura.getArticulo().getExistencia() != null
                         ? detFactura.getArticulo().getExistencia().doubleValue() : 0.0;
@@ -186,7 +193,8 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setArticulo(det.getArticulo());
                 detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
                 detSalida.setCantidad(det.getCantidad());
-
+                detSalida.setAlmacen(det.getAlmacen());
+ 
                 double stockActual = det.getArticulo().getExistencia() != null ? det.getArticulo().getExistencia().doubleValue() : 0.0;
                 detSalida.setExistenciaAnterior(BigDecimal.valueOf(stockActual));
                 detSalida.setExistencia(BigDecimal.valueOf(stockActual));
@@ -231,33 +239,42 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
         salida.setFechaRegistro(new Date());
         salida.setFecha(traslado.getFechaEmision());
-        salida.setTipoDocumento(this.tipoDocumentoService.getTipoDocumento(3)); // Asignar Tipo Ajuste
+        salida.setTipoDocumento(this.tipoDocumentoService.getTipoDocumento(2)); // Asignar Tipo Ajuste
         salida.setNumeroDocumento(traslado.getCodigo().toString());
-        salida.setUsuario(traslado.getUsuarioEnvia()!= null ? traslado.getUsuarioEnvia(): new Usuario(1));
+        salida.setUsuario(traslado.getUsuarioEnvia() != null ? traslado.getUsuarioEnvia() : new Usuario(1));
 
-        String nombreUsuario = (traslado.getUsuarioEnvia()!= null && traslado.getUsuarioEnvia().getNombre() != null)
+        String nombreUsuario = (traslado.getUsuarioEnvia() != null && traslado.getUsuarioEnvia().getNombre() != null)
                 ? traslado.getUsuarioEnvia().getNombre() : "SISTEMA";
 
         salida.setNombreUsuario(nombreUsuario);
         salida.setObservacion("Salida por Traslado de Inventario #" + traslado.getCodigo() + ". "
                 + (traslado.getObservacion() != null ? traslado.getObservacion() : ""));
 
+        Almacen almacen = traslado.getAlmacenOrigen();
+
         List<DetalleSalidaInventario> detallesSalida = new ArrayList<>();
 
         for (DetalleTrasladoInventario det : detalles) {
 
-            if (det.getArticulo() != null && det.getCantidadEnviada()!= null && det.getCantidadEnviada().doubleValue() > 0) {
+            if (det.getArticulo() != null && det.getCantidadEnviada() != null && det.getCantidadEnviada().doubleValue() > 0) {
 
                 DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
+
                 detSalida.setSalidaInventario(salida);
                 detSalida.setArticulo(det.getArticulo());
                 detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
                 detSalida.setCantidad(det.getCantidadEnviada());
 
-                double stockActual = det.getArticulo().getExistencia() != null ? det.getArticulo().getExistencia().doubleValue() : 0.0;
+                ArticuloAlmacen artiAlm = this.articuloAlmacenService
+                        .buscarPorArticuloYAlmacen(det.getArticulo().getCodigo(), almacen.getCodigo()).get();
+
+                detSalida.setAlmacen(artiAlm.getAlmacen());
+                double stockActual = artiAlm.getExistencia() != null ? artiAlm.getExistencia().doubleValue() : 0.0;
+
+//                double stockActual = det.getArticulo().getExistencia() != null ? det.getArticulo().getExistencia().doubleValue() : 0.0;
                 detSalida.setExistenciaAnterior(BigDecimal.valueOf(stockActual));
                 detSalida.setExistencia(BigDecimal.valueOf(stockActual));
-                detSalida.setUnidad(det.getArticulo().getUnidadSalida());
+                detSalida.setUnidad(det.getUnidad());
                 detSalida.setCostoUnitario(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
 
                 detSalida.setPrecioCompra(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);

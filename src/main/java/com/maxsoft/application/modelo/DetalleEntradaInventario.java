@@ -41,7 +41,7 @@ public class DetalleEntradaInventario implements Serializable {
     @Size(min = 1, max = 250)
     @Column(name = "descripcion_articulo")
     private String descripcionArticulo;
-    @Size(max = 10)
+    @Size(max = 15)
     @Column(name = "nombre_unidad")
     private String nombreUnidad;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
@@ -78,7 +78,7 @@ public class DetalleEntradaInventario implements Serializable {
     private BigDecimal precioVentaAnterior;
     @Column(name = "precio_venta")
     private BigDecimal precioVenta;
-    @Size(max = 20)
+    @Size(max = 50)
     @Column(name = "nombre_almacen")
     private String nombreAlmacen;
     @JoinColumn(name = "almacen", referencedColumnName = "codigo")

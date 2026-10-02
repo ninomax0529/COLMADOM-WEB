@@ -15,6 +15,7 @@ import com.maxsoft.application.repo.MovimientoInventarioRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
+import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -47,7 +48,8 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
 
     @Override
     @Transactional
-    public MovimientoInventario registrarMovimiento(Articulo articuloInput,
+    public MovimientoInventario registrarMovimiento(
+            Articulo articuloInput,
             Almacen alm,
             TipoMovimiento tipoMovimiento,
             TipoDocumento tipoDocumento,
@@ -66,22 +68,29 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         }
 
         // 1. Obtener la entidad actualizada directamente de la Base de Datos
-        Articulo articulo = articuloRepo.findById(articuloInput.getCodigo())
+        Articulo articulo = this.articuloRepo.findById(articuloInput.getCodigo())
                 .orElseThrow(() -> new IllegalArgumentException("Artículo no encontrado con ID: " + articuloInput.getCodigo()));
+        // 1. Obtener la entidad actualizada directamente de la Base de Datos
+        Almacen almacen = this.almacenService.getAlmacen(alm.getCodigo());
 
-       ArticuloAlmacen artiAlm= this.articuloAlmacenService.buscarPorArticuloYAlmacen(articulo.getCodigo(), alm.getCodigo()).get();
-        
+        ArticuloAlmacen artiAlm = this.articuloAlmacenService.buscarPorArticuloYAlmacen(articulo.getCodigo(), almacen.getCodigo())
+                .orElseThrow(() -> new EntityNotFoundException("El producto con ID " + articulo.getCodigo() + " no existe."));
+
+        System.out.println("artiAlm " + artiAlm.getNombreAlmacen()
+                + " " + artiAlm.getDescripcionArticulo() + " existencia actual " + artiAlm.getExistencia());
+
         double stockAnterior = artiAlm.getExistencia().doubleValue();
         double stockNuevo;
 
-        String tipoUpper = tipoMovimiento.getNombre().toUpperCase();
+//        String tipoUpper = tipoMovimiento.getNombre().toUpperCase();
+        Integer tipoUpper = tipoMovimiento.getCodigo();
 
         // 2. Determinar si suma o resta existencias
         switch (tipoUpper) {
 
-            case "ENTRADA", "AJUSTE_INCREMENTO" ->
+            case 1 ->
                 stockNuevo = stockAnterior + cantidad;
-            case "SALIDA", "AJUSTE_DECREMENTO" -> {
+            case 2 -> {
 
                 // Solo bloquea si NO permite ventas sin existencia y la cantidad requerida supera el stock
                 boolean permiteSinStock = Boolean.TRUE.equals(articulo.getPermitirVentaSinExistencia());
@@ -111,11 +120,14 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         articulo.setExistencia(BigDecimal.valueOf(stockNuevo));
         articuloRepo.save(articulo);
 
+        artiAlm.setExistencia(BigDecimal.valueOf(stockNuevo));
+        this.articuloAlmacenService.guardar(artiAlm);
+
         // 4. Crear la auditoría en la tabla movimiento_inventario
         MovimientoInventario mov = new MovimientoInventario();
 
         mov.setArticulo(articulo);
-        mov.setAlmacen(alm);
+        mov.setAlmacen(almacen);
         mov.setTipoMovimiento(tipoMovimiento);
         mov.setTipoDocumento(tipoDocumento);
         mov.setNumeroDocumento(numeroDoc);

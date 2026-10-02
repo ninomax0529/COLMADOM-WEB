@@ -20,6 +20,7 @@ public interface MovimientoInventarioService {
      * stock real del artículo.
      *
      * @param articulo Objeto artículo afectado
+     * @param almacen
      * @param tipoMovimiento "ENTRADA", "SALIDA", "AJUSTE_INCREMENTO" o
      * "AJUSTE_DECREMENTO"
      * @param tipoDocumento "COMPRA", "VENTA", "AJUSTE_INVENTARIO",

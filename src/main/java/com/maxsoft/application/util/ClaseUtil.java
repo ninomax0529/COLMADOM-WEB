@@ -397,7 +397,7 @@ public class ClaseUtil {
     public static void main(String[] args) {
 
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-        System.out.println("password : " + bCryptPasswordEncoder.encode("wilson321"));
+        System.out.println("password : " + bCryptPasswordEncoder.encode("123."));
 //        LocalDateTime ltdThen = LocalDateTime.parse("2021-04-03T06:00:00");
 //        LocalDateTime ltdNow = LocalDateTime.parse("2021-05-05T11:00:00");
 

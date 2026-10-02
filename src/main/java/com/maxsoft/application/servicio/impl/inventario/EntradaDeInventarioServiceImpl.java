@@ -4,6 +4,7 @@ import com.maxsoft.application.dto.SolicitudDevolucionDto;
 import com.maxsoft.application.modelo.AjusteInventario;
 import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.ArticuloAlmacen;
 import com.maxsoft.application.modelo.DetalleAjusteInventario;
 import com.maxsoft.application.modelo.DetalleEntradaInventario;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
@@ -16,10 +17,12 @@ import com.maxsoft.application.modelo.TipoDocumento;
 import com.maxsoft.application.modelo.TipoMovimiento;
 import com.maxsoft.application.modelo.TrasladoInventario;
 import com.maxsoft.application.repo.EntradaDeInventarioRepo;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoMovimientoService;
+import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,17 +40,20 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
     private final MovimientoInventarioService movimientoService;
     TipoMovimientoService tipoMovimientoService;
     TipoDocumentoService tipoDocumentoService;
+    ArticuloAlmacenService articuloAlmacenService;
 
     @Autowired
     public EntradaDeInventarioServiceImpl(EntradaDeInventarioRepo entradaRepo,
             MovimientoInventarioService movimientoService,
             TipoMovimientoService tipoMovimientoService,
-            TipoDocumentoService tipoDocumentoService
+            TipoDocumentoService tipoDocumentoService,
+            ArticuloAlmacenService articuloAlmacenService
     ) {
         this.entradaRepo = entradaRepo;
         this.movimientoService = movimientoService;
         this.tipoDocumentoService = tipoDocumentoService;
         this.tipoMovimientoService = tipoMovimientoService;
+        this.articuloAlmacenService = articuloAlmacenService;
     }
 
     @Override
@@ -77,7 +83,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
 //                Articulo articuloProxy = detalle.getArticulo();
 //                if (articuloProxy != null && articuloProxy.getCodigo() != null) {
                 Articulo articulo = detalle.getArticulo();
-                Almacen alm=detalle.getAlmacen();
+                Almacen alm = detalle.getAlmacen();
                 // Cargar el artículo fresco desde el repositorio para evitar Lazy Proxy / inventariable null
 //                    Articulo articulo = articuloRepo.findById(articuloProxy.getCodigo())
 //                            .orElse(articuloProxy);
@@ -290,7 +296,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         // Usuario y Observaciones
         entrada.setNombreUsuario(factura.getNombreUsuario() != null ? factura.getNombreUsuario() : "SISTEMA");
         entrada.setAnulada(false);
-        entrada.setComentario("Entrada por Ajuste de Inventario #" + factura.getCodigo() + ". "
+        entrada.setComentario("Entrada por anulacion de venta #" + factura.getCodigo() + ". "
                 + (factura.getComentario() != null ? factura.getComentario() : ""));
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
@@ -316,11 +322,11 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                 detEntrada.setCantidadPedida(BigDecimal.ZERO);
                 detEntrada.setCantidadPendiente(BigDecimal.ZERO);
                 detEntrada.setNuevaExistencia(existenciaActual.add(det.getCantidad()));
-                detEntrada.setNombreAlmacen("General");
-                detEntrada.setNombreUnidad("Unidad");
+                detEntrada.setNombreAlmacen(det.getAlmacen().getNombre());
+                detEntrada.setNombreUnidad(det.getNombreUnidad());
                 detEntrada.setUnidad(det.getArticulo().getUnidadEntrada());
                 detEntrada.setPrecioCompra(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
-                detEntrada.setAlmacen(new Almacen(1));
+                detEntrada.setAlmacen(det.getAlmacen());
 
                 detallesEntrada.add(detEntrada);
             }
@@ -336,7 +342,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
     }
 
     @Override
-    public EntradaInventario crearEntradaPorRecepcion(RecepcionMercancia ajuste, List<DetalleRecepcionMercancia> detalles) {
+    public EntradaInventario crearEntradaPorRecepcion(RecepcionMercancia recepcion, List<DetalleRecepcionMercancia> detalles) {
 
         EntradaInventario entrada = new EntradaInventario();
 
@@ -347,18 +353,18 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         entrada.setFechaContabilizacion(fechaActual);
 
         // Tipo de Documento e Identificación (Ajuste Positivo)
-        entrada.setTipoDocumento(3); // ID del Tipo de Documento 'Ajuste de Inventario'
-        entrada.setNumeroDocumento("AJ-" + ajuste.getCodigo());
+        entrada.setTipoDocumento(9); // ID del Tipo de Documento 'Recepcion de mercancia'
+        entrada.setNumeroDocumento("REC-" + recepcion.getCodigo());
 
         // Moneda
         entrada.setMoneda(1);
         entrada.setNombreMoneda("DOP");
 
         // Usuario y Observaciones
-        entrada.setNombreUsuario(ajuste.getUsuario() != null ? ajuste.getUsuario().getNombre() : "SISTEMA");
+        entrada.setNombreUsuario(recepcion.getUsuario() != null ? recepcion.getUsuario().getNombre() : "SISTEMA");
         entrada.setAnulada(false);
-        entrada.setComentario("Entrada por Recepcion de Mercancia #" + ajuste.getCodigo() + ". "
-                + (ajuste.getComentario() != null ? ajuste.getComentario() : ""));
+        entrada.setComentario("Entrada por Recepcion de Mercancia #" + recepcion.getCodigo() + ". "
+                + (recepcion.getComentario() != null ? recepcion.getComentario() : ""));
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
         for (DetalleRecepcionMercancia det : detalles) {
@@ -419,10 +425,12 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         entrada.setNombreMoneda("DOP");
 
         // Usuario y Observaciones
-        entrada.setNombreUsuario(traslado.getUsuarioEnvia()!= null ? traslado.getUsuarioEnvia().getNombre() : "SISTEMA");
+        entrada.setNombreUsuario(traslado.getUsuarioEnvia() != null ? traslado.getUsuarioEnvia().getNombre() : "SISTEMA");
         entrada.setAnulada(false);
         entrada.setComentario("Entrada por Traslado de Mercancia #" + traslado.getCodigo() + ". "
-                + (traslado.getObservacion()!= null ? traslado.getObservacion() : ""));
+                + (traslado.getObservacion() != null ? traslado.getObservacion() : ""));
+
+        Almacen almacen = traslado.getAlmacenDestino();
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
 
@@ -440,17 +448,21 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                 detEntrada.setCostoUnitario(det.getArticulo().getPrecioCompra() != null
                         ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
 
-                double stockActual = det.getArticulo().getExistencia() != null ? det.getArticulo().getExistencia().doubleValue() : 0.0;
+                ArticuloAlmacen artiAlm = this.articuloAlmacenService
+                        .buscarPorArticuloYAlmacen(det.getArticulo().getCodigo(), almacen.getCodigo()).get();
+
+                double stockActual =artiAlm.getExistencia() != null ? artiAlm.getExistencia().doubleValue() : 0.0;
+                
                 detEntrada.setExistenciaActual(BigDecimal.valueOf(stockActual));
 
-                detEntrada.setCantidadPedida(BigDecimal.ZERO);
+                detEntrada.setCantidadPedida(det.getCantidadEnviada());
                 detEntrada.setCantidadPendiente(BigDecimal.ZERO);
                 detEntrada.setNuevaExistencia(BigDecimal.valueOf(stockActual + det.getCantidadRecibida().doubleValue()));
-                detEntrada.setNombreAlmacen("General");
-                detEntrada.setNombreUnidad("Unidad");
-                detEntrada.setUnidad(det.getArticulo().getUnidadEntrada());
+                detEntrada.setNombreAlmacen(almacen.getNombre());
+                detEntrada.setNombreUnidad(det.getNombreUnidad());
+                detEntrada.setUnidad(det.getUnidad());
                 detEntrada.setPrecioCompra(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
-                detEntrada.setAlmacen(new Almacen(1));
+                detEntrada.setAlmacen(almacen);
 
                 detallesEntrada.add(detEntrada);
             }

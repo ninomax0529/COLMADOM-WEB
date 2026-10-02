@@ -30,6 +30,34 @@ import java.math.BigDecimal;
     @NamedQuery(name = "DetalleSalidaInventario.findAll", query = "SELECT d FROM DetalleSalidaInventario d")})
 public class DetalleSalidaInventario implements Serializable {
 
+    /**
+     * @return the almacen
+     */
+    public Almacen getAlmacen() {
+        return almacen;
+    }
+
+    /**
+     * @param almacen the almacen to set
+     */
+    public void setAlmacen(Almacen almacen) {
+        this.almacen = almacen;
+    }
+
+    /**
+     * @return the nombreAlmacen
+     */
+    public String getNombreAlmacen() {
+        return nombreAlmacen;
+    }
+
+    /**
+     * @param nombreAlmacen the nombreAlmacen to set
+     */
+    public void setNombreAlmacen(String nombreAlmacen) {
+        this.nombreAlmacen = nombreAlmacen;
+    }
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -57,9 +85,7 @@ public class DetalleSalidaInventario implements Serializable {
     @Column(name = "existencia_anterior")
     private BigDecimal existenciaAnterior;
     @Column(name = "cantidad_solicitada")
-    private BigDecimal cantidadSolicitada;
-    @Column(name = "almacen")
-    private Integer almacen;
+    private BigDecimal cantidadSolicitada; 
     @JoinColumn(name = "articulo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Articulo articulo;
@@ -69,6 +95,12 @@ public class DetalleSalidaInventario implements Serializable {
     @JoinColumn(name = "unidad", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Unidad unidad;
+    @Size(max = 50)
+    @Column(name = "nombre_almacen")
+    private String nombreAlmacen;
+    @JoinColumn(name = "almacen", referencedColumnName = "codigo")
+    @ManyToOne
+    private Almacen almacen;
 
     public DetalleSalidaInventario() {
     }
@@ -155,14 +187,6 @@ public class DetalleSalidaInventario implements Serializable {
         this.cantidadSolicitada = cantidadSolicitada;
     }
 
-    public Integer getAlmacen() {
-        return almacen;
-    }
-
-    public void setAlmacen(Integer almacen) {
-        this.almacen = almacen;
-    }
-
     public Articulo getArticulo() {
         return articulo;
     }
@@ -211,5 +235,5 @@ public class DetalleSalidaInventario implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.DetalleSalidaInventario[ codigo=" + codigo + " ]";
     }
-    
+
 }

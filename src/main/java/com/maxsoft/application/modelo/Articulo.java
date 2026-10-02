@@ -165,9 +165,9 @@ public class Articulo implements Serializable {
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleTrasladoInventario> detalleTrasladoInventarioCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo" )
     private Collection<ArticuloAlmacen> articuloAlmacenCollection;
-    @JoinColumn(name = "unidad_entrada", referencedColumnName = "codigo")
+    @JoinColumn(name = "unidad_entrada", referencedColumnName = "codigo" )
     @ManyToOne
     private Unidad unidadEntrada;
     @JoinColumn(name = "unidad_salida", referencedColumnName = "codigo")

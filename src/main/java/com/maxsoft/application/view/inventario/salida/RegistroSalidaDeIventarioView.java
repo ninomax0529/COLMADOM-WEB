@@ -1,9 +1,12 @@
 package com.maxsoft.application.view.inventario.salida;
 
+import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
 import com.maxsoft.application.modelo.SalidaInventario;
 import com.maxsoft.application.modelo.Unidad;
+import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
 import com.maxsoft.application.util.ClaseUtil;
@@ -14,6 +17,7 @@ import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
@@ -22,8 +26,10 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
@@ -49,28 +55,36 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
     private final TextField txtNumDoc = new TextField("Número Salida");
     private final DatePicker dpFecha = new DatePicker("Fecha");
+    private final ComboBox<Almacen> cbAlmacen = new ComboBox<>("Almacén Origen"); // <-- Control Multi-Almacén
+    private final TextField txtObservacion = new TextField("Observación");
     private final TextField txtBuscar = new TextField();
     private final ToolBarBotonera botonera = new ToolBarBotonera(false, true, true);
     private Button btnNuevo;
 
     private final ArticuloService articuloService;
     private final SalidaInventarioService salidaInvService;
+    private final AlmacenService almacenService;
+    private final ArticuloAlmacenService existenciaService; // <-- Servicio de existencias por almacén
 
     private final List<DetalleSalidaInventario> listDet = new ArrayList<>();
 
     @Autowired
     public RegistroSalidaDeIventarioView(SalidaInventarioService salidaInvService,
-            ArticuloService articuloService) {
+            ArticuloService articuloService,
+            AlmacenService almacenService,
+            ArticuloAlmacenService existenciaService) {
 
         this.salidaInvService = salidaInvService;
         this.articuloService = articuloService;
+        this.almacenService = almacenService;
+        this.existenciaService = existenciaService;
 
         setSizeFull();
         configurarBotonera();
         configurarControlesSuperiores();
         configurarGridDetalle();
 
-        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, botonera);
+        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, cbAlmacen, txtObservacion, botonera);
         hlDatos.setAlignItems(Alignment.BASELINE);
 
         HorizontalLayout hlArticulo = new HorizontalLayout(txtBuscar, btnNuevo);
@@ -88,6 +102,15 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         txtNumDoc.setEnabled(false);
         dpFecha.setValue(LocalDate.now());
 
+        // Configuración ComboBox Almacén
+        cbAlmacen.setItems(this.almacenService.getLista());
+        cbAlmacen.setItemLabelGenerator(Almacen::getNombre);
+        cbAlmacen.setAllowCustomValue(false);
+        cbAlmacen.setRequired(true);
+        cbAlmacen.addValueChangeListener(e -> cambiarAlmacenGeneral(e.getValue()));
+
+        txtObservacion.setWidth("250px");
+
         btnNuevo = new Button("Artículo (F2)", event -> abrirDialogoSeleccionArticulo());
         btnNuevo.addClickShortcut(Key.F2);
 
@@ -97,7 +120,42 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
     }
 
+    private void cambiarAlmacenGeneral(Almacen nuevoAlmacen) {
+        if (nuevoAlmacen == null) {
+            return;
+        }
+
+        // Recalcular stock de cada artículo agregado para el nuevo almacén
+        for (DetalleSalidaInventario det : listDet) {
+            det.setAlmacen(nuevoAlmacen);
+            det.setNombreAlmacen(nuevoAlmacen.getNombre());
+
+            BigDecimal stockEnAlmacen = obtenerExistenciaPorAlmacen(det.getArticulo(), nuevoAlmacen);
+            det.setExistenciaAnterior(stockEnAlmacen);
+
+            // Recalcular nueva existencia tras la salida
+            BigDecimal cantidadSalida = det.getCantidad() != null ? det.getCantidad() : BigDecimal.ZERO;
+            det.setExistencia(stockEnAlmacen.subtract(cantidadSalida));
+        }
+
+        grid.getDataProvider().refreshAll();
+    }
+
+    private BigDecimal obtenerExistenciaPorAlmacen(Articulo articulo, Almacen almacen) {
+        if (articulo == null || almacen == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal stock = existenciaService.buscarPorArticuloYAlmacen(articulo.getCodigo(), almacen.getCodigo()).get().getExistencia();
+        return stock != null ? stock : BigDecimal.ZERO;
+    }
+
     private void abrirDialogoSeleccionArticulo() {
+        if (cbAlmacen.getValue() == null) {
+            ClaseUtil.mostrarNotificacion("Debe seleccionar un Almacén de Origen primero", NotificationVariant.LUMO_WARNING);
+            cbAlmacen.focus();
+            return;
+        }
+
         try {
             ArticuloDialogoFilteringView dialog = new ArticuloDialogoFilteringView(articuloService, articulo -> {
                 if (articulo != null) {
@@ -111,34 +169,25 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
     }
 
     private void agregarOActualizarArticulo(Articulo articulo) {
-
         if (articulo == null) {
-            Notification.show("Seleccione un artículo y una cantidad válida", 3000, Position.TOP_CENTER);
+            Notification.show("Seleccione un artículo válido", 3000, Position.TOP_CENTER);
             return;
         }
 
+        Almacen almacenSeleccionado = cbAlmacen.getValue();
+        BigDecimal stockDisponible = obtenerExistenciaPorAlmacen(articulo, almacenSeleccionado);
+
         if (Boolean.TRUE.equals(articulo.getInventariable())) {
-            double stockActual = articulo.getExistencia().doubleValue();
-
             BigDecimal cantidadYaEnGrid = listDet.stream()
-        .filter(d -> d.getArticulo().getCodigo().equals(articulo.getCodigo()))
-        // Mapeamos al objeto BigDecimal directamente
-        .map(DetalleSalidaInventario::getCantidad) 
-        // Sumamos acumulando con .add(), empezando desde CERO
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    .filter(d -> d.getArticulo().getCodigo().equals(articulo.getCodigo()))
+                    .map(DetalleSalidaInventario::getCantidad)
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            // Sumar cantidades del mismo artículo que YA están agregadas en la Grid
-//            double cantidadYaEnGrid = listDet.stream()
-//                    .filter(d -> d.getArticulo().getCodigo().equals(articulo.getCodigo()))                   
-//                    .mapToDouble(DetalleSalidaInventario:: getCantidad() )
-//                    .sum();
-
-            double totalSolicitado = cantidadYaEnGrid.doubleValue();
-
-            if (totalSolicitado > stockActual) {
+            if (cantidadYaEnGrid.compareTo(stockDisponible) >= 0) {
                 Notification.show(
-                        String.format("Stock insuficiente para '%s'. Disponible: %.2f | En lista: %.2f | Intentas retirar: %.2f",
-                                articulo.getDescripcion(), stockActual, cantidadYaEnGrid, totalSolicitado),
+                        String.format("Stock insuficiente en '%s' para el artículo '%s'. Disponible: %.2f | En lista: %.2f",
+                                almacenSeleccionado.getNombre(), articulo.getDescripcion(), stockDisponible, cantidadYaEnGrid),
                         5000, Position.MIDDLE
                 );
                 return;
@@ -149,28 +198,25 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
                 .anyMatch(d -> d.getArticulo() != null && Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo()));
 
         if (existe) {
-
             listDet.forEach(d -> {
                 if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
-  
-                    d.setExistencia(d.getExistencia().subtract(d.getCantidad())); // Nueva existencia tras la salida
+                    BigDecimal nuevaCant = d.getCantidad() != null ? d.getCantidad() : BigDecimal.ZERO;
+                    d.setExistencia(d.getExistenciaAnterior().subtract(nuevaCant));
                 }
             });
-
         } else {
 
             DetalleSalidaInventario det = new DetalleSalidaInventario();
-           
             det.setCodigo(articulo.getCodigo());
             det.setArticulo(articulo);
             det.setDescripcionArticulo(articulo.getDescripcion());
+            det.setAlmacen(almacenSeleccionado);
+            det.setNombreAlmacen(almacenSeleccionado.getNombre());
 
-//            double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
-            det.setExistenciaAnterior(articulo.getExistencia());
-
-            det.setCantidad(BigDecimal.ZERO); // Cantidad inicial a sacar
-            det.setExistencia(articulo.getExistencia()); // Nueva existencia (Resta)
-            det.setUnidad(new Unidad(1));
+            det.setExistenciaAnterior(stockDisponible);
+            det.setCantidad(BigDecimal.ZERO);
+            det.setExistencia(stockDisponible);
+            det.setUnidad(articulo.getUnidadEntrada() != null ? articulo.getUnidadEntrada() : new Unidad(1));
 
             listDet.add(det);
         }
@@ -185,6 +231,10 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
         grid.addColumn(DetalleSalidaInventario::getDescripcionArticulo)
                 .setHeader("Artículo")
+                .setAutoWidth(true);
+
+        grid.addColumn(DetalleSalidaInventario::getNombreAlmacen)
+                .setHeader("Almacén")
                 .setAutoWidth(true);
 
         grid.addColumn(DetalleSalidaInventario::getExistenciaAnterior)
@@ -235,7 +285,7 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         editor = grid.getEditor();
         editor.setBuffered(false);
 
-        TextField cantidadField = new TextField();
+        BigDecimalField cantidadField = new BigDecimalField();
         cantidadField.setWidthFull();
 
         grid.getColumnByKey("cantidad").setEditorComponent(cantidadField);
@@ -253,9 +303,12 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
             }
 
             try {
-                double cant = Double.parseDouble(e.getValue());
+                BigDecimal cant = e.getValue();
+                if (cant == null) {
+                    cant = BigDecimal.ZERO;
+                }
 
-                if (cant <= 0) {
+                if (cant.compareTo(BigDecimal.ZERO) <= 0) {
                     Notification.show("La cantidad debe ser mayor a cero", 2500, Position.MIDDLE);
                     return;
                 }
@@ -264,98 +317,454 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
                 Articulo articulo = itemActual.getArticulo();
 
                 if (articulo != null && Boolean.TRUE.equals(articulo.getInventariable())) {
+                    Almacen almacenSel = cbAlmacen.getValue();
+                    BigDecimal stockDisponible = obtenerExistenciaPorAlmacen(articulo, almacenSel);
 
-                    // 1. Stock real en el maestro del artículo
-                    BigDecimal stockDisponible = articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
-
-                    // 2. Calcular la suma de cantidades agregadas en OTRAS filas para este mismo artículo
-                    Double cantidadEnOtrasFilas = listDet.stream()
+                    // Suma de cantidades en OTRAS filas para este mismo artículo
+                    BigDecimal cantidadEnOtrasFilas = listDet.stream()
                             .filter(d -> !d.equals(itemActual) && d.getArticulo() != null && d.getArticulo().getCodigo().equals(articulo.getCodigo()))
-                            .mapToDouble(d -> d.getCantidad().doubleValue() )
-                            .sum();
+                            .map(DetalleSalidaInventario::getCantidad)
+                            .filter(Objects::nonNull)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                    // 3. Validar si la nueva cantidad excede el disponible
-                    if ((cantidadEnOtrasFilas + cant) > stockDisponible.doubleValue()) {
+                    if (cantidadEnOtrasFilas.add(cant).compareTo(stockDisponible) > 0) {
                         Notification.show(
-                                String.format("Stock insuficiente para '%s'. Disponible: %.2f (Ya en uso en otras filas: %.2f)",
-                                        articulo.getDescripcion(), stockDisponible, cantidadEnOtrasFilas),
+                                String.format("Stock insuficiente en almacén '%s'. Disponible: %.2f (En uso en otras filas: %.2f)",
+                                        almacenSel.getNombre(), stockDisponible, cantidadEnOtrasFilas),
                                 4000, Position.MIDDLE
                         );
 
-                        // Restaurar o limpiar la casilla si excede
-                        cantidadField.setValue(itemActual.getCantidad() != null ? String.valueOf(itemActual.getCantidad()) : "");
+                        cantidadField.setValue(itemActual.getCantidad());
                         return;
                     }
                 }
 
-              BigDecimal cant1= BigDecimal.valueOf(cant);
-                // 4. Si la validación pasa, actualizamos el modelo y recalculamos existencia en pantalla
-                itemActual.setCantidad(cant1);
-                if (articulo != null && articulo.getExistencia() != null) {
-                    itemActual.setExistencia(articulo.getExistencia().subtract(cant1));
-                }
+                // Actualización del modelo
+                itemActual.setCantidad(cant);
+                itemActual.setExistencia(itemActual.getExistenciaAnterior().subtract(cant));
 
                 grid.getDataProvider().refreshItem(itemActual);
 
-            } catch (NumberFormatException ex) {
+            } catch (Exception ex) {
                 Notification.show("Ingrese una cantidad válida", 2000, Position.MIDDLE);
             }
         });
     }
 
     private void procesarGuardado() {
-        // 1. Validaciones previas de la interfaz
+        if (cbAlmacen.getValue() == null) {
+            Notification.show("Debe seleccionar un Almacén de Origen", 3000, Position.TOP_CENTER);
+            cbAlmacen.focus();
+            return;
+        }
+
         if (listDet.isEmpty()) {
             Notification.show("Debe agregar al menos un artículo a la salida.", 3000, Position.TOP_CENTER);
             return;
         }
 
         for (DetalleSalidaInventario det : listDet) {
-
-            if (det.getCantidad() == null || det.getCantidad().doubleValue() <= 0) {
-                Notification.show("El artículo '" + det.getArticulo().getDescripcion() + "' tiene una cantidad inválida.", 4000, Position.TOP_CENTER);
+            if (det.getCantidad() == null || det.getCantidad().compareTo(BigDecimal.ZERO) <= 0) {
+                Notification.show("El artículo '" + det.getDescripcionArticulo() + "' tiene una cantidad inválida.", 4000, Position.TOP_CENTER);
                 return;
             }
         }
 
         try {
-            // 2. Construir el objeto cabecera de SalidaInventario
+            
             SalidaInventario salida = new SalidaInventario();
             salida.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
             salida.setFechaRegistro(new Date());
-            salida.setObservacion("Amin");
+//            salida.setAlmacen(cbAlmacen.getValue()); // <-- Asignación del Almacén en la Cabecera
+            salida.setObservacion(txtObservacion.getValue());
 
-            // Asignar explícitamente la relación bidireccional en memoria
             listDet.forEach(e -> {
                 e.setSalidaInventario(salida);
+                e.setAlmacen(cbAlmacen.getValue());
                 e.setCodigo(null);
             });
 
             salida.setDetalleSalidaInventarioCollection(listDet);
 
-            // TODO: Reemplazar "ADMIN" por el usuario del contexto de Vaadin/Spring Security
-            String usuarioActual = "ADMIN";
+            String usuarioActual = "ADMIN"; // Sustituir por SecurityContext de Spring/Vaadin
 
-            // 3. Invocar al servicio transaccional (Guarda la Salida + Descuenta Stock + Traza Movimiento)
             SalidaInventario guardada = this.salidaInvService.guardar(salida, usuarioActual);
 
             Notification.show("Salida #" + guardada.getCodigo() + " procesada y descontada del inventario correctamente.", 3000, Position.TOP_CENTER);
 
-            // 4. Limpiar la interfaz
             listDet.clear();
-
+            txtObservacion.clear();
             grid.getDataProvider().refreshAll();
 
         } catch (IllegalStateException ex) {
-            // Captura excepciones de stock insuficiente disparadas por MovimientoInventarioService
             Notification.show(ex.getMessage(), 5000, Position.MIDDLE);
         } catch (IllegalArgumentException ex) {
-            // Validaciones de negocio (artículos nulos, cantidades en cero, etc.)
             Notification.show(ex.getMessage(), 4000, Position.TOP_CENTER);
         } catch (Exception e) {
             Notification.show("Error inesperado al guardar la salida: " + e.getMessage(), 4000, Position.TOP_CENTER);
             e.printStackTrace();
         }
     }
-
 }
+
+//package com.maxsoft.application.view.inventario.salida;
+//
+//import com.maxsoft.application.modelo.Articulo;
+//import com.maxsoft.application.modelo.DetalleSalidaInventario;
+//import com.maxsoft.application.modelo.SalidaInventario;
+//import com.maxsoft.application.modelo.Unidad;
+//import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
+//import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
+//import com.maxsoft.application.util.ClaseUtil;
+//import com.maxsoft.application.view.componente.ToolBarBotonera;
+//import com.maxsoft.application.view.dialogo.ConfirmDialog;
+//import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
+//import com.vaadin.flow.component.Key;
+//import com.vaadin.flow.component.UI;
+//import com.vaadin.flow.component.button.Button;
+//import com.vaadin.flow.component.button.ButtonVariant;
+//import com.vaadin.flow.component.datepicker.DatePicker;
+//import com.vaadin.flow.component.grid.Grid;
+//import com.vaadin.flow.component.grid.dataview.GridListDataView;
+//import com.vaadin.flow.component.grid.editor.Editor;
+//import com.vaadin.flow.component.icon.Icon;
+//import com.vaadin.flow.component.icon.VaadinIcon;
+//import com.vaadin.flow.component.notification.Notification;
+//import com.vaadin.flow.component.notification.Notification.Position;
+//import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+//import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+//import com.vaadin.flow.component.textfield.TextField;
+//import com.vaadin.flow.data.renderer.ComponentRenderer;
+//import com.vaadin.flow.data.value.ValueChangeMode;
+//import com.vaadin.flow.router.PageTitle;
+//import com.vaadin.flow.router.Route;
+//import jakarta.annotation.security.PermitAll;
+//import java.math.BigDecimal;
+//import org.springframework.beans.factory.annotation.Autowired;
+//
+//import java.time.LocalDate;
+//import java.util.ArrayList;
+//import java.util.Date;
+//import java.util.List;
+//import java.util.Objects;
+//
+//@PermitAll
+//@PageTitle("Registro Salida de Inventario")
+//@Route(value = "inventario/registroSalida")
+//public class RegistroSalidaDeIventarioView extends VerticalLayout {
+//
+//    private final Grid<DetalleSalidaInventario> grid = new Grid<>(DetalleSalidaInventario.class, false);
+//    private Editor<DetalleSalidaInventario> editor;
+//
+//    private final TextField txtNumDoc = new TextField("Número Salida");
+//    private final DatePicker dpFecha = new DatePicker("Fecha");
+//    private final TextField txtBuscar = new TextField();
+//    private final ToolBarBotonera botonera = new ToolBarBotonera(false, true, true);
+//    private Button btnNuevo;
+//
+//    private final ArticuloService articuloService;
+//    private final SalidaInventarioService salidaInvService;
+//
+//    private final List<DetalleSalidaInventario> listDet = new ArrayList<>();
+//
+//    @Autowired
+//    public RegistroSalidaDeIventarioView(SalidaInventarioService salidaInvService,
+//            ArticuloService articuloService) {
+//
+//        this.salidaInvService = salidaInvService;
+//        this.articuloService = articuloService;
+//
+//        setSizeFull();
+//        configurarBotonera();
+//        configurarControlesSuperiores();
+//        configurarGridDetalle();
+//
+//        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, botonera);
+//        hlDatos.setAlignItems(Alignment.BASELINE);
+//
+//        HorizontalLayout hlArticulo = new HorizontalLayout(txtBuscar, btnNuevo);
+//        hlArticulo.setWidthFull();
+//
+//        add(hlDatos, hlArticulo, grid);
+//    }
+//
+//    private void configurarBotonera() {
+//        botonera.getGuardar().addClickListener(e -> procesarGuardado());
+//        botonera.getCancelar().addClickListener(e -> UI.getCurrent().navigate(SalidaDeIventarioView.class));
+//    }
+//
+//    private void configurarControlesSuperiores() {
+//        txtNumDoc.setEnabled(false);
+//        dpFecha.setValue(LocalDate.now());
+//
+//        btnNuevo = new Button("Artículo (F2)", event -> abrirDialogoSeleccionArticulo());
+//        btnNuevo.addClickShortcut(Key.F2);
+//
+//        txtBuscar.setWidth("50%");
+//        txtBuscar.setPlaceholder("Filtrar por código o descripción...");
+//        txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+//        txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
+//    }
+//
+//    private void abrirDialogoSeleccionArticulo() {
+//        try {
+//            ArticuloDialogoFilteringView dialog = new ArticuloDialogoFilteringView(articuloService, articulo -> {
+//                if (articulo != null) {
+//                    agregarOActualizarArticulo(articulo);
+//                }
+//            });
+//            dialog.open();
+//        } catch (Exception e) {
+//            Notification.show("Error abriendo diálogo de artículos: " + e.getMessage(), 3000, Position.TOP_CENTER);
+//        }
+//    }
+//
+//    private void agregarOActualizarArticulo(Articulo articulo) {
+//
+//        if (articulo == null) {
+//            Notification.show("Seleccione un artículo y una cantidad válida", 3000, Position.TOP_CENTER);
+//            return;
+//        }
+//
+//        if (Boolean.TRUE.equals(articulo.getInventariable())) {
+//            double stockActual = articulo.getExistencia().doubleValue();
+//
+//            BigDecimal cantidadYaEnGrid = listDet.stream()
+//        .filter(d -> d.getArticulo().getCodigo().equals(articulo.getCodigo()))
+//        // Mapeamos al objeto BigDecimal directamente
+//        .map(DetalleSalidaInventario::getCantidad) 
+//        // Sumamos acumulando con .add(), empezando desde CERO
+//        .reduce(BigDecimal.ZERO, BigDecimal::add);
+//
+//            // Sumar cantidades del mismo artículo que YA están agregadas en la Grid
+////            double cantidadYaEnGrid = listDet.stream()
+////                    .filter(d -> d.getArticulo().getCodigo().equals(articulo.getCodigo()))                   
+////                    .mapToDouble(DetalleSalidaInventario:: getCantidad() )
+////                    .sum();
+//
+//            double totalSolicitado = cantidadYaEnGrid.doubleValue();
+//
+//            if (totalSolicitado > stockActual) {
+//                Notification.show(
+//                        String.format("Stock insuficiente para '%s'. Disponible: %.2f | En lista: %.2f | Intentas retirar: %.2f",
+//                                articulo.getDescripcion(), stockActual, cantidadYaEnGrid, totalSolicitado),
+//                        5000, Position.MIDDLE
+//                );
+//                return;
+//            }
+//        }
+//
+//        boolean existe = listDet.stream()
+//                .anyMatch(d -> d.getArticulo() != null && Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo()));
+//
+//        if (existe) {
+//
+//            listDet.forEach(d -> {
+//                if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
+//  
+//                    d.setExistencia(d.getExistencia().subtract(d.getCantidad())); // Nueva existencia tras la salida
+//                }
+//            });
+//
+//        } else {
+//
+//            DetalleSalidaInventario det = new DetalleSalidaInventario();
+//           
+//            det.setCodigo(articulo.getCodigo());
+//            det.setArticulo(articulo);
+//            det.setDescripcionArticulo(articulo.getDescripcion());
+//
+////            double stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : 0.0;
+//            det.setExistenciaAnterior(articulo.getExistencia());
+//
+//            det.setCantidad(BigDecimal.ZERO); // Cantidad inicial a sacar
+//            det.setExistencia(articulo.getExistencia()); // Nueva existencia (Resta)
+//            det.setUnidad(new Unidad(1));
+//
+//            listDet.add(det);
+//        }
+//        grid.getDataProvider().refreshAll();
+//    }
+//
+//    private void configurarGridDetalle() {
+//        grid.setHeightFull();
+//        grid.setWidthFull();
+//
+//        GridListDataView<DetalleSalidaInventario> dataView = grid.setItems(listDet);
+//
+//        grid.addColumn(DetalleSalidaInventario::getDescripcionArticulo)
+//                .setHeader("Artículo")
+//                .setAutoWidth(true);
+//
+//        grid.addColumn(DetalleSalidaInventario::getExistenciaAnterior)
+//                .setHeader("Existencia Actual")
+//                .setAutoWidth(true);
+//
+//        grid.addColumn(DetalleSalidaInventario::getCantidad)
+//                .setHeader("Cantidad Salida")
+//                .setKey("cantidad")
+//                .setAutoWidth(true);
+//
+//        grid.addColumn(DetalleSalidaInventario::getExistencia)
+//                .setHeader("Nueva Existencia")
+//                .setAutoWidth(true);
+//
+//        grid.addColumn(new ComponentRenderer<>(item -> {
+//            Button deleteButton = new Button(new Icon(VaadinIcon.TRASH), click -> {
+//                ConfirmDialog dialog = new ConfirmDialog(
+//                        "¿Seguro que desea remover '" + item.getDescripcionArticulo() + "' de la salida?",
+//                        () -> {
+//                            listDet.remove(item);
+//                            grid.getDataProvider().refreshAll();
+//                        },
+//                        () -> {
+//                        }
+//                );
+//                dialog.open();
+//            });
+//            deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
+//            return deleteButton;
+//        })).setHeader("Acciones").setAutoWidth(true);
+//
+//        txtBuscar.addValueChangeListener(e -> dataView.addFilter(det -> {
+//            String term = e.getValue().trim().toLowerCase();
+//            if (term.isEmpty()) {
+//                return true;
+//            }
+//
+//            boolean matchDesc = det.getDescripcionArticulo() != null && det.getDescripcionArticulo().toLowerCase().contains(term);
+//            boolean matchCod = det.getCodigo() != null && det.getCodigo().toString().contains(term);
+//            return matchDesc || matchCod;
+//        }));
+//
+//        configurarEditorInLine();
+//    }
+//
+//    private void configurarEditorInLine() {
+//        editor = grid.getEditor();
+//        editor.setBuffered(false);
+//
+//        TextField cantidadField = new TextField();
+//        cantidadField.setWidthFull();
+//
+//        grid.getColumnByKey("cantidad").setEditorComponent(cantidadField);
+//
+//        grid.addItemDoubleClickListener(event -> {
+//            if (editor.isOpen()) {
+//                editor.cancel();
+//            }
+//            editor.editItem(event.getItem());
+//        });
+//
+//        cantidadField.addValueChangeListener(e -> {
+//            if (!editor.isOpen() || editor.getItem() == null) {
+//                return;
+//            }
+//
+//            try {
+//                double cant = Double.parseDouble(e.getValue());
+//
+//                if (cant <= 0) {
+//                    Notification.show("La cantidad debe ser mayor a cero", 2500, Position.MIDDLE);
+//                    return;
+//                }
+//
+//                DetalleSalidaInventario itemActual = editor.getItem();
+//                Articulo articulo = itemActual.getArticulo();
+//
+//                if (articulo != null && Boolean.TRUE.equals(articulo.getInventariable())) {
+//
+//                    // 1. Stock real en el maestro del artículo
+//                    BigDecimal stockDisponible = articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
+//
+//                    // 2. Calcular la suma de cantidades agregadas en OTRAS filas para este mismo artículo
+//                    Double cantidadEnOtrasFilas = listDet.stream()
+//                            .filter(d -> !d.equals(itemActual) && d.getArticulo() != null && d.getArticulo().getCodigo().equals(articulo.getCodigo()))
+//                            .mapToDouble(d -> d.getCantidad().doubleValue() )
+//                            .sum();
+//
+//                    // 3. Validar si la nueva cantidad excede el disponible
+//                    if ((cantidadEnOtrasFilas + cant) > stockDisponible.doubleValue()) {
+//                        Notification.show(
+//                                String.format("Stock insuficiente para '%s'. Disponible: %.2f (Ya en uso en otras filas: %.2f)",
+//                                        articulo.getDescripcion(), stockDisponible, cantidadEnOtrasFilas),
+//                                4000, Position.MIDDLE
+//                        );
+//
+//                        // Restaurar o limpiar la casilla si excede
+//                        cantidadField.setValue(itemActual.getCantidad() != null ? String.valueOf(itemActual.getCantidad()) : "");
+//                        return;
+//                    }
+//                }
+//
+//              BigDecimal cant1= BigDecimal.valueOf(cant);
+//                // 4. Si la validación pasa, actualizamos el modelo y recalculamos existencia en pantalla
+//                itemActual.setCantidad(cant1);
+//                if (articulo != null && articulo.getExistencia() != null) {
+//                    itemActual.setExistencia(articulo.getExistencia().subtract(cant1));
+//                }
+//
+//                grid.getDataProvider().refreshItem(itemActual);
+//
+//            } catch (NumberFormatException ex) {
+//                Notification.show("Ingrese una cantidad válida", 2000, Position.MIDDLE);
+//            }
+//        });
+//    }
+//
+//    private void procesarGuardado() {
+//        // 1. Validaciones previas de la interfaz
+//        if (listDet.isEmpty()) {
+//            Notification.show("Debe agregar al menos un artículo a la salida.", 3000, Position.TOP_CENTER);
+//            return;
+//        }
+//
+//        for (DetalleSalidaInventario det : listDet) {
+//
+//            if (det.getCantidad() == null || det.getCantidad().doubleValue() <= 0) {
+//                Notification.show("El artículo '" + det.getArticulo().getDescripcion() + "' tiene una cantidad inválida.", 4000, Position.TOP_CENTER);
+//                return;
+//            }
+//        }
+//
+//        try {
+//            // 2. Construir el objeto cabecera de SalidaInventario
+//            SalidaInventario salida = new SalidaInventario();
+//            salida.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
+//            salida.setFechaRegistro(new Date());
+//            salida.setObservacion("Amin");
+//
+//            // Asignar explícitamente la relación bidireccional en memoria
+//            listDet.forEach(e -> {
+//                e.setSalidaInventario(salida);
+//                e.setCodigo(null);
+//            });
+//
+//            salida.setDetalleSalidaInventarioCollection(listDet);
+//
+//            // TODO: Reemplazar "ADMIN" por el usuario del contexto de Vaadin/Spring Security
+//            String usuarioActual = "ADMIN";
+//
+//            // 3. Invocar al servicio transaccional (Guarda la Salida + Descuenta Stock + Traza Movimiento)
+//            SalidaInventario guardada = this.salidaInvService.guardar(salida, usuarioActual);
+//
+//            Notification.show("Salida #" + guardada.getCodigo() + " procesada y descontada del inventario correctamente.", 3000, Position.TOP_CENTER);
+//
+//            // 4. Limpiar la interfaz
+//            listDet.clear();
+//
+//            grid.getDataProvider().refreshAll();
+//
+//        } catch (IllegalStateException ex) {
+//            // Captura excepciones de stock insuficiente disparadas por MovimientoInventarioService
+//            Notification.show(ex.getMessage(), 5000, Position.MIDDLE);
+//        } catch (IllegalArgumentException ex) {
+//            // Validaciones de negocio (artículos nulos, cantidades en cero, etc.)
+//            Notification.show(ex.getMessage(), 4000, Position.TOP_CENTER);
+//        } catch (Exception e) {
+//            Notification.show("Error inesperado al guardar la salida: " + e.getMessage(), 4000, Position.TOP_CENTER);
+//            e.printStackTrace();
+//        }
+//    }
+//
+//}

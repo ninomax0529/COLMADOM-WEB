@@ -20,7 +20,7 @@ public class ArticuloAlmacenServiceImpl implements ArticuloAlmacenService {
     
     @Override
     public List<ArticuloAlmacen> getLista() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+       return repo.findAll();
     }
 
     @Override

@@ -11,6 +11,7 @@ import com.maxsoft.application.servicio.interfaces.compra.ProveedorService;
 import com.maxsoft.application.servicio.interfaces.compra.RecepcionMercanciaService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
+import com.maxsoft.application.servicio.interfaces.venta.UnidadDeVentaService;
 
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
@@ -41,6 +42,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Route(value = "compra/recepcion")
 @PageTitle("Recepción de Mercancía")
@@ -52,6 +54,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
     private final ArticuloService articuloService;
     TipoDocumentoService tipoDocumentoService;
     EstadoDocumentoService essDocumentoService;
+    UnidadDeVentaService unidadDeVentaService;
 
     // Estado interno
     private final List<DetalleRecepcionMercancia> detalles = new ArrayList<>();
@@ -90,7 +93,8 @@ public class RecepcionMercanciaView extends VerticalLayout {
             ProveedorService proveedorService,
             ArticuloService articuloService,
             TipoDocumentoService tipoDocumentoService,
-            EstadoDocumentoService essDocumentoService) {
+            EstadoDocumentoService essDocumentoService,
+            UnidadDeVentaService unidadDeVentaService) {
 
         this.recepcionService = recepcionService;
         this.ordenCompraService = ordenCompraService;
@@ -98,6 +102,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
         this.articuloService = articuloService;
         this.tipoDocumentoService = tipoDocumentoService;
         this.essDocumentoService = essDocumentoService;
+        this.unidadDeVentaService = unidadDeVentaService;
 
         setSpacing(true);
         setPadding(true);
@@ -254,51 +259,64 @@ public class RecepcionMercanciaView extends VerticalLayout {
     }
 
     private void agregarDetalleAGrid() {
-        if ((cbArticulo.isEmpty() && txtDescripcion.isEmpty()) || numCantidad.getValue() == null || numPrecio.getValue() == null) {
-            Notification.show("Seleccione un artículo, cantidad y precio válidos.", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            return;
-        }
 
-        Articulo artSel = cbArticulo.getValue();
-        String desc = txtDescripcion.getValue() != null ? txtDescripcion.getValue().trim() : "";
+        try {
 
-        boolean yaExiste = detalles.stream().anyMatch(d -> {
-            if (artSel != null && d.getArticulo() != null) {
-                return d.getArticulo().getCodigo().equals(artSel.getCodigo());
+            if ((cbArticulo.isEmpty() && txtDescripcion.isEmpty()) || numCantidad.getValue() == null || numPrecio.getValue() == null) {
+                Notification.show("Seleccione un artículo, cantidad y precio válidos.", 3000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
             }
-            return d.getDescripcionArticulo().equalsIgnoreCase(desc);
-        });
 
-        if (yaExiste) {
-            Notification.show("El artículo ya está agregado.", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_WARNING);
-            return;
+            Articulo artSel = this.articuloService.buscarPorCodigo(cbArticulo.getValue().getCodigo());
+
+            String desc = txtDescripcion.getValue() != null ? txtDescripcion.getValue().trim() : "";
+
+            boolean yaExiste = detalles.stream().anyMatch(d -> {
+                if (artSel != null && d.getArticulo() != null) {
+                    return d.getArticulo().getCodigo().equals(artSel.getCodigo());
+                }
+                return d.getDescripcionArticulo().equalsIgnoreCase(desc);
+            });
+
+            if (yaExiste) {
+                Notification.show("El artículo ya está agregado.", 3000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_WARNING);
+                return;
+            }
+
+            BigDecimal cant = BigDecimal.valueOf(numCantidad.getValue());
+            BigDecimal prec = BigDecimal.valueOf(numPrecio.getValue());
+            BigDecimal porcItbis = BigDecimal.valueOf(numItbisPorc.getValue() != null ? numItbisPorc.getValue() : 0.0);
+
+            BigDecimal sub = cant.multiply(prec).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal itbis = sub.multiply(porcItbis).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+            DetalleRecepcionMercancia det = new DetalleRecepcionMercancia();
+
+            System.out.println("artSel.getUnidadEntrada() " + artSel.getUnidadEntrada());
+            det.setCodigo(artSel.getCodigo());
+            det.setArticulo(artSel);
+
+            System.out.println("no es nula la unidad");
+            det.setUnidad(artSel.getUnidadEntrada());
+            det.setNombreUnidad(artSel.getUnidadEntrada().getAbreviatura()); // o getAbreviatura()
+
+            det.setDescripcionArticulo(desc);
+            det.setCantidadRecibida(cant);
+            det.setPrecioUnitario(prec);
+            det.setSubTotal(sub);
+            det.setItbis(itbis);
+            det.setTotal(sub.add(itbis));
+
+            detalles.add(det);
+            actualizarGridYTotales();
+            limpiarFormularioDetalle();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        BigDecimal cant = BigDecimal.valueOf(numCantidad.getValue());
-        BigDecimal prec = BigDecimal.valueOf(numPrecio.getValue());
-        BigDecimal porcItbis = BigDecimal.valueOf(numItbisPorc.getValue() != null ? numItbisPorc.getValue() : 0.0);
-
-        BigDecimal sub = cant.multiply(prec).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal itbis = sub.multiply(porcItbis).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
-        DetalleRecepcionMercancia det = new DetalleRecepcionMercancia();
-        
-        det.setCodigo(artSel.getCodigo());
-        det.setArticulo(artSel);
-        det.setUnidad(artSel.getUnidadEntrada());
-        det.setNombreUnidad(artSel.getUnidadEntrada().getAbreviatura());
-        det.setDescripcionArticulo(desc);
-        det.setCantidadRecibida(cant);
-        det.setPrecioUnitario(prec);
-        det.setSubTotal(sub);
-        det.setItbis(itbis);
-        det.setTotal(sub.add(itbis));
-
-        detalles.add(det);
-        actualizarGridYTotales();
-        limpiarFormularioDetalle();
     }
 
     private void configurarGridDetalles() {

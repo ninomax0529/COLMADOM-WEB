@@ -57,7 +57,7 @@ public class ArticuloView extends VerticalLayout {
 
             String key = NavigationContext.store(new Articulo());
 
-            UI.getCurrent().navigate(RegistrarArticuloView.class, key);
+            UI.getCurrent().navigate(RegistrarArticuloViewV1.class, key);
 
         });
 
@@ -85,7 +85,7 @@ public class ArticuloView extends VerticalLayout {
 
                 String key = NavigationContext.store(articulo);
 
-                UI.getCurrent().navigate(RegistrarArticuloView.class, key);
+                UI.getCurrent().navigate(RegistrarArticuloViewV1.class, key);
 
             });
 

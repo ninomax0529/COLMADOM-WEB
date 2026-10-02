@@ -94,8 +94,8 @@ public class TrasladoInventarioServiceImpl implements TrasladoInventarioService 
             }
 
             // Descontar del origen
-            stockOrigen.setExistencia(stockOrigen.getExistencia().subtract(cantidadTransferir));
-            articuloAlmacenService.guardar(stockOrigen);
+//            stockOrigen.setExistencia(stockOrigen.getExistencia().subtract(cantidadTransferir));
+//            articuloAlmacenService.guardar(stockOrigen);
 
             // B) Verificar o crear registro de stock en Almacén Destino
             ArticuloAlmacen stockDestino = articuloAlmacenService.buscarPorArticuloYAlmacen(idArticulo, idDestino)
@@ -111,8 +111,8 @@ public class TrasladoInventarioServiceImpl implements TrasladoInventarioService 
                     });
 
             // Sumar al destino
-            stockDestino.setExistencia(stockDestino.getExistencia().add(cantidadTransferir));
-            articuloAlmacenService.guardar(stockDestino);
+//            stockDestino.setExistencia(stockDestino.getExistencia().add(cantidadTransferir));
+//            articuloAlmacenService.guardar(stockDestino);
 
             // Vinculación bidireccional del detalle con la cabecera
             detalle.setTraslado(traslado);

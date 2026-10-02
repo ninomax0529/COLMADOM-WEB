@@ -1,9 +1,12 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+///*
+// * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+// * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+// */
+
+
 package com.maxsoft.application.view.inventario.ajuste;
 
+import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.AjusteInventario;
 import com.maxsoft.application.modelo.DetalleAjusteInventario;
@@ -12,6 +15,7 @@ import com.maxsoft.application.modelo.Usuario;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.inventario.AjusteInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService; // Service para consultar stock por almacén
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoAjusteService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
@@ -36,7 +40,6 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.BigDecimalField;
-import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
@@ -61,6 +64,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
 
     private final TextField txtNumDoc = new TextField("Número Ajuste");
     private final DatePicker dpFecha = new DatePicker("Fecha");
+    private final ComboBox<Almacen> cbAlmacen = new ComboBox<>("Almacén"); // <-- NUEVO: Multi-Almacén
     private final ComboBox<TipoAjuste> cbTipoAjuste = new ComboBox<>("Tipo de Ajuste");
     private final TextField txtObservacion = new TextField("Observación");
     private final TextField txtBuscar = new TextField();
@@ -69,28 +73,31 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
 
     private final ArticuloService articuloService;
     private final AjusteInventarioService ajusteService;
-    TipoAjusteService tipoAjusteService;
-    AlmacenService almacenService;
-    private final MovimientoInventarioService movimientoService; // <--- Nuevo Servicio
-    TipoMovimientoService tipoMovimientoService;
-    TipoDocumentoService tipoDocumentoService;
+    private final TipoAjusteService tipoAjusteService;
+    private final AlmacenService almacenService;
+    private final ArticuloAlmacenService existenciaService; // <-- Servicio para consultar stock por almacén
+    private final MovimientoInventarioService movimientoService;
+    private final TipoMovimientoService tipoMovimientoService;
+    private final TipoDocumentoService tipoDocumentoService;
 
     private final List<DetalleAjusteInventario> listDet = new ArrayList<>();
 
     @Autowired
     public RegistroAjusteDeInventarioView(AjusteInventarioService ajusteService,
-            ArticuloService articuloService,
-            TipoAjusteService tipoAjusteService,
-            AlmacenService almacenService,
-            MovimientoInventarioService movimientoService,
-            TipoMovimientoService tipoMovimientoService,
-            TipoDocumentoService tipoDocumentoService) {
+                                           ArticuloService articuloService,
+                                           TipoAjusteService tipoAjusteService,
+                                           AlmacenService almacenService,
+                                           ArticuloAlmacenService existenciaService,
+                                           MovimientoInventarioService movimientoService,
+                                           TipoMovimientoService tipoMovimientoService,
+                                           TipoDocumentoService tipoDocumentoService) {
 
         this.ajusteService = ajusteService;
         this.articuloService = articuloService;
         this.tipoAjusteService = tipoAjusteService;
         this.almacenService = almacenService;
-        this.movimientoService = movimientoService; // <--- Asignación
+        this.existenciaService = existenciaService;
+        this.movimientoService = movimientoService;
         this.tipoDocumentoService = tipoDocumentoService;
         this.tipoMovimientoService = tipoMovimientoService;
 
@@ -99,7 +106,8 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         configurarControlesSuperiores();
         configurarGridDetalle();
 
-        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, cbTipoAjuste, txtObservacion, botonera);
+        // Layout de Cabecera con selector de Almacén
+        HorizontalLayout hlDatos = new HorizontalLayout(txtNumDoc, dpFecha, cbAlmacen, cbTipoAjuste, txtObservacion, botonera);
         hlDatos.setAlignItems(Alignment.BASELINE);
 
         HorizontalLayout hlArticulo = new HorizontalLayout(txtBuscar, btnNuevo);
@@ -109,7 +117,13 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
     }
 
     private void configurarBotonera() {
-        botonera.getGuardar().addClickListener(e -> procesarGuardado());
+        botonera.getGuardar().addClickListener(e -> {
+            try {
+                procesarGuardado();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
         botonera.getCancelar().addClickListener(e -> getUI().ifPresent(ui -> ui.getPage().getHistory().back()));
     }
 
@@ -117,11 +131,18 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         txtNumDoc.setEnabled(false);
         dpFecha.setValue(LocalDate.now());
 
-        cbTipoAjuste.setItems(this.tipoAjusteService.getLista());
+        // Configuración ComboBox Almacén
+        cbAlmacen.setItems(this.almacenService.getLista());
+        cbAlmacen.setItemLabelGenerator(Almacen::getNombre);
+        cbAlmacen.setAllowCustomValue(false);
+        cbAlmacen.setRequired(true);
+        cbAlmacen.addValueChangeListener(e -> cambiarAlmacenGeneral(e.getValue()));
 
-        cbTipoAjuste.setItemLabelGenerator(o -> o.getDescripcion());
-//        cbTipoAjuste.setValue("DECREMENTO");
+        // Configuración ComboBox Tipo Ajuste
+        cbTipoAjuste.setItems(this.tipoAjusteService.getLista());
+        cbTipoAjuste.setItemLabelGenerator(TipoAjuste::getDescripcion);
         cbTipoAjuste.setAllowCustomValue(false);
+        cbTipoAjuste.setRequired(true);
         cbTipoAjuste.addValueChangeListener(e -> recalcularNuevasExistencias());
 
         txtObservacion.setWidth("300px");
@@ -135,7 +156,37 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
     }
 
+    private void cambiarAlmacenGeneral(Almacen nuevoAlmacen) {
+        if (nuevoAlmacen == null) return;
+
+        // Actualizar almacén y stock actual de cada fila agregada
+        for (DetalleAjusteInventario det : listDet) {
+            det.setAlmacen(nuevoAlmacen);
+            det.setNombreAlmacen(nuevoAlmacen.getNombre());
+
+            // Consultar la existencia del artículo en el nuevo almacén seleccionado
+            BigDecimal stockEnAlmacen = obtenerExistenciaPorAlmacen(det.getArticulo(), nuevoAlmacen);
+            det.setExistencia(stockEnAlmacen);
+            det.setNuevaExistencia(calcularNuevaExistencia(stockEnAlmacen, det.getCantidad()));
+        }
+
+        grid.getDataProvider().refreshAll();
+    }
+
+    private BigDecimal obtenerExistenciaPorAlmacen(Articulo articulo, Almacen almacen) {
+        if (articulo == null || almacen == null) return BigDecimal.ZERO;
+        // Lógica para traer la existencia de la tabla intermedia (ej. existencia_articulo / stock_almacen)
+        BigDecimal stock = existenciaService.buscarPorArticuloYAlmacen(articulo.getCodigo(), almacen.getCodigo()).get().getExistencia();
+        return stock != null ? stock : BigDecimal.ZERO;
+    }
+
     private void abrirDialogoSeleccionArticulo() {
+        if (cbAlmacen.getValue() == null) {
+            ClaseUtil.mostrarNotificacion("Debe seleccionar un Almacén antes de agregar artículos", NotificationVariant.LUMO_WARNING);
+            cbAlmacen.focus();
+            return;
+        }
+
         try {
             ArticuloDialogoFilteringView dialog = new ArticuloDialogoFilteringView(articuloService, articulo -> {
                 if (articulo != null) {
@@ -149,12 +200,13 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
     }
 
     private void agregarOActualizarArticulo(Articulo articulo) {
+        
+        Almacen almacenSeleccionado = cbAlmacen.getValue();
 
         boolean existe = listDet.stream()
                 .anyMatch(d -> d.getArticulo() != null && Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo()));
 
         if (existe) {
-
             listDet.forEach(d -> {
                 if (Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())) {
                     BigDecimal nuevaCant = d.getCantidad();
@@ -162,23 +214,24 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
                     d.setNuevaExistencia(calcularNuevaExistencia(d.getExistencia(), nuevaCant));
                 }
             });
-
         } else {
-
             DetalleAjusteInventario det = new DetalleAjusteInventario();
             det.setCodigo(articulo.getCodigo());
             det.setArticulo(articulo);
             det.setDescripcionArticulo(articulo.getDescripcion());
 
-            BigDecimal stockActual = articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
+            // Obtener stock específico para el almacén activo
+            BigDecimal stockActual = obtenerExistenciaPorAlmacen(articulo, almacenSeleccionado);
             det.setExistencia(stockActual);
 
             det.setCantidad(BigDecimal.ZERO);
             det.setNuevaExistencia(stockActual);
             det.setUnidad(articulo.getUnidadEntrada());
-            det.setNombreUnidad(det.getUnidad().getDescripcion());
-            det.setAlmacen(this.almacenService.getAlmacen(1));
-            det.setNombreAlmacen(det.getAlmacen().getNombre());
+            if (articulo.getUnidadEntrada() != null) {
+                det.setNombreUnidad(articulo.getUnidadEntrada().getDescripcion());
+            }
+            det.setAlmacen(almacenSeleccionado);
+            det.setNombreAlmacen(almacenSeleccionado.getNombre());
 
             listDet.add(det);
         }
@@ -187,16 +240,11 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
     }
 
     private BigDecimal calcularNuevaExistencia(BigDecimal existenciaActual, BigDecimal cantidad) {
-        // 1. Obtener el valor de forma segura
         TipoAjuste tipo = cbTipoAjuste.getValue();
+        if (tipo == null || existenciaActual == null || cantidad == null) {
+            return existenciaActual != null ? existenciaActual : BigDecimal.ZERO;
+        }
 
-        // 2. Si es nulo, retornar la existencia sin cambios o asumir un comportamiento por defecto
-//        if (tipo == null || tipo.getDescripcion() == null) {
-//
-//            ClaseUtil.mostrarNotificacion("Tiene que seleccionar el tipo de ajuste", NotificationVariant.LUMO_WARNING);
-//            return 0.00;
-//        }
-        // 3. Evaluar según el tipo seleccionado
         if ("INCREMENTO".equalsIgnoreCase(tipo.getDescripcion())) {
             return existenciaActual.add(cantidad);
         } else {
@@ -205,9 +253,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
     }
 
     private void recalcularNuevasExistencias() {
-
         for (DetalleAjusteInventario det : listDet) {
-
             det.setNuevaExistencia(calcularNuevaExistencia(det.getExistencia(), det.getCantidad()));
         }
         grid.getDataProvider().refreshAll();
@@ -221,6 +267,10 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
 
         grid.addColumn(DetalleAjusteInventario::getDescripcionArticulo)
                 .setHeader("Artículo")
+                .setAutoWidth(true);
+
+        grid.addColumn(DetalleAjusteInventario::getNombreAlmacen)
+                .setHeader("Almacén")
                 .setAutoWidth(true);
 
         grid.addColumn(DetalleAjusteInventario::getExistencia)
@@ -244,8 +294,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
                             listDet.remove(item);
                             grid.getDataProvider().refreshAll();
                         },
-                        () -> {
-                        }
+                        () -> {}
                 );
                 dialog.open();
             });
@@ -255,9 +304,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
 
         txtBuscar.addValueChangeListener(e -> dataView.addFilter(det -> {
             String term = e.getValue().trim().toLowerCase();
-            if (term.isEmpty()) {
-                return true;
-            }
+            if (term.isEmpty()) return true;
 
             boolean matchDesc = det.getDescripcionArticulo() != null && det.getDescripcionArticulo().toLowerCase().contains(term);
             boolean matchCod = det.getArticulo() != null && det.getArticulo().getCodigo().toString().contains(term);
@@ -284,83 +331,74 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         });
 
         cantidadField.addValueChangeListener(e -> {
-            if (!editor.isOpen() || editor.getItem() == null) {
-                return;
-            }
+            if (!editor.isOpen() || editor.getItem() == null) return;
 
             try {
-                
                 BigDecimal cant = e.getValue();
-                if (cant.doubleValue()<=0.00 && cbTipoAjuste.getValue()!= null) {
+                if (cant == null) cant = BigDecimal.ZERO;
 
+                if (cant.compareTo(BigDecimal.ZERO) <= 0 && cbTipoAjuste.getValue() != null) {
                     Notification.show("La cantidad debe ser mayor a cero", 2500, Position.MIDDLE);
                     return;
-
                 }
 
                 DetalleAjusteInventario item = editor.getItem();
 
-                // 2. Si es nulo, retornar la existencia sin cambios o asumir un comportamiento por defecto
                 if (cbTipoAjuste.getValue() != null) {
-
                     item.setCantidad(cant);
                     item.setNuevaExistencia(calcularNuevaExistencia(item.getExistencia(), cant));
-//                    grid.getDataProvider().refreshItem(item);
                 } else {
-
                     ClaseUtil.mostrarNotificacion("Tiene que seleccionar el tipo de ajuste", NotificationVariant.LUMO_WARNING);
-
-//                    cantidadField.setValue(0.00);
                     item.setCantidad(BigDecimal.ZERO);
                 }
 
                 grid.getDataProvider().refreshItem(item);
-            } catch (NumberFormatException ex) {
+            } catch (Exception ex) {
                 Notification.show("Ingrese una cantidad válida", 2000, Position.MIDDLE);
             }
         });
     }
 
     private void procesarGuardado() {
-        // 1. Validaciones simples de la UI
-        if (listDet.isEmpty()) {
-            Notification.show("El ajuste no tiene artículos registrados", 3000, Position.TOP_CENTER);
+        if (cbAlmacen.getValue() == null) {
+            Notification.show("Debe seleccionar un Almacén", 3000, Position.TOP_CENTER);
+            cbAlmacen.focus();
             return;
         }
 
-        String tipoSel = cbTipoAjuste.getValue().getDescripcion();
-        if (tipoSel == null) {
+        if (cbTipoAjuste.getValue() == null) {
             Notification.show("Debe seleccionar un Tipo de Ajuste", 3000, Position.TOP_CENTER);
             cbTipoAjuste.focus();
             return;
         }
 
+        if (listDet.isEmpty()) {
+            Notification.show("El ajuste no tiene artículos registrados", 3000, Position.TOP_CENTER);
+            return;
+        }
+
         try {
-            
-            
-            String usuarioActual = "ADMIN"; // Sustituir por usuario del contexto de seguridad
-            // 2. Construir objeto cabecera
+            String usuarioActual = "ADMIN"; // Ajustar al SecurityContext actual
+
             AjusteInventario ajuste = new AjusteInventario();
             ajuste.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
+            ajuste.setAlmacen(cbAlmacen.getValue()); // <-- Asignación del Almacén en la Cabecera
+            ajuste.setNombreAlmacen(cbAlmacen.getValue().getNombre());
             ajuste.setTipoAjuste(cbTipoAjuste.getValue());
             ajuste.setObservacion(txtObservacion.getValue());
             ajuste.setUsuario(new Usuario(1));
             ajuste.setNombreUsuario(usuarioActual);
             ajuste.setAnulado(false);
 
-
-            // 3. Ejecutar la transacción completa atómicamente
             AjusteInventario guardado = ajusteService.procesarAjusteTransaccional(ajuste, listDet, usuarioActual);
 
             Notification.show("Ajuste #" + guardado.getCodigo() + " guardado con éxito", 3000, Position.TOP_CENTER);
 
-            // 4. Limpiar formulario
             listDet.clear();
             txtObservacion.clear();
             grid.getDataProvider().refreshAll();
 
         } catch (IllegalStateException | IllegalArgumentException ex) {
-            // Muestra excepciones de stock insuficiente o validaciones de negocio
             Notification.show(ex.getMessage(), 4000, Position.MIDDLE);
         } catch (Exception e) {
             Notification.show("Error al guardar el ajuste: " + e.getMessage(), 4000, Position.TOP_CENTER);

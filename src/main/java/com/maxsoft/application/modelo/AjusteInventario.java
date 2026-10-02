@@ -36,6 +36,34 @@ import java.util.Date;
     @NamedQuery(name = "AjusteInventario.findAll", query = "SELECT a FROM AjusteInventario a")})
 public class AjusteInventario implements Serializable {
 
+    /**
+     * @return the almacen
+     */
+    public Almacen getAlmacen() {
+        return almacen;
+    }
+
+    /**
+     * @param almacen the almacen to set
+     */
+    public void setAlmacen(Almacen almacen) {
+        this.almacen = almacen;
+    }
+
+    /**
+     * @return the nombreAlmacen
+     */
+    public String getNombreAlmacen() {
+        return nombreAlmacen;
+    }
+
+    /**
+     * @param nombreAlmacen the nombreAlmacen to set
+     */
+    public void setNombreAlmacen(String nombreAlmacen) {
+        this.nombreAlmacen = nombreAlmacen;
+    }
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -76,6 +104,12 @@ public class AjusteInventario implements Serializable {
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Usuario usuario;
+    @Size(max = 255)
+    @Column(name = "nombre_almacen")
+    private String nombreAlmacen;
+    @JoinColumn(name = "almacen", referencedColumnName = "codigo")
+    @ManyToOne(optional = false)
+    private Almacen almacen;
 
     public AjusteInventario() {
     }
@@ -196,5 +230,5 @@ public class AjusteInventario implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.AjusteInventario[ codigo=" + codigo + " ]";
     }
-    
+
 }

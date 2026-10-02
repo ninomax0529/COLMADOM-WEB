@@ -129,8 +129,11 @@ public class TrasladoInventarioView extends VerticalLayout {
 
         cbArticulo.addValueChangeListener(e -> {
             if (e.getValue() != null) {
+                
                 nfStockDisponible.setValue(e.getValue().getExistencia().doubleValue());
+                
             } else {
+                
                 nfStockDisponible.setValue(0.0);
             }
         });
