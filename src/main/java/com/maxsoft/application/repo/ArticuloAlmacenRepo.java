@@ -15,25 +15,31 @@ import org.springframework.data.repository.query.Param;
  *
  * @author Maximiliano
  */
-public interface ArticuloAlmacenRepo extends JpaRepository<ArticuloAlmacen, Integer>{
-    
+public interface ArticuloAlmacenRepo extends JpaRepository<ArticuloAlmacen, Integer> {
+
     // Opción A: Con consulta JPQL explícita (Recomendada para mayor claridad)
     @Query("SELECT a FROM ArticuloAlmacen a WHERE a.articulo.codigo = :idArticulo AND a.almacen.codigo = :idAlmacen")
-    Optional<ArticuloAlmacen> buscarPorArticuloYAlmacen(@Param("idArticulo") Integer idArticulo, 
-                                                         @Param("idAlmacen") Integer idAlmacen);
-    
-    @Query("SELECT aa FROM ArticuloAlmacen aa " +
-           "JOIN FETCH aa.articulo a " +
-           "JOIN FETCH aa.almacen alm " +
-           "WHERE a.codigo = :idArticulo AND alm.codigo = :idAlmacen")
-    Optional<ArticuloAlmacen> buscarPorArticuloYAlmacenOptimizado(@Param("idArticulo") Integer idArticulo, 
-                                                                  @Param("idAlmacen") Integer idAlmacen);
-    
-        @Query("SELECT aa FROM ArticuloAlmacen aa " +
-           "JOIN FETCH aa.articulo a " +
-           "JOIN FETCH aa.almacen alm " +
-           "WHERE  alm.codigo = :idAlmacen")
-    Optional<List<ArticuloAlmacen>> buscarPorAlmacen( @Param("idAlmacen") Integer idAlmacen);
+    Optional<ArticuloAlmacen> buscarPorArticuloYAlmacen(@Param("idArticulo") Integer idArticulo,
+            @Param("idAlmacen") Integer idAlmacen);
+
+    @Query("SELECT aa FROM ArticuloAlmacen aa "
+            + "JOIN FETCH aa.articulo a "
+            + "JOIN FETCH aa.almacen alm "
+            + "WHERE a.codigo = :idArticulo AND alm.codigo = :idAlmacen")
+    Optional<ArticuloAlmacen> buscarPorArticuloYAlmacenOptimizado(@Param("idArticulo") Integer idArticulo,
+            @Param("idAlmacen") Integer idAlmacen);
+
+    @Query("SELECT aa FROM ArticuloAlmacen aa "
+            + "JOIN FETCH aa.articulo a "
+            + "JOIN FETCH aa.almacen alm "
+            + "WHERE  alm.codigo = :idAlmacen")
+    Optional<List<ArticuloAlmacen>> buscarPorAlmacen(@Param("idAlmacen") Integer idAlmacen);
+
+    @Query("SELECT aa FROM ArticuloAlmacen aa "
+            + "JOIN FETCH aa.articulo a "
+            + "JOIN FETCH aa.almacen alm "
+            + "WHERE  a.codigo = :idArticulo")
+    Optional<List<ArticuloAlmacen>> buscarPorArticulo(@Param("idArticulo") Integer idAlmacen);
 
     // Opción B: Mediante convención de nombres de Spring Data JPA (Derived Query Method)
     Optional<ArticuloAlmacen> findByArticuloCodigoAndAlmacenCodigo(Integer idArticulo, Integer idAlmacen);

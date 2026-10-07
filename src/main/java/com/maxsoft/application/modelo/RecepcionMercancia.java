@@ -90,6 +90,11 @@ public class RecepcionMercancia implements Serializable {
     @Size(min = 1, max = 120)
     @Column(name = "nombre_usuario")
     private String nombreUsuario;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "recepcionMercancia")
+    private Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection;
+    @JoinColumn(name = "almacen", referencedColumnName = "codigo")
+    @ManyToOne
+    private Almacen almacen;
     @JoinColumn(name = "estado_documento", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private EstadoDocumento estadoDocumento;
@@ -102,8 +107,6 @@ public class RecepcionMercancia implements Serializable {
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Usuario usuario;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "recepcionMercancia")
-    private Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection;
 
     public RecepcionMercancia() {
     }
@@ -213,6 +216,22 @@ public class RecepcionMercancia implements Serializable {
         this.nombreUsuario = nombreUsuario;
     }
 
+    public Collection<DetalleRecepcionMercancia> getDetalleRecepcionMercanciaCollection() {
+        return detalleRecepcionMercanciaCollection;
+    }
+
+    public void setDetalleRecepcionMercanciaCollection(Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection) {
+        this.detalleRecepcionMercanciaCollection = detalleRecepcionMercanciaCollection;
+    }
+
+    public Almacen getAlmacen() {
+        return almacen;
+    }
+
+    public void setAlmacen(Almacen almacen) {
+        this.almacen = almacen;
+    }
+
     public EstadoDocumento getEstadoDocumento() {
         return estadoDocumento;
     }
@@ -243,14 +262,6 @@ public class RecepcionMercancia implements Serializable {
 
     public void setUsuario(Usuario usuario) {
         this.usuario = usuario;
-    }
-
-    public Collection<DetalleRecepcionMercancia> getDetalleRecepcionMercanciaCollection() {
-        return detalleRecepcionMercanciaCollection;
-    }
-
-    public void setDetalleRecepcionMercanciaCollection(Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection) {
-        this.detalleRecepcionMercanciaCollection = detalleRecepcionMercanciaCollection;
     }
 
     @Override

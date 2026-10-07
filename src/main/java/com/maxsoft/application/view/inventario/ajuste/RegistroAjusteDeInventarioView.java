@@ -226,9 +226,9 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
 
             det.setCantidad(BigDecimal.ZERO);
             det.setNuevaExistencia(stockActual);
-            det.setUnidad(articulo.getUnidadEntrada());
-            if (articulo.getUnidadEntrada() != null) {
-                det.setNombreUnidad(articulo.getUnidadEntrada().getDescripcion());
+            det.setUnidad(articulo.getUnidadBase());
+            if (articulo.getUnidadBase()!= null) {
+             det.setNombreUnidad(articulo.getUnidadBase().getDescripcion());
             }
             det.setAlmacen(almacenSeleccionado);
             det.setNombreAlmacen(almacenSeleccionado.getNombre());

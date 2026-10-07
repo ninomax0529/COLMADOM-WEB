@@ -8,7 +8,6 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -106,6 +105,8 @@ public class FacturaDeVenta implements Serializable {
     @Size(max = 45)
     @Column(name = "direccion")
     private String direccion;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura")
+    private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @JoinColumn(name = "cliente", referencedColumnName = "codigo")
     @ManyToOne
     private Cliente cliente;
@@ -118,8 +119,6 @@ public class FacturaDeVenta implements Serializable {
     @JoinColumn(name = "tipo_venta", referencedColumnName = "codigo")
     @ManyToOne
     private TipoVenta tipoVenta;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura" ,fetch = FetchType.EAGER)
-    private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
 
     public FacturaDeVenta() {
     }
@@ -336,6 +335,14 @@ public class FacturaDeVenta implements Serializable {
         this.direccion = direccion;
     }
 
+    public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
+        return detalleFacturaDeVentaCollection;
+    }
+
+    public void setDetalleFacturaDeVentaCollection(Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection) {
+        this.detalleFacturaDeVentaCollection = detalleFacturaDeVentaCollection;
+    }
+
     public Cliente getCliente() {
         return cliente;
     }
@@ -366,14 +373,6 @@ public class FacturaDeVenta implements Serializable {
 
     public void setTipoVenta(TipoVenta tipoVenta) {
         this.tipoVenta = tipoVenta;
-    }
-
-    public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
-        return detalleFacturaDeVentaCollection;
-    }
-
-    public void setDetalleFacturaDeVentaCollection(Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection) {
-        this.detalleFacturaDeVentaCollection = detalleFacturaDeVentaCollection;
     }
 
     @Override

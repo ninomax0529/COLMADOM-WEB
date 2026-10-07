@@ -268,8 +268,8 @@ public class TrasladoInventarioView extends VerticalLayout {
         detalle.setCostoUnitario(stockSeleccionado.getArticulo().getPrecioCompra());
         detalle.setPrecioCompra(stockSeleccionado.getArticulo().getPrecioCompra());
         detalle.setDescripcionArticulo(stockSeleccionado.getArticulo().getDescripcion());
-        detalle.setUnidad(stockSeleccionado.getArticulo().getUnidadEntrada());
-        detalle.setNombreUnidad(stockSeleccionado.getArticulo().getUnidadEntrada().getAbreviatura());
+        detalle.setUnidad(stockSeleccionado.getArticulo().getUnidadBase());
+        detalle.setNombreUnidad(stockSeleccionado.getArticulo().getUnidadBase().getAbreviatura());
       
 
         listaDetalles.add(detalle);

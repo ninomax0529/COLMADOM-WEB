@@ -17,9 +17,10 @@ public interface ArticuloAlmacenService {
     ArticuloAlmacen guardar(ArticuloAlmacen alm);
 
     List<ArticuloAlmacen> getLista();
- 
-    
+
     Optional<List<ArticuloAlmacen>> buscarPorAlmacen(Integer idAlmacen);
+
+    Optional<List<ArticuloAlmacen>> buscarPorArticulo(Integer idArticulo);
 
     Optional<ArticuloAlmacen> buscarPorArticuloYAlmacen(
             Integer idArticulo, Integer idAlmacen);

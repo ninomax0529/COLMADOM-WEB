@@ -216,7 +216,7 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
             det.setExistenciaAnterior(stockDisponible);
             det.setCantidad(BigDecimal.ZERO);
             det.setExistencia(stockDisponible);
-            det.setUnidad(articulo.getUnidadEntrada() != null ? articulo.getUnidadEntrada() : new Unidad(1));
+            det.setUnidad(articulo.getUnidadBase() != null ? articulo.getUnidadBase() : new Unidad(1));
 
             listDet.add(det);
         }

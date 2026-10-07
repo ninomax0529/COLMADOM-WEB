@@ -9,8 +9,12 @@ import com.maxsoft.application.modelo.RecepcionMercancia;
 import java.util.List;
 
 public interface RecepcionMercanciaService {
+
     RecepcionMercancia procesarRecepcion(RecepcionMercancia recepcion);
+
     List<RecepcionMercancia> getLista();
+
     RecepcionMercancia buscarPorId(Long id);
-     List<DetalleRecepcionMercancia> getDetalle(int op);
+
+    List<DetalleRecepcionMercancia> getDetalle(int op);
 }

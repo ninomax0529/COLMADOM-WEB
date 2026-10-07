@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.evento;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class VentaDevueltaEvent {
@@ -42,15 +43,15 @@ public class VentaDevueltaEvent {
 
     public static class ItemAnulacionDto {
         private final Integer idArticulo;
-        private final Double cantidad;
+        private final BigDecimal cantidad;
 
-        public ItemAnulacionDto(Integer idArticulo, Double cantidad) {
+        public ItemAnulacionDto(Integer idArticulo, BigDecimal cantidad) {
             this.idArticulo = idArticulo;
             this.cantidad = cantidad;
         }
 
         public Integer getIdArticulo() { return idArticulo; }
         public Integer getCodigoArticulo() { return idArticulo; }
-        public Double getCantidad() { return cantidad; }
+        public BigDecimal getCantidad() { return cantidad; }
     }
 }

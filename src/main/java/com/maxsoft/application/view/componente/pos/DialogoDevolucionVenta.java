@@ -74,7 +74,8 @@ public class DialogoDevolucionVenta extends Dialog {
             numField.setWidth("120px");
             
             numField.addValueChangeListener(e -> {
-                item.setCantidadADevolver(e.getValue() != null ? e.getValue() : 0.0);
+                
+                item.setCantidadADevolver(e.getValue() != null ? BigDecimal.valueOf(e.getValue()) : BigDecimal.ZERO);
                 calcularTotalReembolso();
             });
             
@@ -119,8 +120,9 @@ public class DialogoDevolucionVenta extends Dialog {
     }
 
     private void calcularTotalReembolso() {
+        
         double total = gridItems.getGenericDataView().getItems()
-                .mapToDouble(item -> item.getCantidadADevolver() * item.getPrecioUnitario())
+                .mapToDouble(item -> item.getCantidadADevolver().doubleValue() * item.getPrecioUnitario())
                 .sum();
         lblTotalReembolso.setText(String.format("Total a Reembolsar: $%.2f", total));
     }
@@ -140,7 +142,7 @@ public class DialogoDevolucionVenta extends Dialog {
 
         List<SolicitudDevolucionDto.ItemDevolucionDto> itemsDev = new ArrayList<>();
         for (ItemDevolucionModel model : items) {
-            if (model.getCantidadADevolver() > 0) {
+            if (model.getCantidadADevolver().doubleValue() > 0) {
                 SolicitudDevolucionDto.ItemDevolucionDto itemDto = new SolicitudDevolucionDto.ItemDevolucionDto();
                 itemDto.setIdDetalleFactura(model.getIdDetalle());
                 itemDto.setCantidadADevolver(model.getCantidadADevolver());
@@ -197,7 +199,7 @@ public class DialogoDevolucionVenta extends Dialog {
         private final Double cantidadComprada;
         private final Double disponibleDevolver;
         private final Double precioUnitario;
-        private Double cantidadADevolver = 0.0;
+        private BigDecimal cantidadADevolver;
 
         public ItemDevolucionModel(Integer idDetalle, String descripcion, Double cantidadComprada, Double disponibleDevolver, Double precioUnitario) {
             this.idDetalle = idDetalle;
@@ -212,8 +214,8 @@ public class DialogoDevolucionVenta extends Dialog {
         public Double getCantidadComprada() { return cantidadComprada; }
         public Double getDisponibleDevolver() { return disponibleDevolver; }
         public Double getPrecioUnitario() { return precioUnitario; }
-        public Double getCantidadADevolver() { return cantidadADevolver; }
-        public void setCantidadADevolver(Double cantidadADevolver) { this.cantidadADevolver = cantidadADevolver; }
+        public BigDecimal getCantidadADevolver() { return cantidadADevolver; }
+        public void setCantidadADevolver(BigDecimal cantidadADevolver) { this.cantidadADevolver = cantidadADevolver; }
     }
 }
 

@@ -45,6 +45,14 @@ public class DetalleFacturaDeVenta implements Serializable {
     @Column(name = "nombre_unidad")
     private String nombreUnidad;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
+    @Column(name = "factor_conversion")
+    private BigDecimal factorConversion;
+    @Column(name = "cantidad_fisica_base")
+    private BigDecimal cantidadFisicaBase;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "cantidad")
+    private BigDecimal cantidad;
     @Column(name = "precio_compra")
     private BigDecimal precioCompra;
     @Column(name = "existencia_actual")
@@ -54,16 +62,20 @@ public class DetalleFacturaDeVenta implements Serializable {
     @Size(max = 20)
     @Column(name = "nombre_almacen")
     private String nombreAlmacen;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "cantidad")
-    private BigDecimal cantidad;
     @Column(name = "precio_venta")
     private BigDecimal precioVenta;
     @Basic(optional = false)
     @NotNull
     @Column(name = "sub_total")
     private BigDecimal subTotal;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "itbis")
+    private BigDecimal itbis;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "total")
+    private BigDecimal total;
     @Basic(optional = false)
     @NotNull
     @Column(name = "total_descuento")
@@ -74,16 +86,8 @@ public class DetalleFacturaDeVenta implements Serializable {
     private BigDecimal porcientoDescuento;
     @Basic(optional = false)
     @NotNull
-    @Column(name = "total_itbis")
-    private BigDecimal totalItbis;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "porciento_itbis")
     private BigDecimal porcientoItbis;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "total")
-    private BigDecimal total;
     @Basic(optional = false)
     @NotNull
     @Column(name = "numero_de_linea")
@@ -96,6 +100,9 @@ public class DetalleFacturaDeVenta implements Serializable {
     @JoinColumn(name = "articulo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Articulo articulo;
+    @JoinColumn(name = "articulo_empaque", referencedColumnName = "codigo")
+    @ManyToOne
+    private ArticuloEmpaque articuloEmpaque;
     @JoinColumn(name = "factura", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private FacturaDeVenta factura;
@@ -110,16 +117,16 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.codigo = codigo;
     }
 
-    public DetalleFacturaDeVenta(Integer codigo, String descripcionArticulo, BigDecimal cantidad, BigDecimal subTotal, BigDecimal totalDescuento, BigDecimal porcientoDescuento, BigDecimal totalItbis, BigDecimal porcientoItbis, BigDecimal total, int numeroDeLinea) {
+    public DetalleFacturaDeVenta(Integer codigo, String descripcionArticulo, BigDecimal cantidad, BigDecimal subTotal, BigDecimal itbis, BigDecimal total, BigDecimal totalDescuento, BigDecimal porcientoDescuento, BigDecimal porcientoItbis, int numeroDeLinea) {
         this.codigo = codigo;
         this.descripcionArticulo = descripcionArticulo;
         this.cantidad = cantidad;
         this.subTotal = subTotal;
+        this.itbis = itbis;
+        this.total = total;
         this.totalDescuento = totalDescuento;
         this.porcientoDescuento = porcientoDescuento;
-        this.totalItbis = totalItbis;
         this.porcientoItbis = porcientoItbis;
-        this.total = total;
         this.numeroDeLinea = numeroDeLinea;
     }
 
@@ -145,6 +152,30 @@ public class DetalleFacturaDeVenta implements Serializable {
 
     public void setNombreUnidad(String nombreUnidad) {
         this.nombreUnidad = nombreUnidad;
+    }
+
+    public BigDecimal getFactorConversion() {
+        return factorConversion;
+    }
+
+    public void setFactorConversion(BigDecimal factorConversion) {
+        this.factorConversion = factorConversion;
+    }
+
+    public BigDecimal getCantidadFisicaBase() {
+        return cantidadFisicaBase;
+    }
+
+    public void setCantidadFisicaBase(BigDecimal cantidadFisicaBase) {
+        this.cantidadFisicaBase = cantidadFisicaBase;
+    }
+
+    public BigDecimal getCantidad() {
+        return cantidad;
+    }
+
+    public void setCantidad(BigDecimal cantidad) {
+        this.cantidad = cantidad;
     }
 
     public BigDecimal getPrecioCompra() {
@@ -179,14 +210,6 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.nombreAlmacen = nombreAlmacen;
     }
 
-    public BigDecimal getCantidad() {
-        return cantidad;
-    }
-
-    public void setCantidad(BigDecimal cantidad) {
-        this.cantidad = cantidad;
-    }
-
     public BigDecimal getPrecioVenta() {
         return precioVenta;
     }
@@ -201,6 +224,22 @@ public class DetalleFacturaDeVenta implements Serializable {
 
     public void setSubTotal(BigDecimal subTotal) {
         this.subTotal = subTotal;
+    }
+
+    public BigDecimal getItbis() {
+        return itbis;
+    }
+
+    public void setItbis(BigDecimal itbis) {
+        this.itbis = itbis;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
     }
 
     public BigDecimal getTotalDescuento() {
@@ -219,28 +258,12 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.porcientoDescuento = porcientoDescuento;
     }
 
-    public BigDecimal getTotalItbis() {
-        return totalItbis;
-    }
-
-    public void setTotalItbis(BigDecimal totalItbis) {
-        this.totalItbis = totalItbis;
-    }
-
     public BigDecimal getPorcientoItbis() {
         return porcientoItbis;
     }
 
     public void setPorcientoItbis(BigDecimal porcientoItbis) {
         this.porcientoItbis = porcientoItbis;
-    }
-
-    public BigDecimal getTotal() {
-        return total;
-    }
-
-    public void setTotal(BigDecimal total) {
-        this.total = total;
     }
 
     public int getNumeroDeLinea() {
@@ -273,6 +296,14 @@ public class DetalleFacturaDeVenta implements Serializable {
 
     public void setArticulo(Articulo articulo) {
         this.articulo = articulo;
+    }
+
+    public ArticuloEmpaque getArticuloEmpaque() {
+        return articuloEmpaque;
+    }
+
+    public void setArticuloEmpaque(ArticuloEmpaque articuloEmpaque) {
+        this.articuloEmpaque = articuloEmpaque;
     }
 
     public FacturaDeVenta getFactura() {

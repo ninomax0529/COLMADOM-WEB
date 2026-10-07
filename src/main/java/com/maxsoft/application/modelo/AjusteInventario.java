@@ -36,34 +36,6 @@ import java.util.Date;
     @NamedQuery(name = "AjusteInventario.findAll", query = "SELECT a FROM AjusteInventario a")})
 public class AjusteInventario implements Serializable {
 
-    /**
-     * @return the almacen
-     */
-    public Almacen getAlmacen() {
-        return almacen;
-    }
-
-    /**
-     * @param almacen the almacen to set
-     */
-    public void setAlmacen(Almacen almacen) {
-        this.almacen = almacen;
-    }
-
-    /**
-     * @return the nombreAlmacen
-     */
-    public String getNombreAlmacen() {
-        return nombreAlmacen;
-    }
-
-    /**
-     * @param nombreAlmacen the nombreAlmacen to set
-     */
-    public void setNombreAlmacen(String nombreAlmacen) {
-        this.nombreAlmacen = nombreAlmacen;
-    }
-
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -96,20 +68,20 @@ public class AjusteInventario implements Serializable {
     @Column(name = "fecha_anulado")
     @Temporal(TemporalType.DATE)
     private Date fechaAnulado;
+    @Size(max = 45)
+    @Column(name = "nombre_almacen")
+    private String nombreAlmacen;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "ajusteInventario")
     private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
+    @JoinColumn(name = "almacen", referencedColumnName = "codigo")
+    @ManyToOne
+    private Almacen almacen;
     @JoinColumn(name = "tipo_ajuste", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private TipoAjuste tipoAjuste;
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Usuario usuario;
-    @Size(max = 255)
-    @Column(name = "nombre_almacen")
-    private String nombreAlmacen;
-    @JoinColumn(name = "almacen", referencedColumnName = "codigo")
-    @ManyToOne(optional = false)
-    private Almacen almacen;
 
     public AjusteInventario() {
     }
@@ -182,12 +154,28 @@ public class AjusteInventario implements Serializable {
         this.fechaAnulado = fechaAnulado;
     }
 
+    public String getNombreAlmacen() {
+        return nombreAlmacen;
+    }
+
+    public void setNombreAlmacen(String nombreAlmacen) {
+        this.nombreAlmacen = nombreAlmacen;
+    }
+
     public Collection<DetalleAjusteInventario> getDetalleAjusteInventarioCollection() {
         return detalleAjusteInventarioCollection;
     }
 
     public void setDetalleAjusteInventarioCollection(Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection) {
         this.detalleAjusteInventarioCollection = detalleAjusteInventarioCollection;
+    }
+
+    public Almacen getAlmacen() {
+        return almacen;
+    }
+
+    public void setAlmacen(Almacen almacen) {
+        this.almacen = almacen;
     }
 
     public TipoAjuste getTipoAjuste() {
@@ -230,5 +218,5 @@ public class AjusteInventario implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.AjusteInventario[ codigo=" + codigo + " ]";
     }
-
+    
 }

@@ -9,6 +9,7 @@ import com.maxsoft.application.servicio.ArticuloDaoService;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
+import com.maxsoft.application.servicio.interfaces.inventario.UnidadService;
 import com.maxsoft.application.servicio.interfaces.venta.UnidadDeVentaService;
 import com.maxsoft.application.util.NavigationContext;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
@@ -38,9 +39,10 @@ import java.util.List;
 public class RegistrarArticuloView extends VerticalLayout implements HasUrlParameter<String> {
 
     final ArticuloService articuloService;
-    final UnidadDeVentaService unidaService;
+    final UnidadDeVentaService unidaVentaService;
     final AlmacenService almacenService;
     final ArticuloAlmacenService articuloAlmacenService;
+    UnidadService unidadService;
 
     Binder<Articulo> binder = new Binder<>(Articulo.class);
 
@@ -59,17 +61,21 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
     private Articulo articuloActual;
 
     @Autowired
-    public RegistrarArticuloView(ArticuloService articuloServiceArg,
+    public RegistrarArticuloView(
+            ArticuloService articuloServiceArg,
             UnidadDeVentaService unidadDeVentaServiceArg,
             AlmacenService almacenServiceArg,
             ArticuloAlmacenService articuloAlmacenServiceArg,
-            ArticuloDaoService articuloDaoServiceArg) {
+            ArticuloDaoService articuloDaoServiceArg,
+            UnidadService unidadService
+    ) {
 
         this.articuloDaoService = articuloDaoServiceArg;
         this.articuloService = articuloServiceArg;
-        this.unidaService = unidadDeVentaServiceArg;
+        this.unidaVentaService = unidadDeVentaServiceArg;
         this.almacenService = almacenServiceArg;
         this.articuloAlmacenService = articuloAlmacenServiceArg;
+        this.unidadService=unidadService ;
 
         setSizeFull();
         setSpacing(false);
@@ -91,7 +97,7 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
         botonera.getCancelar().addClickListener(e -> UI.getCurrent().navigate(ArticuloView.class));
 
         rdbGrupo.setLabel("Se Vende por :");
-        rdbGrupo.setItems(unidaService.getLista());
+        rdbGrupo.setItems(unidaVentaService.getLista());
 
         configurarAlmacenes();
         configurarFormulario();
@@ -146,7 +152,7 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
 
             boolean esNuevo = (articuloActual.getCodigo() == null);
 
-            articuloActual.setUnidadEntrada(new Unidad(1));
+            articuloActual.setUnidadBase(new Unidad(1));
             // 1. Guardar el artículo
             Articulo articuloGuardado = articuloService.guardar(articuloActual);
 

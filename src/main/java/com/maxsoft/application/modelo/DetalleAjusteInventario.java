@@ -60,6 +60,10 @@ public class DetalleAjusteInventario implements Serializable {
     @Size(max = 80)
     @Column(name = "nombre_almacen")
     private String nombreAlmacen;
+    @Column(name = "factor_conversion")
+    private BigDecimal factorConversion;
+    @Column(name = "cantidad_fisica_base")
+    private BigDecimal cantidadFisicaBase;
     @JoinColumn(name = "ajuste_inventario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private AjusteInventario ajusteInventario;
@@ -69,9 +73,24 @@ public class DetalleAjusteInventario implements Serializable {
     @JoinColumn(name = "articulo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Articulo articulo;
+    @JoinColumn(name = "articulo_empaque", referencedColumnName = "codigo")
+    @ManyToOne
+    private ArticuloEmpaque articuloEmpaque;
     @JoinColumn(name = "unidad", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Unidad unidad;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "sub_total")
+    private BigDecimal subTotal;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "itbis")
+    private BigDecimal itbis;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "total")
+    private BigDecimal total;
 
     public DetalleAjusteInventario() {
     }
@@ -144,6 +163,22 @@ public class DetalleAjusteInventario implements Serializable {
         this.nombreAlmacen = nombreAlmacen;
     }
 
+    public BigDecimal getFactorConversion() {
+        return factorConversion;
+    }
+
+    public void setFactorConversion(BigDecimal factorConversion) {
+        this.factorConversion = factorConversion;
+    }
+
+    public BigDecimal getCantidadFisicaBase() {
+        return cantidadFisicaBase;
+    }
+
+    public void setCantidadFisicaBase(BigDecimal cantidadFisicaBase) {
+        this.cantidadFisicaBase = cantidadFisicaBase;
+    }
+
     public AjusteInventario getAjusteInventario() {
         return ajusteInventario;
     }
@@ -168,12 +203,44 @@ public class DetalleAjusteInventario implements Serializable {
         this.articulo = articulo;
     }
 
+    public ArticuloEmpaque getArticuloEmpaque() {
+        return articuloEmpaque;
+    }
+
+    public void setArticuloEmpaque(ArticuloEmpaque articuloEmpaque) {
+        this.articuloEmpaque = articuloEmpaque;
+    }
+
     public Unidad getUnidad() {
         return unidad;
     }
 
     public void setUnidad(Unidad unidad) {
         this.unidad = unidad;
+    }
+
+    public BigDecimal getSubTotal() {
+        return subTotal;
+    }
+
+    public void setSubTotal(BigDecimal subTotal) {
+        this.subTotal = subTotal;
+    }
+
+    public BigDecimal getItbis() {
+        return itbis;
+    }
+
+    public void setItbis(BigDecimal itbis) {
+        this.itbis = itbis;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
     }
 
     @Override
@@ -200,5 +267,5 @@ public class DetalleAjusteInventario implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.DetalleAjusteInventario[ codigo=" + codigo + " ]";
     }
-    
+
 }

@@ -38,7 +38,7 @@ public final class CalculoFacturaUtil {
 
         detalle.setSubTotal(BigDecimal.valueOf(subTotal));
         detalle.setTotalDescuento(BigDecimal.valueOf(totalDescuento));
-        detalle.setTotalItbis(BigDecimal.valueOf(totalItbis));
+        detalle.setItbis(BigDecimal.valueOf(totalItbis));
         detalle.setTotal(BigDecimal.valueOf(total));
     }
 

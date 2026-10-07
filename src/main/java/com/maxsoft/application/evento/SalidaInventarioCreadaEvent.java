@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.evento;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class SalidaInventarioCreadaEvent {
@@ -43,9 +44,9 @@ public class SalidaInventarioCreadaEvent {
     // =========================================================================
     public static class ItemSalidaDto {
         private final Integer idArticulo;
-        private final Double cantidad;
+        private final BigDecimal cantidad;
 
-        public ItemSalidaDto(Integer idArticulo, Double cantidad) {
+        public ItemSalidaDto(Integer idArticulo, BigDecimal cantidad) {
             this.idArticulo = idArticulo;
             this.cantidad = cantidad;
         }
@@ -58,7 +59,7 @@ public class SalidaInventarioCreadaEvent {
             return idArticulo; // Alias por compatibilidad de nombres
         }
 
-        public Double getCantidad() { 
+        public BigDecimal getCantidad() { 
             return cantidad; 
         }
     }

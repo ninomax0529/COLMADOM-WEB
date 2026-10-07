@@ -52,9 +52,6 @@ public class Articulo implements Serializable {
     @NotNull
     @Column(name = "exento_itbis")
     private boolean exentoItbis;
-    @Lob
-    @Column(name = "imagen")
-    private byte[] imagen;
     @Basic(optional = false)
     @NotNull
     @Column(name = "inventariable")
@@ -80,12 +77,9 @@ public class Articulo implements Serializable {
     @NotNull
     @Column(name = "para_consumo")
     private boolean paraConsumo;
-    @Size(max = 30)
+    @Size(max = 80)
     @Column(name = "ruta_img")
     private String rutaImg;
-    @Size(max = 50)
-    @Column(name = "nombre_embase")
-    private String nombreEmbase;
     @Basic(optional = false)
     @NotNull
     @Column(name = "compuesto")
@@ -105,6 +99,12 @@ public class Articulo implements Serializable {
     @NotNull
     @Column(name = "habilitado")
     private boolean habilitado;
+    @Size(max = 20)
+    @Column(name = "nombre_unidad_base")
+    private String nombreUnidadBase;
+    @JoinColumn(name = "unidad_base", referencedColumnName = "codigo")
+    @ManyToOne
+    private Unidad unidadBase;
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -123,20 +123,14 @@ public class Articulo implements Serializable {
     private BigDecimal maximo;
     @Column(name = "minimo")
     private BigDecimal minimo;
-    @Column(name = "apedir")
-    private BigDecimal apedir;
     @Column(name = "precio_compra")
     private BigDecimal precioCompra;
-    @Column(name = "precio_compra_anterior")
-    private BigDecimal precioCompraAnterior;
     @Column(name = "precio_venta")
     private BigDecimal precioVenta;
     @Column(name = "precio_venta_con_itbis")
     private Double precioVentaConItbis;
     @Column(name = "precio_venta_anterior")
     private Double precioVentaAnterior;
-    @Column(name = "ultimo_suplidor")
-    private Integer ultimoSuplidor;
     @Column(name = "tipo_articulo")
     private Integer tipoArticulo;
     @Column(name = "margen_beneficio")
@@ -145,8 +139,6 @@ public class Articulo implements Serializable {
     private Double porcientoUtilidad;
     @Column(name = "linea_articulo")
     private Integer lineaArticulo;
-    @Column(name = "embase")
-    private Integer embase;
     @Column(name = "secuencia_documento")
     private Integer secuenciaDocumento;
     @Column(name = "itbis_gravado")
@@ -159,20 +151,10 @@ public class Articulo implements Serializable {
     private Date fechaVencimiento;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleEntradaInventario> detalleEntradaInventarioCollection;
-    @OneToMany(mappedBy = "articulo")
-    private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleTrasladoInventario> detalleTrasladoInventarioCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo" )
-    private Collection<ArticuloAlmacen> articuloAlmacenCollection;
-    @JoinColumn(name = "unidad_entrada", referencedColumnName = "codigo" )
-    @ManyToOne
-    private Unidad unidadEntrada;
-    @JoinColumn(name = "unidad_salida", referencedColumnName = "codigo")
-    @ManyToOne
-    private Unidad unidadSalida;
     @JoinColumn(name = "unidad_de_venta", referencedColumnName = "codigo")
     @ManyToOne
     private UnidadDeVenta unidadDeVenta;
@@ -181,9 +163,15 @@ public class Articulo implements Serializable {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
+    private Collection<MovimientoInventario> movimientoInventarioCollection;
+    @OneToMany(mappedBy = "articulo")
+    private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
+    private Collection<ArticuloAlmacen> articuloAlmacenCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
-    private Collection<MovimientoInventario> movimientoInventarioCollection;
+    private Collection<ArticuloEmpaque> articuloEmpaqueCollection;
 
     public Articulo() {
     }
@@ -263,28 +251,12 @@ public class Articulo implements Serializable {
         this.minimo = minimo;
     }
 
-    public BigDecimal getApedir() {
-        return apedir;
-    }
-
-    public void setApedir(BigDecimal apedir) {
-        this.apedir = apedir;
-    }
-
     public BigDecimal getPrecioCompra() {
         return precioCompra;
     }
 
     public void setPrecioCompra(BigDecimal precioCompra) {
         this.precioCompra = precioCompra;
-    }
-
-    public BigDecimal getPrecioCompraAnterior() {
-        return precioCompraAnterior;
-    }
-
-    public void setPrecioCompraAnterior(BigDecimal precioCompraAnterior) {
-        this.precioCompraAnterior = precioCompraAnterior;
     }
 
     public BigDecimal getPrecioVenta() {
@@ -309,14 +281,6 @@ public class Articulo implements Serializable {
 
     public void setPrecioVentaAnterior(Double precioVentaAnterior) {
         this.precioVentaAnterior = precioVentaAnterior;
-    }
-
-    public Integer getUltimoSuplidor() {
-        return ultimoSuplidor;
-    }
-
-    public void setUltimoSuplidor(Integer ultimoSuplidor) {
-        this.ultimoSuplidor = ultimoSuplidor;
     }
 
     public boolean getExentoItbis() {
@@ -401,22 +365,6 @@ public class Articulo implements Serializable {
         this.rutaImg = rutaImg;
     }
 
-    public Integer getEmbase() {
-        return embase;
-    }
-
-    public void setEmbase(Integer embase) {
-        this.embase = embase;
-    }
-
-    public String getNombreEmbase() {
-        return nombreEmbase;
-    }
-
-    public void setNombreEmbase(String nombreEmbase) {
-        this.nombreEmbase = nombreEmbase;
-    }
-
 
     public Integer getSecuenciaDocumento() {
         return secuenciaDocumento;
@@ -476,14 +424,6 @@ public class Articulo implements Serializable {
         this.detalleEntradaInventarioCollection = detalleEntradaInventarioCollection;
     }
 
-    public Collection<DetalleOrdendeDeCompra> getDetalleOrdendeDeCompraCollection() {
-        return detalleOrdendeDeCompraCollection;
-    }
-
-    public void setDetalleOrdendeDeCompraCollection(Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection) {
-        this.detalleOrdendeDeCompraCollection = detalleOrdendeDeCompraCollection;
-    }
-
     public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
         return detalleFacturaDeVentaCollection;
     }
@@ -498,30 +438,6 @@ public class Articulo implements Serializable {
 
     public void setDetalleTrasladoInventarioCollection(Collection<DetalleTrasladoInventario> detalleTrasladoInventarioCollection) {
         this.detalleTrasladoInventarioCollection = detalleTrasladoInventarioCollection;
-    }
-
-    public Collection<ArticuloAlmacen> getArticuloAlmacenCollection() {
-        return articuloAlmacenCollection;
-    }
-
-    public void setArticuloAlmacenCollection(Collection<ArticuloAlmacen> articuloAlmacenCollection) {
-        this.articuloAlmacenCollection = articuloAlmacenCollection;
-    }
-
-    public Unidad getUnidadEntrada() {
-        return unidadEntrada;
-    }
-
-    public void setUnidadEntrada(Unidad unidadEntrada) {
-        this.unidadEntrada = unidadEntrada;
-    }
-
-    public Unidad getUnidadSalida() {
-        return unidadSalida;
-    }
-
-    public void setUnidadSalida(Unidad unidadSalida) {
-        this.unidadSalida = unidadSalida;
     }
 
     public UnidadDeVenta getUnidadDeVenta() {
@@ -548,6 +464,30 @@ public class Articulo implements Serializable {
         this.detalleRecepcionMercanciaCollection = detalleRecepcionMercanciaCollection;
     }
 
+    public Collection<MovimientoInventario> getMovimientoInventarioCollection() {
+        return movimientoInventarioCollection;
+    }
+
+    public void setMovimientoInventarioCollection(Collection<MovimientoInventario> movimientoInventarioCollection) {
+        this.movimientoInventarioCollection = movimientoInventarioCollection;
+    }
+
+    public Collection<DetalleOrdendeDeCompra> getDetalleOrdendeDeCompraCollection() {
+        return detalleOrdendeDeCompraCollection;
+    }
+
+    public void setDetalleOrdendeDeCompraCollection(Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection) {
+        this.detalleOrdendeDeCompraCollection = detalleOrdendeDeCompraCollection;
+    }
+
+    public Collection<ArticuloAlmacen> getArticuloAlmacenCollection() {
+        return articuloAlmacenCollection;
+    }
+
+    public void setArticuloAlmacenCollection(Collection<ArticuloAlmacen> articuloAlmacenCollection) {
+        this.articuloAlmacenCollection = articuloAlmacenCollection;
+    }
+
     public Collection<DetalleSalidaInventario> getDetalleSalidaInventarioCollection() {
         return detalleSalidaInventarioCollection;
     }
@@ -556,12 +496,12 @@ public class Articulo implements Serializable {
         this.detalleSalidaInventarioCollection = detalleSalidaInventarioCollection;
     }
 
-    public Collection<MovimientoInventario> getMovimientoInventarioCollection() {
-        return movimientoInventarioCollection;
+    public Collection<ArticuloEmpaque> getArticuloEmpaqueCollection() {
+        return articuloEmpaqueCollection;
     }
 
-    public void setMovimientoInventarioCollection(Collection<MovimientoInventario> movimientoInventarioCollection) {
-        this.movimientoInventarioCollection = movimientoInventarioCollection;
+    public void setArticuloEmpaqueCollection(Collection<ArticuloEmpaque> articuloEmpaqueCollection) {
+        this.articuloEmpaqueCollection = articuloEmpaqueCollection;
     }
 
     @Override
@@ -605,15 +545,6 @@ public class Articulo implements Serializable {
         this.descripcion = descripcion;
     }
 
-
-    public byte[] getImagen() {
-        return imagen;
-    }
-
-    public void setImagen(byte[] imagen) {
-        this.imagen = imagen;
-    }
-
     public boolean getInventariable() {
         return inventariable;
     }
@@ -622,7 +553,7 @@ public class Articulo implements Serializable {
         this.inventariable = inventariable;
     }
 
-
+  
     public String getModelo() {
         return modelo;
     }
@@ -647,7 +578,7 @@ public class Articulo implements Serializable {
     public void setCompuesto(boolean compuesto) {
         this.compuesto = compuesto;
     }
-
+  
     public boolean getPerecedero() {
         return perecedero;
     }
@@ -662,6 +593,22 @@ public class Articulo implements Serializable {
 
     public void setHabilitado(boolean habilitado) {
         this.habilitado = habilitado;
+    }
+
+    public String getNombreUnidadBase() {
+        return nombreUnidadBase;
+    }
+
+    public void setNombreUnidadBase(String nombreUnidadBase) {
+        this.nombreUnidadBase = nombreUnidadBase;
+    }
+
+    public Unidad getUnidadBase() {
+        return unidadBase;
+    }
+
+    public void setUnidadBase(Unidad unidadBase) {
+        this.unidadBase = unidadBase;
     }
     
 }

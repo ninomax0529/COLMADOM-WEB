@@ -6,9 +6,11 @@ package com.maxsoft.application.servicio.interfaces.inventario;
 
 import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.ArticuloEmpaque;
 import com.maxsoft.application.modelo.MovimientoInventario;
 import com.maxsoft.application.modelo.TipoDocumento;
 import com.maxsoft.application.modelo.TipoMovimiento;
+import java.math.BigDecimal;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,6 +23,12 @@ public interface MovimientoInventarioService {
      *
      * @param articulo Objeto artículo afectado
      * @param almacen
+     * @param articuloEmpaque
+     * @param factorConversion
+     * @param cantidadEmpaque
+     * @param subTotal
+     * @param itbis
+     * @param total
      * @param tipoMovimiento "ENTRADA", "SALIDA", "AJUSTE_INCREMENTO" o
      * "AJUSTE_DECREMENTO"
      * @param tipoDocumento "COMPRA", "VENTA", "AJUSTE_INVENTARIO",
@@ -34,10 +42,16 @@ public interface MovimientoInventarioService {
     MovimientoInventario registrarMovimiento(
             Articulo articulo,
             Almacen almacen,
+            ArticuloEmpaque articuloEmpaque,
+            BigDecimal factorConversion,
+            BigDecimal cantidadEmpaque,
+            BigDecimal subTotal,
+            BigDecimal itbis,
+            BigDecimal total,
             TipoMovimiento tipoMovimiento,
             TipoDocumento tipoDocumento,
             String numeroDoc,
-            double cantidad,
+            BigDecimal cantidad,
             String usuario,
             String observacion
     );

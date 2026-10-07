@@ -6,6 +6,7 @@ package com.maxsoft.application.dto;
 
 import com.maxsoft.application.modelo.TipoDocumento;
 import com.maxsoft.application.modelo.TipoMovimiento;
+import java.math.BigDecimal;
 import java.util.List;
 
 public class SolicitudDevolucionDto {
@@ -21,7 +22,7 @@ public class SolicitudDevolucionDto {
 
         private Integer idDetalleFactura;
         private Integer idArticulo;
-        private Double cantidadADevolver;
+        private BigDecimal cantidadADevolver;
 
         public Integer getIdDetalleFactura() {
             return idDetalleFactura;
@@ -39,11 +40,11 @@ public class SolicitudDevolucionDto {
             this.idArticulo = idArticulo;
         }
 
-        public Double getCantidadADevolver() {
+        public BigDecimal getCantidadADevolver() {
             return cantidadADevolver;
         }
 
-        public void setCantidadADevolver(Double cantidadADevolver) {
+        public void setCantidadADevolver(BigDecimal cantidadADevolver) {
             this.cantidadADevolver = cantidadADevolver;
         }
     }

@@ -102,6 +102,7 @@ public class ArticuloAlmacenView extends VerticalLayout {
         grid.addColumn(ArticuloAlmacen::getDescripcionArticulo).setHeader("Artículo").setAutoWidth(true);
         grid.addColumn(ArticuloAlmacen::getNombreAlmacen).setHeader("Almacén").setAutoWidth(true);
         grid.addColumn(ArticuloAlmacen::getExistencia).setHeader("Existencia").setAutoWidth(true);
+        grid.addColumn(ArticuloAlmacen::getNombreUnidad).setHeader("Unidad").setAutoWidth(true);
         grid.addColumn(ArticuloAlmacen::getMinimo).setHeader("Mínimo").setAutoWidth(true);
         grid.addColumn(ArticuloAlmacen::getMaximo).setHeader("Máximo").setAutoWidth(true);
         grid.addColumn(ArticuloAlmacen::getUbicacionPasillo).setHeader("Pasillo/Ubicación").setAutoWidth(true);
@@ -157,6 +158,7 @@ public class ArticuloAlmacenView extends VerticalLayout {
     }
 
     private void abrirFormularioModal(ArticuloAlmacen entidad) {
+        
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(entidad.getCodigo() == null ? "Nueva Configuración Artículo-Almacén" : "Editar Asignación");
         dialog.setWidth("550px");
@@ -178,14 +180,14 @@ public class ArticuloAlmacenView extends VerticalLayout {
         BigDecimalField txtMaximo = new BigDecimalField("Stock Máximo");
         TextField txtUbicacion = new TextField("Ubicación / Pasillo");
 
-        if (entidad.getCodigo() != null) {
-            cbArticulo.setEnabled(false);
-            cbAlmacenModal.setEnabled(false);
-        }
+//        if (entidad.getCodigo() != null) {
+//            cbArticulo.setEnabled(false);
+//            cbAlmacenModal.setEnabled(false);
+//        }
 
         cbArticulo.addValueChangeListener(e -> {
-            if (e.getValue() != null && e.getValue().getUnidadEntrada() != null) {
-                entidad.setUnidad(e.getValue().getUnidadEntrada());
+            if (e.getValue() != null && e.getValue().getUnidadBase()!= null) {
+                entidad.setUnidad(e.getValue().getUnidadBase());
             }
         });
 

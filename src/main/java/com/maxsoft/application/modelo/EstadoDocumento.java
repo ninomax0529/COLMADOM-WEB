@@ -30,6 +30,12 @@ import java.util.Collection;
     @NamedQuery(name = "EstadoDocumento.findAll", query = "SELECT e FROM EstadoDocumento e")})
 public class EstadoDocumento implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 50)
@@ -43,13 +49,6 @@ public class EstadoDocumento implements Serializable {
     @Size(max = 20)
     @Column(name = "color_badge")
     private String colorBadge;
-
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Column(name = "modulo")
     private Integer modulo;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "estado")
@@ -78,6 +77,13 @@ public class EstadoDocumento implements Serializable {
         this.codigo = codigo;
     }
 
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
 
     public String getNombreModulo() {
         return nombreModulo;
@@ -141,16 +147,7 @@ public class EstadoDocumento implements Serializable {
 
     @Override
     public String toString() {
-        return nombre;
+        return "com.maxsoft.application.modelo.EstadoDocumento[ codigo=" + codigo + " ]";
     }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
     
 }

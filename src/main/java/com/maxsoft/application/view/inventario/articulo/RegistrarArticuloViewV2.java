@@ -1,5 +1,10 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package com.maxsoft.application.view.inventario.articulo;
 
+import com.maxsoft.application.dto.ArticuloRegistroDTO;
 import com.maxsoft.application.modelo.*;
 import com.maxsoft.application.servicio.ArticuloDaoService;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
@@ -8,7 +13,6 @@ import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueSer
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.inventario.UnidadService;
 import com.maxsoft.application.servicio.interfaces.venta.UnidadDeVentaService;
-import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.util.NavigationContext;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
 import com.vaadin.flow.component.UI;
@@ -22,7 +26,6 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
@@ -42,14 +45,11 @@ import org.springframework.context.annotation.Lazy;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
-@PageTitle("Registrar Artículos con Multi-Empaque")
-@Route(value = "inventario/registrarArticulov1")
-public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlParameter<String> {
+@PageTitle("Registrar Artículos con Multi-Empaque y Multialmacén")
+@Route(value = "inventario/registrarArticulov2")
+public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlParameter<String> {
 
     private final ArticuloService articuloService;
     private final UnidadDeVentaService unidaVentaService;
@@ -57,7 +57,7 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
     private final ArticuloAlmacenService articuloAlmacenService;
     private final ArticuloEmpaqueService articuloEmpaqueService;
     private final ArticuloDaoService articuloDaoService;
-    UnidadService unidadService;
+    private final UnidadService unidadService;
 
     private final Binder<Articulo> binder = new Binder<>(Articulo.class);
 
@@ -65,25 +65,31 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
     private final TextField txtDescripcion = new TextField("Descripción");
     private final BigDecimalField txtPrecioCompra = new BigDecimalField("Precio Compra Base");
     private final BigDecimalField txtPrecioVenta = new BigDecimalField("Precio Venta Base");
-    private final BigDecimalField txtExistencia = new BigDecimalField("Existencia Inicial (Unidades)");
+    private final BigDecimalField txtExistencia = new BigDecimalField("Existencia General Base");
     private final IntegerField txtCodigo = new IntegerField("Código");
-    private final ComboBox<Almacen> cbAlmacen = new ComboBox<>("Almacén por Defecto");
     private final RadioButtonGroup<UnidadDeVenta> rdbGrupo = new RadioButtonGroup<>();
 
-    // Multi-Empaques
+    // TAB 2: Grid de Stock por Almacén (ArticuloAlmacen)
+    private final Grid<ArticuloAlmacen> gridAlmacenes = new Grid<>(ArticuloAlmacen.class, false);
+    private final List<ArticuloAlmacen> listaArticuloAlmacen = new ArrayList<>();
+    private final Button btnAgregarAlmacen = new Button("Asignar Almacén", new Icon(VaadinIcon.PLUS));
+
+    // TAB 3: Grid de Multi-Empaques (ArticuloEmpaque)
     private final Grid<ArticuloEmpaque> gridEmpaques = new Grid<>(ArticuloEmpaque.class, false);
     private final List<ArticuloEmpaque> listaEmpaques = new ArrayList<>();
     private final Button btnAgregarEmpaque = new Button("Agregar Presentación/Empaque", new Icon(VaadinIcon.PLUS));
 
+    // Layout principal y navegación por pestañas
     private final ToolBarBotonera botonera = new ToolBarBotonera(false, true, true);
     private final Tabs tabs = new Tabs();
     private final VerticalLayout containerTabGeneral = new VerticalLayout();
+    private final VerticalLayout containerTabAlmacenes = new VerticalLayout();
     private final VerticalLayout containerTabEmpaques = new VerticalLayout();
 
     private Articulo articuloActual;
 
     @Autowired
-    public RegistrarArticuloViewV1(
+    public RegistrarArticuloViewV2(
             @Lazy ArticuloService articuloServiceArg,
             UnidadDeVentaService unidadDeVentaServiceArg,
             AlmacenService almacenServiceArg,
@@ -104,51 +110,49 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
         setSpacing(false);
 
         configurarBotonera();
-        configurarAlmacenes();
         configurarFormularioGeneral();
+        configurarGridAlmacenes();
         configurarGridEmpaques();
         configurarTabs();
 
-        add(botonera, tabs, containerTabGeneral, containerTabEmpaques);
+        add(botonera, tabs, containerTabGeneral, containerTabAlmacenes, containerTabEmpaques);
     }
 
     private void configurarBotonera() {
         botonera.getGuardar().addClickListener(e -> {
 
             try {
-
                 guardarArticulo();
+
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
 
         });
 
-        botonera.getCancelar().addClickListener(e -> UI.getCurrent().navigate(ArticuloView.class));
-    }
+        botonera.getCancelar().addClickListener(e -> {
 
-    private void configurarAlmacenes() {
-        List<Almacen> almacenes = almacenService.getLista();
-        cbAlmacen.setItems(almacenes);
-        cbAlmacen.setItemLabelGenerator(Almacen::getNombre);
-        if (!almacenes.isEmpty()) {
-            cbAlmacen.setValue(almacenes.get(0));
-        }
+            UI.getCurrent().navigate(ArticuloView.class);
+
+        });
     }
 
     private void configurarTabs() {
-        Tab tabGeneral = new Tab("Datos Generales");
-        Tab tabEmpaques = new Tab("Multi-Empaques / Presentaciones");
+        Tab tabGeneral = new Tab("1. Datos Generales");
+        Tab tabAlmacenes = new Tab("2. Stock por Almacén");
+        Tab tabEmpaques = new Tab("3. Multi-Empaques / Presentaciones");
 
-        tabs.add(tabGeneral, tabEmpaques);
+        tabs.add(tabGeneral, tabAlmacenes, tabEmpaques);
         tabs.setWidthFull();
 
+        containerTabAlmacenes.setVisible(false);
         containerTabEmpaques.setVisible(false);
 
         tabs.addSelectedChangeListener(event -> {
-            boolean isEmpaques = event.getSelectedTab().equals(tabEmpaques);
-            containerTabGeneral.setVisible(!isEmpaques);
-            containerTabEmpaques.setVisible(isEmpaques);
+            Tab sel = event.getSelectedTab();
+            containerTabGeneral.setVisible(sel.equals(tabGeneral));
+            containerTabAlmacenes.setVisible(sel.equals(tabAlmacenes));
+            containerTabEmpaques.setVisible(sel.equals(tabEmpaques));
         });
     }
 
@@ -159,7 +163,7 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
         rdbGrupo.setLabel("Unidad Venta Base:");
         rdbGrupo.setItems(unidaVentaService.getLista());
 
-        HorizontalLayout hbPrecio = new HorizontalLayout(txtPrecioCompra, txtPrecioVenta, txtExistencia, cbAlmacen);
+        HorizontalLayout hbPrecio = new HorizontalLayout(txtPrecioCompra, txtPrecioVenta, txtExistencia);
         hbPrecio.setWidthFull();
 
         HorizontalLayout hlArt = new HorizontalLayout(txtCodigo, txtDescripcion);
@@ -177,13 +181,134 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
         containerTabGeneral.add(formLayout);
     }
 
+    // ==========================================
+    // TAB 2: CONFIGURACIÓN GRID STOCK POR ALMACÉN
+    // ==========================================
+    private void configurarGridAlmacenes() {
+        gridAlmacenes.setWidthFull();
+        gridAlmacenes.setHeight("300px");
+
+        gridAlmacenes.addColumn(a -> a.getAlmacen() != null ? a.getAlmacen().getNombre() : "")
+                .setHeader("Almacén").setAutoWidth(true);
+        gridAlmacenes.addColumn(ArticuloAlmacen::getExistencia).setHeader("Existencia");
+        gridAlmacenes.addColumn(ArticuloAlmacen::getNombreUnidad).setHeader("Unidad").setAutoWidth(true);
+        gridAlmacenes.addColumn(ArticuloAlmacen::getMinimo).setHeader("Mínimo").setAutoWidth(true);
+        gridAlmacenes.addColumn(ArticuloAlmacen::getMaximo).setHeader("Máximo").setAutoWidth(true);
+
+        gridAlmacenes.addColumn(ArticuloAlmacen::getUbicacionPasillo).setHeader("Ubicación / Pasillo");
+
+        gridAlmacenes.addColumn(new ComponentRenderer<>(item -> {
+            Button btnEditar = new Button(new Icon(VaadinIcon.EDIT), e -> abrirModalAlmacen(item));
+            btnEditar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+            Button btnBorrar = new Button(new Icon(VaadinIcon.TRASH), e -> {
+                listaArticuloAlmacen.remove(item);
+                gridAlmacenes.setItems(listaArticuloAlmacen);
+            });
+            btnBorrar.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+
+            return new HorizontalLayout(btnEditar, btnBorrar);
+        })).setHeader("Acciones");
+
+        btnAgregarAlmacen.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        btnAgregarAlmacen.addClickListener(e -> abrirModalAlmacen(null));
+
+        containerTabAlmacenes.add(btnAgregarAlmacen, gridAlmacenes);
+    }
+
+    private void abrirModalAlmacen(ArticuloAlmacen itemEditar) {
+        Dialog dialog = new Dialog();
+        boolean esEdicion = itemEditar != null;
+        dialog.setHeaderTitle(esEdicion ? "Editar Stock en Almacén" : "Asignar Almacén");
+        dialog.setWidth("500px");
+
+        ComboBox<Almacen> cbAlmacenModal = new ComboBox<>("Almacén");
+        cbAlmacenModal.setItems(almacenService.getLista());
+        cbAlmacenModal.setItemLabelGenerator(Almacen::getNombre);
+        cbAlmacenModal.setRequired(true);
+
+        BigDecimalField txtExistenciaModal = new BigDecimalField("Existencia Inicial");
+
+        // 🔥 CONTROL DE EXISTENCIA INICIAL:
+        if (esEdicion) {
+            txtExistenciaModal.setValue(itemEditar.getExistencia());
+        } else {
+            // Si es un almacén nuevo y es el primero en asignarse, toma la existencia del formulario general
+            if (listaArticuloAlmacen.isEmpty() && txtExistencia.getValue() != null) {
+                txtExistenciaModal.setValue(txtExistencia.getValue());
+            } else {
+                txtExistenciaModal.setValue(BigDecimal.ZERO);
+            }
+        }
+
+        BigDecimalField txtMinimoModal = new BigDecimalField("Stock Mínimo");
+        txtMinimoModal.setValue(esEdicion && itemEditar.getMinimo() != null ? itemEditar.getMinimo() : BigDecimal.ZERO);
+
+        BigDecimalField txtMaximoModal = new BigDecimalField("Stock Máximo");
+        txtMaximoModal.setValue(esEdicion && itemEditar.getMaximo() != null ? itemEditar.getMaximo() : new BigDecimal("999999"));
+
+        TextField txtUbicacionModal = new TextField("Ubicación / Pasillo");
+
+        if (esEdicion) {
+            cbAlmacenModal.setValue(itemEditar.getAlmacen());
+            cbAlmacenModal.setEnabled(false); // No cambiar el almacén en edición
+            txtUbicacionModal.setValue(itemEditar.getUbicacionPasillo());
+        }
+
+        FormLayout form = new FormLayout(cbAlmacenModal, txtExistenciaModal, txtMinimoModal, txtMaximoModal, txtUbicacionModal);
+        form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("300px", 2));
+
+        Button btnGuardarModal = new Button(esEdicion ? "Guardar" : "Agregar", e -> {
+            Almacen almacenSel = cbAlmacenModal.getValue();
+            if (almacenSel == null) {
+                Notification.show("Seleccione un almacén válido", 3000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            // Validar Duplicados de Almacén
+            for (ArticuloAlmacen aa : listaArticuloAlmacen) {
+                if (!esEdicion && aa.getAlmacen() != null && aa.getAlmacen().equals(almacenSel)) {
+                    Notification.show("El almacén '" + almacenSel.getNombre() + "' ya fue asignado", 3000, Notification.Position.MIDDLE);
+                    return;
+                }
+            }
+
+            ArticuloAlmacen aa = esEdicion ? itemEditar : new ArticuloAlmacen();
+            aa.setAlmacen(almacenSel);
+            aa.setNombreAlmacen(almacenSel.getNombre());
+            aa.setExistencia(txtExistenciaModal.getValue() != null ? txtExistenciaModal.getValue() : BigDecimal.ZERO);
+            aa.setMinimo(txtMinimoModal.getValue() != null ? txtMinimoModal.getValue() : BigDecimal.ZERO);
+            aa.setMaximo(txtMaximoModal.getValue() != null ? txtMaximoModal.getValue() : new BigDecimal("999999"));
+            aa.setUbicacionPasillo(txtUbicacionModal.getValue());
+
+            if (!esEdicion) {
+                listaArticuloAlmacen.add(aa);
+            }
+
+            gridAlmacenes.setItems(listaArticuloAlmacen);
+            dialog.close();
+        });
+        btnGuardarModal.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button btnCancelarModal = new Button("Cancelar", e -> dialog.close());
+
+        dialog.add(form);
+        dialog.getFooter().add(btnCancelarModal, btnGuardarModal);
+        dialog.open();
+    }
+
+    // ==========================================
+    // TAB 3: CONFIGURACIÓN GRID MULTI-EMPAQUES
+    // ==========================================
     private void configurarGridEmpaques() {
+
         gridEmpaques.setWidthFull();
         gridEmpaques.setHeight("300px");
 
         gridEmpaques.addColumn(e -> e.getUnidadEmpaque() != null ? e.getUnidadEmpaque().getDescripcion() : "")
                 .setHeader("Empaque / Presentación");
-        gridEmpaques.addColumn(ArticuloEmpaque::getFactorConversion).setHeader("Factor Conv. (Unidades)");
+
+        gridEmpaques.addColumn(ArticuloEmpaque::getFactorConversion).setHeader("Factor Conv. (Unidades)").setAutoWidth(true);;
         gridEmpaques.addColumn(ArticuloEmpaque::getCodigoBarra).setHeader("Código de Barra");
         gridEmpaques.addColumn(ArticuloEmpaque::getPrecioCompra).setHeader("Precio Compra");
         gridEmpaques.addColumn(ArticuloEmpaque::getPrecioVenta).setHeader("Precio Venta");
@@ -192,23 +317,22 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
         gridEmpaques.addColumn(e -> Boolean.TRUE.equals(e.getEsEmpaqueBase()) ? "Sí" : "No").setHeader("Es Base");
 
         gridEmpaques.addColumn(new ComponentRenderer<>(empaque -> {
+
             Button btnEditar = new Button(new Icon(VaadinIcon.EDIT), e -> {
 
                 abrirModalEmpaque(empaque);
-
             });
 
             btnEditar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
             Button btnBorrar = new Button(new Icon(VaadinIcon.TRASH), e -> {
                 listaEmpaques.remove(empaque);
+
                 gridEmpaques.setItems(listaEmpaques);
             });
             btnBorrar.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
 
-            HorizontalLayout acciones = new HorizontalLayout(btnEditar, btnBorrar);
-            acciones.setSpacing(false);
-            return acciones;
+            return new HorizontalLayout(btnEditar, btnBorrar);
         })).setHeader("Acciones");
 
         btnAgregarEmpaque.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -239,17 +363,11 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
         Checkbox chkCompra = new Checkbox("Empaque para Compras", true);
         Checkbox chkVenta = new Checkbox("Empaque para Ventas", true);
 
-        // Si se está editando, cargamos sus datos
         if (esEdicion) {
-
-            if (empaqueEditar.getFactorConversion().doubleValue() > 1) {
-
-                empaqueEditar.setEsEmpaqueBase(false);
-            }
 
             cbUnidad.setValue(empaqueEditar.getUnidadEmpaque());
             txtFactor.setValue(empaqueEditar.getFactorConversion());
-            txtBarcode.setValue(empaqueEditar.getCodigoBarra());
+            txtBarcode.setValue(empaqueEditar.getCodigoBarra() == null ? "1" : empaqueEditar.getCodigoBarra());
             txtPrecioCompraEmp.setValue(empaqueEditar.getPrecioCompra());
             txtPrecioVentaEmp.setValue(empaqueEditar.getPrecioVenta());
             chkBase.setValue(Boolean.TRUE.equals(empaqueEditar.getEsEmpaqueBase()));
@@ -257,7 +375,7 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
             chkVenta.setValue(Boolean.TRUE.equals(empaqueEditar.getSeVendeEn()));
         }
 
-        // Control: Si el factor es 1, forzamos "Es Empaque Base" = true y deshabilitamos el Checkbox
+        // CONTROL EMPAQUE BASE: Si factor es 1, forzar Checkbox Base
         Runnable evaluarEmpaqueBase = () -> {
             BigDecimal factor = txtFactor.getValue();
             if (factor != null && factor.compareTo(BigDecimal.ONE) == 0) {
@@ -272,7 +390,6 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
 
         txtFactor.addValueChangeListener(e -> {
             evaluarEmpaqueBase.run();
-
             if (!esEdicion && e.getValue() != null) {
                 if (txtPrecioVenta.getValue() != null) {
                     txtPrecioVentaEmp.setValue(txtPrecioVenta.getValue().multiply(e.getValue()));
@@ -280,18 +397,6 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
                 if (txtPrecioCompra.getValue() != null) {
                     txtPrecioCompraEmp.setValue(txtPrecioCompra.getValue().multiply(e.getValue()));
                 }
-            }
-        });
-
-        // Escuchamos el cambio en la casilla
-        chkBase.addValueChangeListener(event -> {
-            boolean esBase = event.getValue();
-            if (esBase) {
-                txtFactor.setValue(BigDecimal.ONE); // Fija el valor en 1.0000
-                txtFactor.setEnabled(false);        // Bloquea el campo para que no lo puedan editar
-            } else {
-                txtFactor.setEnabled(true);         // Lo libera si no es empaque base (para poner 12, 24, 48, etc.)
-                txtFactor.clear();
             }
         });
 
@@ -308,20 +413,17 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
                 return;
             }
 
-            // 🔥 CONTROL DE DUPLICADOS
+            // CONTROL DUPLICADOS DE EMPAQUE
             for (ArticuloEmpaque empExistente : listaEmpaques) {
-                // Si estamos editando, ignoramos el empaque actual en la comparación
                 if (esEdicion && empExistente.equals(empaqueEditar)) {
                     continue;
                 }
 
-                // 1. Validar si ya existe un empaque con la misma Unidad
                 if (empExistente.getUnidadEmpaque() != null && empExistente.getUnidadEmpaque().equals(unidadSeleccionada)) {
                     Notification.show("Ya existe un empaque registrado para la unidad '" + unidadSeleccionada.getDescripcion() + "'", 3000, Notification.Position.MIDDLE);
                     return;
                 }
 
-                // 2. Validar si ya existe un empaque con el mismo Código de Barras (si no está vacío)
                 if (!barcode.isEmpty() && empExistente.getCodigoBarra() != null && empExistente.getCodigoBarra().equalsIgnoreCase(barcode)) {
                     Notification.show("El código de barras '" + barcode + "' ya está asignado a otro empaque", 3000, Notification.Position.MIDDLE);
                     return;
@@ -330,7 +432,7 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
 
             boolean esBase = factor.compareTo(BigDecimal.ONE) == 0 || chkBase.getValue();
 
-            // Si este empaque será base, desmarcamos los demás de la lista
+            // Desmarcar empaques base anteriores de la lista si este pasa a ser base
             if (esBase) {
                 for (ArticuloEmpaque empExistente : listaEmpaques) {
                     if (!empExistente.equals(empaqueEditar)) {
@@ -340,12 +442,10 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
             }
 
             ArticuloEmpaque emp = esEdicion ? empaqueEditar : new ArticuloEmpaque();
-
-            if (esEdicion == false) {
-                emp.setCodigo(unidadSeleccionada.getCodigo());
-            }
-
+            emp.setCodigo(unidadSeleccionada.getCodigo());
             emp.setArticulo(articuloActual);
+            emp.setNombreEmpaque(unidadSeleccionada.getDescripcion());
+            emp.setNombreArticulo(articuloActual.getDescripcion());
             emp.setUnidadEmpaque(unidadSeleccionada);
             emp.setFactorConversion(factor);
             emp.setCodigoBarra(barcode);
@@ -371,16 +471,27 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
         dialog.open();
     }
 
+    // ==========================================
+    // LÓGICA DE EDICIÓN Y GUARDADO ATÓMICO
+    // ==========================================
     private void editarArticulo(Articulo articulo) {
+
         this.articuloActual = articulo;
         this.articuloDaoService.setArticulo(articulo);
         binder.setBean(articulo);
 
         listaEmpaques.clear();
+        listaArticuloAlmacen.clear();
+
         if (articulo.getCodigo() != null) {
-            listaEmpaques.addAll(articuloEmpaqueService.getPorArticulo(articulo.getCodigo()));
+
+            listaEmpaques.addAll(articuloEmpaqueService.getPorArticulo(articuloActual.getCodigo()));
+
+            listaArticuloAlmacen.addAll(articuloAlmacenService.buscarPorArticulo(articuloActual.getCodigo()).get());
         }
+
         gridEmpaques.setItems(listaEmpaques);
+        gridAlmacenes.setItems(listaArticuloAlmacen);
     }
 
     private void guardarArticulo() {
@@ -391,176 +502,85 @@ public class RegistrarArticuloViewV1 extends VerticalLayout implements HasUrlPar
 
         if (binder.writeBeanIfValid(articuloActual)) {
 
-            // Validar que exista al menos un empaque configurado en la lista
             if (listaEmpaques.isEmpty()) {
-                Notification.show("Debe agregar al menos una presentación/empaque para el artículo", 3000, Notification.Position.MIDDLE);
-                return;
-            }
 
-            Boolean esBase = false;
+                ArticuloEmpaque emp = new ArticuloEmpaque();
 
-            for (ArticuloEmpaque emp : listaEmpaques) {
+                Unidad uni = null;
 
-                if (emp.getEsEmpaqueBase()) {
-                    esBase = emp.getEsEmpaqueBase();
+                if (null != articuloActual.getUnidadDeVenta().getCodigo()) {
+
+                    switch (articuloActual.getUnidadDeVenta().getCodigo()) {
+                        case 1 -> {
+                            uni = this.unidadService.getUnidad(1);
+
+                        }
+                        case 2 ->
+                            uni = this.unidadService.getUnidad(4);
+                        case 3 ->
+                            uni = this.unidadService.getUnidad(2);
+                        default -> {
+                        }
+                    }
                 }
 
+                emp.setArticulo(articuloActual);
+
+                emp.setUnidadEmpaque(uni);
+                emp.setNombreEmpaque(uni.getDescripcion());
+                emp.setNombreArticulo(articuloActual.getDescripcion());
+
+                emp.setFactorConversion(new BigDecimal("1.00"));
+                emp.setCodigoBarra(articuloActual.getCodigoDeBarra());
+                emp.setPrecioCompra(articuloActual.getPrecioCompra());
+                emp.setPrecioVenta(articuloActual.getPrecioVenta());
+                emp.setEsEmpaqueBase(true);
+                emp.setSeCompraEn(true);
+                emp.setSeVendeEn(true);
+
+                listaEmpaques.add(emp);
+
+//                Notification.show("Debe agregar al menos un empaque/presentación para el artículo", 3000, Notification.Position.MIDDLE);
+//                return;
             }
 
-            if (esBase == false) {
-                ClaseUtil.mostrarNotificacion("Tiene que haber una unidad base en la configuracion del empaque",
-                        NotificationVariant.LUMO_PRIMARY);
-                return;
+            try {
+                // Instanciar DTO con los 3 bloques de datos
+                ArticuloRegistroDTO dto = new ArticuloRegistroDTO(
+                        articuloActual,
+                        listaArticuloAlmacen,
+                        listaEmpaques
+                );
+
+                // Ejecución transaccional atómica desde la capa de servicios
+                Articulo guardado = articuloService.guardarArticuloCompleto(dto);
+
+                Notification.show("Artículo #" + guardado.getCodigo() + " guardado de forma atómica y sincronizado correctamente.", 3000, Notification.Position.TOP_CENTER);
+                limpiarFormulario();
+
+            } catch (IllegalArgumentException ex) {
+                Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
+            } catch (Exception e) {
+                Notification.show("Error al procesar la transacción: " + e.getMessage(), 4000, Notification.Position.MIDDLE);
+                e.printStackTrace();
             }
-
-            // 🔥 1. Buscar el Empaque Base dentro de la lista de empaques configurados
-            ArticuloEmpaque empaqueBase = listaEmpaques.stream()
-                    .filter(emp -> Boolean.TRUE.equals(emp.getEsEmpaqueBase())
-                    || (emp.getFactorConversion() != null
-                    && emp.getFactorConversion().compareTo(BigDecimal.ONE) == 0))
-                    .findFirst()
-                    .orElse(listaEmpaques.get(0)); // Si no se marcó ninguno explícitamente, tomamos el primero como respaldo
-
-            // Extraer la unidad de medida del empaque base
-            Unidad unidadBase = empaqueBase.getUnidadEmpaque();
-
-            if (unidadBase == null) {
-                Notification.show("El empaque base no tiene asignada una unidad de medida válida", 3000, Notification.Position.MIDDLE);
-                return;
-            }
-
-            System.out.println("unidadBase " + unidadBase);
-            // Assignar opcionalmente la unidad base a la entidad cabecera del artículo si lo requiere tu modelo
-            if (articuloActual.getUnidadBase()== null) {
-                articuloActual.setUnidadBase(unidadBase);
-            }
-
-            boolean esNuevo = (articuloActual.getCodigo() == null);
-
-            // 2. Guardar cabecera del Artículo
-            Articulo articuloGuardado = articuloService.guardar(articuloActual);
-
-            // 3. EXTRAPOLAR LA UNIDAD BASE A ARTICULO_ALMACEN
-            if (cbAlmacen.getValue() != null) {
-                Almacen almacenSeleccionado = cbAlmacen.getValue();
-
-                // Buscar si ya existe la relación previa para evitar duplicados
-                Optional<ArticuloAlmacen> opArtAlm = articuloAlmacenService
-                        .buscarPorArticuloYAlmacen(articuloGuardado.getCodigo(), almacenSeleccionado.getCodigo());
-
-                ArticuloAlmacen artAlmacen = opArtAlm.orElseGet(ArticuloAlmacen::new);
-
-                artAlmacen.setArticulo(articuloGuardado);
-                artAlmacen.setAlmacen(almacenSeleccionado);
-                artAlmacen.setDescripcionArticulo(articuloGuardado.getDescripcion());
-                artAlmacen.setNombreAlmacen(almacenSeleccionado.getNombre());
-                artAlmacen.setUbicacionPasillo("na");
-                artAlmacen.setCreadoPor("admin");
-                artAlmacen.setFechaCreacion(new Date());
-                artAlmacen.setFechaActualizacion(new Date());
-
-                // 🔥 EXTRAPOLACIÓN DIRECTA DESDE EL EMPAQUE BASE
-                artAlmacen.setUnidad(unidadBase);
-                artAlmacen.setNombreUnidad(unidadBase.getDescripcion());
-
-                // Gestión de existencia (expresada en la Unidad Base)
-                if (!opArtAlm.isPresent()) {
-                    BigDecimal existenciaInicial = articuloGuardado.getExistencia() != null
-                            ? articuloGuardado.getExistencia()
-                            : BigDecimal.ZERO;
-
-                    artAlmacen.setExistencia(existenciaInicial);
-                    artAlmacen.setMinimo(BigDecimal.ZERO);
-                    artAlmacen.setMaximo(new BigDecimal("999999"));
-                } else if (articuloGuardado.getExistencia() != null) {
-
-                    artAlmacen.setExistencia(articuloGuardado.getExistencia());
-                }
-
-                // Guardar el registro en articulo_almacen
-                articuloAlmacenService.guardar(artAlmacen);
-            }
-
-            // 4. Guardar Lista de Multi-Empaques vinculados al artículo
-            for (ArticuloEmpaque emp : listaEmpaques) {
-
-                if (Objects.equals(emp.getCodigo(), emp.getUnidadEmpaque().getCodigo())) {
-                    emp.setCodigo(null);
-                }
-                emp.setArticulo(articuloGuardado);
-            }
-
-            articuloEmpaqueService.guardarLista(listaEmpaques, "ADMIN");
-
-            Notification.show("Artículo registrado. Unidad base '" + unidadBase.getDescripcion() + "' extrapolada a Almacén correctamente.", 3000, Notification.Position.TOP_CENTER);
-            limpiarFormulario();
 
         } else {
             Notification.show("Complete los campos obligatorios del formulario", 2500, Notification.Position.MIDDLE);
         }
     }
-    //    private void guardarArticulo() {
-    //
-    //        if (articuloActual == null) {
-    //            articuloActual = new Articulo();
-    //        }
-    //
-    //        if (binder.writeBeanIfValid(articuloActual)) {
-    //
-    //            boolean esNuevo = (articuloActual.getCodigo() == null);
-    //
-    //            // 1. Guardar Artículo
-    //            Articulo articuloGuardado = articuloService.guardar(articuloActual);
-    //
-    //            // 2. Guardar Asignación de Almacén si es nuevo
-    //            if (esNuevo && cbAlmacen.getValue() != null) {
-    //                
-    //                ArticuloAlmacen articuloAlmacen = new ArticuloAlmacen();
-    //                articuloAlmacen.setArticulo(articuloGuardado);
-    //                articuloAlmacen.setAlmacen(cbAlmacen.getValue());
-    //                articuloAlmacen.setUbicacionPasillo("A01");
-    //
-    //                BigDecimal existencia = articuloGuardado.getExistencia() != null ? articuloGuardado.getExistencia() : BigDecimal.ZERO;
-    //                articuloAlmacen.setExistencia(existencia);
-    //                articuloAlmacen.setMinimo(BigDecimal.ZERO);
-    //                articuloAlmacen.setMaximo(new BigDecimal("999999"));
-    //
-    //                articuloAlmacenService.guardar(articuloAlmacen);
-    //            }
-    //
-    //            // 3. Guardar Lista de Multi-Empaques
-    //            for (ArticuloEmpaque emp : listaEmpaques) {
-    //
-    //                if (Objects.equals(emp.getCodigo(), emp.getUnidadEmpaque().getCodigo())) {
-    //                    emp.setCodigo(null);
-    //                }
-
-    ////         
-//                emp.setArticulo(articuloGuardado);
-//            }
-//            articuloEmpaqueService.guardarLista(listaEmpaques, "ADMIN");
-//
-//            Notification.show("Artículo, Almacén y Presentaciones guardados correctamente", 2500, Notification.Position.TOP_CENTER);
-//            limpiarFormulario();
-//        } else {
-//            Notification.show("Complete los campos obligatorios del formulario", 2500, Notification.Position.MIDDLE);
-//        }
-//    }
 
     private void limpiarFormulario() {
         editarArticulo(new Articulo());
-        configurarAlmacenes();
     }
 
     @Override
     public void setParameter(BeforeEvent event, String parameter) {
-
         Articulo entidad = NavigationContext.retrieve(parameter, Articulo.class);
         if (entidad != null) {
             editarArticulo(entidad);
         } else {
             limpiarFormulario();
         }
-
     }
 }

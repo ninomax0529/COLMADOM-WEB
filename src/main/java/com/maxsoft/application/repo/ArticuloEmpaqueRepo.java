@@ -22,4 +22,5 @@ public interface ArticuloEmpaqueRepo extends JpaRepository<ArticuloEmpaque, Inte
     Optional<ArticuloEmpaque> findByArticuloCodigoAndEsEmpaqueBaseTrue(Integer codArticulo);
 
     List<ArticuloEmpaque> findByArticuloCodigoAndEstadoTrue(Integer codArticulo);
+    
 }

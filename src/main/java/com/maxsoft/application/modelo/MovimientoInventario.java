@@ -20,6 +20,7 @@ import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -32,23 +33,30 @@ import java.util.Date;
     @NamedQuery(name = "MovimientoInventario.findAll", query = "SELECT m FROM MovimientoInventario m")})
 public class MovimientoInventario implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 50)
     @Column(name = "numero_documento")
     private String numeroDocumento;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
-    @NotNull()
+    @NotNull
     @Column(name = "cantidad")
-    private double cantidad;
+    private BigDecimal cantidad;
     @Basic(optional = false)
     @NotNull
     @Column(name = "existencia_anterior")
-    private double existenciaAnterior;
+    private BigDecimal existenciaAnterior;
     @Basic(optional = false)
     @NotNull
     @Column(name = "existencia_nueva")
-    private double existenciaNueva;
+    private BigDecimal existenciaNueva;
     @Basic(optional = false)
     @NotNull
     @Column(name = "fecha_movimiento")
@@ -60,18 +68,25 @@ public class MovimientoInventario implements Serializable {
     @Size(max = 255)
     @Column(name = "observacion")
     private String observacion;
+    @Column(name = "factor_conversion")
+    private BigDecimal factorConversion;
+    @Column(name = "cantidad_empaque")
+    private BigDecimal cantidadEmpaque;
+    @Column(name = "sub_total")
+    private BigDecimal subTotal;
+    @Column(name = "itbis")
+    private BigDecimal itbis;
+    @Column(name = "total")
+    private BigDecimal total;
     @JoinColumn(name = "almacen", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Almacen almacen;
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @JoinColumn(name = "articulo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Articulo articulo;
+    @JoinColumn(name = "articulo_empaque", referencedColumnName = "codigo")
+    @ManyToOne
+    private ArticuloEmpaque articuloEmpaque;
     @JoinColumn(name = "tipo_documento", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private TipoDocumento tipoDocumento;
@@ -86,7 +101,7 @@ public class MovimientoInventario implements Serializable {
         this.codigo = codigo;
     }
 
-    public MovimientoInventario(Integer codigo, String numeroDocumento, double cantidad, double existenciaAnterior, double existenciaNueva, Date fechaMovimiento) {
+    public MovimientoInventario(Integer codigo, String numeroDocumento, BigDecimal cantidad, BigDecimal existenciaAnterior, BigDecimal existenciaNueva, Date fechaMovimiento) {
         this.codigo = codigo;
         this.numeroDocumento = numeroDocumento;
         this.cantidad = cantidad;
@@ -111,20 +126,27 @@ public class MovimientoInventario implements Serializable {
         this.numeroDocumento = numeroDocumento;
     }
 
+    public BigDecimal getCantidad() {
+        return cantidad;
+    }
 
-    public double getExistenciaAnterior() {
+    public void setCantidad(BigDecimal cantidad) {
+        this.cantidad = cantidad;
+    }
+
+    public BigDecimal getExistenciaAnterior() {
         return existenciaAnterior;
     }
 
-    public void setExistenciaAnterior(double existenciaAnterior) {
+    public void setExistenciaAnterior(BigDecimal existenciaAnterior) {
         this.existenciaAnterior = existenciaAnterior;
     }
 
-    public double getExistenciaNueva() {
+    public BigDecimal getExistenciaNueva() {
         return existenciaNueva;
     }
 
-    public void setExistenciaNueva(double existenciaNueva) {
+    public void setExistenciaNueva(BigDecimal existenciaNueva) {
         this.existenciaNueva = existenciaNueva;
     }
 
@@ -136,12 +158,84 @@ public class MovimientoInventario implements Serializable {
         this.fechaMovimiento = fechaMovimiento;
     }
 
+    public String getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(String usuario) {
+        this.usuario = usuario;
+    }
+
+    public String getObservacion() {
+        return observacion;
+    }
+
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
+    }
+
+    public BigDecimal getFactorConversion() {
+        return factorConversion;
+    }
+
+    public void setFactorConversion(BigDecimal factorConversion) {
+        this.factorConversion = factorConversion;
+    }
+
+    public BigDecimal getCantidadEmpaque() {
+        return cantidadEmpaque;
+    }
+
+    public void setCantidadEmpaque(BigDecimal cantidadEmpaque) {
+        this.cantidadEmpaque = cantidadEmpaque;
+    }
+
+    public BigDecimal getSubTotal() {
+        return subTotal;
+    }
+
+    public void setSubTotal(BigDecimal subTotal) {
+        this.subTotal = subTotal;
+    }
+
+    public BigDecimal getItbis() {
+        return itbis;
+    }
+
+    public void setItbis(BigDecimal itbis) {
+        this.itbis = itbis;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public Almacen getAlmacen() {
+        return almacen;
+    }
+
+    public void setAlmacen(Almacen almacen) {
+        this.almacen = almacen;
+    }
+
     public Articulo getArticulo() {
         return articulo;
     }
 
     public void setArticulo(Articulo articulo) {
         this.articulo = articulo;
+    }
+
+    public ArticuloEmpaque getArticuloEmpaque() {
+        return articuloEmpaque;
+    }
+
+    public void setArticuloEmpaque(ArticuloEmpaque articuloEmpaque) {
+        this.articuloEmpaque = articuloEmpaque;
     }
 
     public TipoDocumento getTipoDocumento() {
@@ -183,40 +277,6 @@ public class MovimientoInventario implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.MovimientoInventario[ codigo=" + codigo + " ]";
-    }
-
-
-    public double getCantidad() {
-        return cantidad;
-    }
-
-    public void setCantidad(double cantidad) {
-        this.cantidad = cantidad;
-    }
-
-
-    public String getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(String usuario) {
-        this.usuario = usuario;
-    }
-
-    public String getObservacion() {
-        return observacion;
-    }
-
-    public void setObservacion(String observacion) {
-        this.observacion = observacion;
-    }
-
-    public Almacen getAlmacen() {
-        return almacen;
-    }
-
-    public void setAlmacen(Almacen almacen) {
-        this.almacen = almacen;
     }
     
 }

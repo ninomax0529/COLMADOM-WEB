@@ -30,34 +30,6 @@ import java.math.BigDecimal;
     @NamedQuery(name = "DetalleSalidaInventario.findAll", query = "SELECT d FROM DetalleSalidaInventario d")})
 public class DetalleSalidaInventario implements Serializable {
 
-    /**
-     * @return the almacen
-     */
-    public Almacen getAlmacen() {
-        return almacen;
-    }
-
-    /**
-     * @param almacen the almacen to set
-     */
-    public void setAlmacen(Almacen almacen) {
-        this.almacen = almacen;
-    }
-
-    /**
-     * @return the nombreAlmacen
-     */
-    public String getNombreAlmacen() {
-        return nombreAlmacen;
-    }
-
-    /**
-     * @param nombreAlmacen the nombreAlmacen to set
-     */
-    public void setNombreAlmacen(String nombreAlmacen) {
-        this.nombreAlmacen = nombreAlmacen;
-    }
-
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -70,10 +42,20 @@ public class DetalleSalidaInventario implements Serializable {
     @Column(name = "descripcion_articulo")
     private String descripcionArticulo;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
+    @Column(name = "factor_conversion")
+    private BigDecimal factorConversion;
+    @Column(name = "cantidad_fisica_base")
+    private BigDecimal cantidadFisicaBase;
     @Basic(optional = false)
     @NotNull
     @Column(name = "cantidad")
     private BigDecimal cantidad;
+    @Column(name = "sub_total")
+    private BigDecimal subTotal;
+    @Column(name = "itbis")
+    private BigDecimal itbis;
+    @Column(name = "total")
+    private BigDecimal total;
     @Column(name = "existencia")
     private BigDecimal existencia;
     @Column(name = "precio_compra")
@@ -85,22 +67,25 @@ public class DetalleSalidaInventario implements Serializable {
     @Column(name = "existencia_anterior")
     private BigDecimal existenciaAnterior;
     @Column(name = "cantidad_solicitada")
-    private BigDecimal cantidadSolicitada; 
+    private BigDecimal cantidadSolicitada;
+    @Size(max = 80)
+    @Column(name = "nombre_almacen")
+    private String nombreAlmacen;
+    @JoinColumn(name = "almacen", referencedColumnName = "codigo")
+    @ManyToOne
+    private Almacen almacen;
     @JoinColumn(name = "articulo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Articulo articulo;
+    @JoinColumn(name = "articulo_empaque", referencedColumnName = "codigo")
+    @ManyToOne
+    private ArticuloEmpaque articuloEmpaque;
     @JoinColumn(name = "salida_inventario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private SalidaInventario salidaInventario;
     @JoinColumn(name = "unidad", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Unidad unidad;
-    @Size(max = 50)
-    @Column(name = "nombre_almacen")
-    private String nombreAlmacen;
-    @JoinColumn(name = "almacen", referencedColumnName = "codigo")
-    @ManyToOne
-    private Almacen almacen;
 
     public DetalleSalidaInventario() {
     }
@@ -131,12 +116,52 @@ public class DetalleSalidaInventario implements Serializable {
         this.descripcionArticulo = descripcionArticulo;
     }
 
+    public BigDecimal getFactorConversion() {
+        return factorConversion;
+    }
+
+    public void setFactorConversion(BigDecimal factorConversion) {
+        this.factorConversion = factorConversion;
+    }
+
+    public BigDecimal getCantidadFisicaBase() {
+        return cantidadFisicaBase;
+    }
+
+    public void setCantidadFisicaBase(BigDecimal cantidadFisicaBase) {
+        this.cantidadFisicaBase = cantidadFisicaBase;
+    }
+
     public BigDecimal getCantidad() {
         return cantidad;
     }
 
     public void setCantidad(BigDecimal cantidad) {
         this.cantidad = cantidad;
+    }
+
+    public BigDecimal getSubTotal() {
+        return subTotal;
+    }
+
+    public void setSubTotal(BigDecimal subTotal) {
+        this.subTotal = subTotal;
+    }
+
+    public BigDecimal getItbis() {
+        return itbis;
+    }
+
+    public void setItbis(BigDecimal itbis) {
+        this.itbis = itbis;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
     }
 
     public BigDecimal getExistencia() {
@@ -187,12 +212,36 @@ public class DetalleSalidaInventario implements Serializable {
         this.cantidadSolicitada = cantidadSolicitada;
     }
 
+    public String getNombreAlmacen() {
+        return nombreAlmacen;
+    }
+
+    public void setNombreAlmacen(String nombreAlmacen) {
+        this.nombreAlmacen = nombreAlmacen;
+    }
+
+    public Almacen getAlmacen() {
+        return almacen;
+    }
+
+    public void setAlmacen(Almacen almacen) {
+        this.almacen = almacen;
+    }
+
     public Articulo getArticulo() {
         return articulo;
     }
 
     public void setArticulo(Articulo articulo) {
         this.articulo = articulo;
+    }
+
+    public ArticuloEmpaque getArticuloEmpaque() {
+        return articuloEmpaque;
+    }
+
+    public void setArticuloEmpaque(ArticuloEmpaque articuloEmpaque) {
+        this.articuloEmpaque = articuloEmpaque;
     }
 
     public SalidaInventario getSalidaInventario() {
@@ -235,5 +284,5 @@ public class DetalleSalidaInventario implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.DetalleSalidaInventario[ codigo=" + codigo + " ]";
     }
-
+    
 }

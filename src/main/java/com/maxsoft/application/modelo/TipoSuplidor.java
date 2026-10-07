@@ -29,18 +29,17 @@ import java.util.Collection;
     @NamedQuery(name = "TipoSuplidor.findAll", query = "SELECT t FROM TipoSuplidor t")})
 public class TipoSuplidor implements Serializable {
 
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 20)
-    @Column(name = "nombre")
-    private String nombre;
-
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
+    @Basic(optional = false)
+    @NotNull
+    @Size(min = 1, max = 20)
+    @Column(name = "nombre")
+    private String nombre;
     @OneToMany(mappedBy = "tipoSuplidor")
     private Collection<Proveedor> proveedorCollection;
 
@@ -64,6 +63,13 @@ public class TipoSuplidor implements Serializable {
         this.codigo = codigo;
     }
 
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
 
     public Collection<Proveedor> getProveedorCollection() {
         return proveedorCollection;
@@ -96,14 +102,6 @@ public class TipoSuplidor implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.TipoSuplidor[ codigo=" + codigo + " ]";
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
     }
     
 }

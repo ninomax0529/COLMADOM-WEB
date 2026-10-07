@@ -197,8 +197,8 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
             det.setCantidadPendiente(BigDecimal.ZERO);
             det.setNuevaExistencia(stockActual);
 
-            det.setNombreUnidad(articulo.getUnidadEntrada() != null ? articulo.getUnidadEntrada().getDescripcion() : "Unidad");
-            det.setUnidad(articulo.getUnidadEntrada());
+            det.setNombreUnidad(articulo.getUnidadBase()!= null ? articulo.getUnidadBase().getDescripcion() : "Unidad");
+            det.setUnidad(articulo.getUnidadBase());
 
             det.setPrecioCompra(articulo.getPrecioCompra());
             det.setCostoUnitario(articulo.getPrecioCompra());

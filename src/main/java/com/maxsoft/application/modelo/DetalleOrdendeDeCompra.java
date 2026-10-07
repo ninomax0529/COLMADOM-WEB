@@ -63,9 +63,16 @@ public class DetalleOrdendeDeCompra implements Serializable {
     private BigDecimal itbis;
     @Column(name = "isr")
     private BigDecimal isr;
+    @Column(name = "factor_conversion")
+    private BigDecimal factorConversion;
+    @Column(name = "cantidad_fisica_base")
+    private BigDecimal cantidadFisicaBase;
     @JoinColumn(name = "articulo", referencedColumnName = "codigo")
     @ManyToOne
     private Articulo articulo;
+    @JoinColumn(name = "articulo_empaque", referencedColumnName = "codigo")
+    @ManyToOne
+    private ArticuloEmpaque articuloEmpaque;
     @JoinColumn(name = "orden_de_compra", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private OrdenDeCompra ordenDeCompra;
@@ -189,12 +196,36 @@ public class DetalleOrdendeDeCompra implements Serializable {
         this.isr = isr;
     }
 
+    public BigDecimal getFactorConversion() {
+        return factorConversion;
+    }
+
+    public void setFactorConversion(BigDecimal factorConversion) {
+        this.factorConversion = factorConversion;
+    }
+
+    public BigDecimal getCantidadFisicaBase() {
+        return cantidadFisicaBase;
+    }
+
+    public void setCantidadFisicaBase(BigDecimal cantidadFisicaBase) {
+        this.cantidadFisicaBase = cantidadFisicaBase;
+    }
+
     public Articulo getArticulo() {
         return articulo;
     }
 
     public void setArticulo(Articulo articulo) {
         this.articulo = articulo;
+    }
+
+    public ArticuloEmpaque getArticuloEmpaque() {
+        return articuloEmpaque;
+    }
+
+    public void setArticuloEmpaque(ArticuloEmpaque articuloEmpaque) {
+        this.articuloEmpaque = articuloEmpaque;
     }
 
     public OrdenDeCompra getOrdenDeCompra() {

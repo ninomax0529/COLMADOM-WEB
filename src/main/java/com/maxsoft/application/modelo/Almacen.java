@@ -33,6 +33,12 @@ import java.util.Date;
     @NamedQuery(name = "Almacen.findAll", query = "SELECT a FROM Almacen a")})
 public class Almacen implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Size(max = 50)
     @Column(name = "nombre")
     private String nombre;
@@ -49,15 +55,6 @@ public class Almacen implements Serializable {
     @Size(min = 1, max = 50)
     @Column(name = "creado_por")
     private String creadoPor;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacen")
-    private Collection<MovimientoInventario> movimientoInventarioCollection;
-
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @OneToMany(mappedBy = "almacen")
     private Collection<DetalleEntradaInventario> detalleEntradaInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacenDestino")
@@ -66,10 +63,24 @@ public class Almacen implements Serializable {
     private Collection<TrasladoInventario> trasladoInventarioCollection1;
     @OneToMany(mappedBy = "almacen")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
+    @OneToMany(mappedBy = "almacenEntradaId")
+    private Collection<Configuracion> configuracionCollection;
+    @OneToMany(mappedBy = "almacenVentaId")
+    private Collection<Configuracion> configuracionCollection1;
+    @OneToMany(mappedBy = "almacen")
+    private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
+    @OneToMany(mappedBy = "almacen")
+    private Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection;
+    @OneToMany(mappedBy = "almacen")
+    private Collection<AjusteInventario> ajusteInventarioCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacen")
+    private Collection<MovimientoInventario> movimientoInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacen")
     private Collection<ArticuloAlmacen> articuloAlmacenCollection;
     @OneToMany(mappedBy = "almacen")
-    private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
+    private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
+    @OneToMany(mappedBy = "almacen")
+    private Collection<RecepcionMercancia> recepcionMercanciaCollection;
 
     public Almacen() {
     }
@@ -92,6 +103,21 @@ public class Almacen implements Serializable {
         this.codigo = codigo;
     }
 
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getUbicacion() {
+        return ubicacion;
+    }
+
+    public void setUbicacion(String ubicacion) {
+        this.ubicacion = ubicacion;
+    }
 
     public Date getFechaCreacion() {
         return fechaCreacion;
@@ -141,12 +167,20 @@ public class Almacen implements Serializable {
         this.detalleFacturaDeVentaCollection = detalleFacturaDeVentaCollection;
     }
 
-    public Collection<ArticuloAlmacen> getArticuloAlmacenCollection() {
-        return articuloAlmacenCollection;
+    public Collection<Configuracion> getConfiguracionCollection() {
+        return configuracionCollection;
     }
 
-    public void setArticuloAlmacenCollection(Collection<ArticuloAlmacen> articuloAlmacenCollection) {
-        this.articuloAlmacenCollection = articuloAlmacenCollection;
+    public void setConfiguracionCollection(Collection<Configuracion> configuracionCollection) {
+        this.configuracionCollection = configuracionCollection;
+    }
+
+    public Collection<Configuracion> getConfiguracionCollection1() {
+        return configuracionCollection1;
+    }
+
+    public void setConfiguracionCollection1(Collection<Configuracion> configuracionCollection1) {
+        this.configuracionCollection1 = configuracionCollection1;
     }
 
     public Collection<DetalleAjusteInventario> getDetalleAjusteInventarioCollection() {
@@ -155,6 +189,54 @@ public class Almacen implements Serializable {
 
     public void setDetalleAjusteInventarioCollection(Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection) {
         this.detalleAjusteInventarioCollection = detalleAjusteInventarioCollection;
+    }
+
+    public Collection<DetalleRecepcionMercancia> getDetalleRecepcionMercanciaCollection() {
+        return detalleRecepcionMercanciaCollection;
+    }
+
+    public void setDetalleRecepcionMercanciaCollection(Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection) {
+        this.detalleRecepcionMercanciaCollection = detalleRecepcionMercanciaCollection;
+    }
+
+    public Collection<AjusteInventario> getAjusteInventarioCollection() {
+        return ajusteInventarioCollection;
+    }
+
+    public void setAjusteInventarioCollection(Collection<AjusteInventario> ajusteInventarioCollection) {
+        this.ajusteInventarioCollection = ajusteInventarioCollection;
+    }
+
+    public Collection<MovimientoInventario> getMovimientoInventarioCollection() {
+        return movimientoInventarioCollection;
+    }
+
+    public void setMovimientoInventarioCollection(Collection<MovimientoInventario> movimientoInventarioCollection) {
+        this.movimientoInventarioCollection = movimientoInventarioCollection;
+    }
+
+    public Collection<ArticuloAlmacen> getArticuloAlmacenCollection() {
+        return articuloAlmacenCollection;
+    }
+
+    public void setArticuloAlmacenCollection(Collection<ArticuloAlmacen> articuloAlmacenCollection) {
+        this.articuloAlmacenCollection = articuloAlmacenCollection;
+    }
+
+    public Collection<DetalleSalidaInventario> getDetalleSalidaInventarioCollection() {
+        return detalleSalidaInventarioCollection;
+    }
+
+    public void setDetalleSalidaInventarioCollection(Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection) {
+        this.detalleSalidaInventarioCollection = detalleSalidaInventarioCollection;
+    }
+
+    public Collection<RecepcionMercancia> getRecepcionMercanciaCollection() {
+        return recepcionMercanciaCollection;
+    }
+
+    public void setRecepcionMercanciaCollection(Collection<RecepcionMercancia> recepcionMercanciaCollection) {
+        this.recepcionMercanciaCollection = recepcionMercanciaCollection;
     }
 
     @Override
@@ -180,31 +262,6 @@ public class Almacen implements Serializable {
     @Override
     public String toString() {
         return nombre;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getUbicacion() {
-        return ubicacion;
-    }
-
-    public void setUbicacion(String ubicacion) {
-        this.ubicacion = ubicacion;
-    }
-
-
-    public Collection<MovimientoInventario> getMovimientoInventarioCollection() {
-        return movimientoInventarioCollection;
-    }
-
-    public void setMovimientoInventarioCollection(Collection<MovimientoInventario> movimientoInventarioCollection) {
-        this.movimientoInventarioCollection = movimientoInventarioCollection;
     }
     
 }

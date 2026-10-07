@@ -1,36 +1,19 @@
 package com.maxsoft.application.servicio.impl.inventario;
 
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
-import com.maxsoft.application.modelo.AjusteInventario;
-import com.maxsoft.application.modelo.Almacen;
-import com.maxsoft.application.modelo.Articulo;
-import com.maxsoft.application.modelo.ArticuloAlmacen;
-import com.maxsoft.application.modelo.DetalleAjusteInventario;
-import com.maxsoft.application.modelo.DetalleEntradaInventario;
-import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
-import com.maxsoft.application.modelo.DetalleRecepcionMercancia;
-import com.maxsoft.application.modelo.DetalleTrasladoInventario;
-import com.maxsoft.application.modelo.EntradaInventario;
-import com.maxsoft.application.modelo.FacturaDeVenta;
-import com.maxsoft.application.modelo.RecepcionMercancia;
-import com.maxsoft.application.modelo.TipoDocumento;
-import com.maxsoft.application.modelo.TipoMovimiento;
-import com.maxsoft.application.modelo.TrasladoInventario;
+import com.maxsoft.application.modelo.*;
+import com.maxsoft.application.repo.ArticuloEmpaqueRepo;
 import com.maxsoft.application.repo.EntradaDeInventarioRepo;
-import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
-import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
-import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
-import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
-import com.maxsoft.application.servicio.interfaces.inventario.TipoMovimientoService;
-import jakarta.persistence.EntityNotFoundException;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
+import com.maxsoft.application.servicio.interfaces.inventario.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -38,76 +21,117 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
 
     private final EntradaDeInventarioRepo entradaRepo;
     private final MovimientoInventarioService movimientoService;
-    TipoMovimientoService tipoMovimientoService;
-    TipoDocumentoService tipoDocumentoService;
-    ArticuloAlmacenService articuloAlmacenService;
+    private final TipoMovimientoService tipoMovimientoService;
+    private final TipoDocumentoService tipoDocumentoService;
+    private final ArticuloAlmacenService articuloAlmacenService;
+    ArticuloEmpaqueService articuloEmpaqueService;
+    ArticuloEmpaqueRepo articuloEmpaqueRepo;
 
     @Autowired
-    public EntradaDeInventarioServiceImpl(EntradaDeInventarioRepo entradaRepo,
+    public EntradaDeInventarioServiceImpl(
+            
+            EntradaDeInventarioRepo entradaRepo,
             MovimientoInventarioService movimientoService,
             TipoMovimientoService tipoMovimientoService,
             TipoDocumentoService tipoDocumentoService,
-            ArticuloAlmacenService articuloAlmacenService
+            ArticuloAlmacenService articuloAlmacenService,
+            ArticuloEmpaqueService articuloEmpaqueService,
+             ArticuloEmpaqueRepo articuloEmpaqueRepo
     ) {
         this.entradaRepo = entradaRepo;
         this.movimientoService = movimientoService;
-        this.tipoDocumentoService = tipoDocumentoService;
         this.tipoMovimientoService = tipoMovimientoService;
+        this.tipoDocumentoService = tipoDocumentoService;
         this.articuloAlmacenService = articuloAlmacenService;
+        this.articuloEmpaqueService=articuloEmpaqueService;
+        this.articuloEmpaqueRepo=articuloEmpaqueRepo;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public EntradaInventario guardar(EntradaInventario obj, String usuario) {
 
-        // 1. Guardar la cabecera
+        // 1. Asignar usuario de respaldo si no viene en el objeto
+        if (obj.getNombreUsuario() == null) {
+            obj.setNombreUsuario(usuario);
+        }
+
+        // 2. Persistir cabecera para obtener ID
         EntradaInventario entradaGuardada = entradaRepo.save(obj);
 
         String numDocumento = "ENT-" + (entradaGuardada.getCodigo() != null
                 ? entradaGuardada.getCodigo()
                 : System.currentTimeMillis());
 
+        // 3. Obtener Tipos de Documento y Movimiento (con getTipoMovimiento corregido)
         TipoDocumento tp = this.tipoDocumentoService.getTipoDocumento(1);
         TipoMovimiento tm = this.tipoMovimientoService.getTipoMovimientoa(1);
 
-        // 2. Usar la colección del parámetro 'obj' recibido en lugar de 'entradaGuardada'
         Collection<DetalleEntradaInventario> detalles = obj.getDetalleEntradaInventarioCollection();
 
         if (detalles != null && !detalles.isEmpty()) {
-
             for (DetalleEntradaInventario detalle : detalles) {
 
-                // Asignar manualmente la cabecera ya persistida a cada detalle
                 detalle.setEntradaInventario(entradaGuardada);
 
-//                Articulo articuloProxy = detalle.getArticulo();
-//                if (articuloProxy != null && articuloProxy.getCodigo() != null) {
                 Articulo articulo = detalle.getArticulo();
-                Almacen alm = detalle.getAlmacen();
-                // Cargar el artículo fresco desde el repositorio para evitar Lazy Proxy / inventariable null
-//                    Articulo articulo = articuloRepo.findById(articuloProxy.getCodigo())
-//                            .orElse(articuloProxy);
-//
-//                    boolean esInventariable = articulo.getInventariable() == null || Boolean.TRUE.equals(articulo.getInventariable());
-//
-//                    if (esInventariable) {
-                double cantidadEntrante = detalle.getCantidadRecibida() != null ? detalle.getCantidadRecibida().doubleValue() : 0.0;
 
-                if (cantidadEntrante > 0) {
+                if (articulo == null) {
+                    continue; // Evitar NullPointerException si un ítem no tiene artículo
+                }
 
+                Almacen alm = detalle.getAlmacen() != null
+                        ? detalle.getAlmacen()
+                        : new Almacen(1);
+                
+                 ArticuloEmpaque artEmpaque =this.articuloEmpaqueService
+                        .getEmpaqueBase(articulo.getCodigo()).get();
+//
+//                ArticuloEmpaque artEmpaque = articulo.getUnidadBase() != null
+//                        ? articulo.getUnidadBase()
+//                        : null;
+
+                BigDecimal cantidadEntrante = detalle.getCantidadRecibida() != null
+                        ? detalle.getCantidadRecibida()
+                        : BigDecimal.ZERO;
+
+                BigDecimal cantidadFisicaBase = detalle.getCantidadFisicaBase() != null
+                        ? detalle.getCantidadFisicaBase()
+                        : BigDecimal.ZERO;
+
+//                BigDecimal factorConversion = detalle.getFactorConversion() != null
+//                        ? detalle.getFactorConversion()
+//                        : BigDecimal.ONE;
+
+                if (cantidadEntrante.compareTo(BigDecimal.ZERO) > 0) {
+
+                    // Cálculo/extracción de totales para la firma completa
+                    BigDecimal costoUnitario = detalle.getCostoUnitario() != null
+                            ? detalle.getCostoUnitario()
+                            : BigDecimal.ZERO;
+
+                    BigDecimal subTotal = costoUnitario.multiply(cantidadEntrante);
+                    BigDecimal itbis = BigDecimal.ZERO; // Ajustar si calculas ITBIS en el detalle
+                    BigDecimal total = subTotal.add(itbis);
+
+                    // LLAMADA CORREGIDA CON LOS 13 PARÁMETROS DE LA INTERFAZ:
                     movimientoService.registrarMovimiento(
-                            articulo,
-                            alm,
-                            tm,
-                            tp,
-                            numDocumento,
-                            cantidadEntrante,
-                            usuario,
-                            obj.getComentario()
+                            articulo, // 1. Articulo
+                            alm, // 2. Almacen
+                            artEmpaque, // 3. ArticuloEmpaque (null si es unidad suelta)
+                            BigDecimal.ONE, // 4. factorConversion (1 por defecto)
+                            cantidadFisicaBase, // 5. cantidadEmpaque
+                            subTotal, // 6. subTotal
+                            itbis, // 7. itbis
+                            total, // 8. total
+                            tm, // 9. TipoMovimiento
+                            tp, // 10. TipoDocumento
+                            numDocumento, // 11. numeroDoc
+                            cantidadEntrante, // 12. cantidad
+                            usuario, // 13. usuario
+                            obj.getComentario() // 14. observacion
                     );
                 }
-//                    }
-//                }
             }
         }
 
@@ -126,354 +150,289 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         return entradaRepo.getDetalle(obj);
     }
 
-    @Transactional
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public EntradaInventario crearEntradaPorDevolucion(FacturaDeVenta factura, SolicitudDevolucionDto solicitud) {
 
-        EntradaInventario entrada = new EntradaInventario();
-        Date fechaActual = new Date();
+        // 1. Inicializar la cabecera
+        EntradaInventario entrada = inicializarCabeceraBase(
+                7,
+                "FACT-" + factura.getCodigo(),
+                solicitud.getUsuario(),
+                (Boolean.TRUE.equals(factura.getAnulada()) ? "Devolución Total" : "Devolución Parcial")
+                + " de Factura #" + factura.getCodigo() + ". Motivo: " + solicitud.getMotivo()
+        );
 
-        // 1. Asignar Fechas
-        entrada.setFecha(fechaActual);
-        entrada.setFechaCreacion(fechaActual);
-        entrada.setFechaActualizacion(fechaActual);
-        entrada.setFechaContabilizacion(fechaActual);
-
-        // 2. Tipos de Documento y Movimiento (Tipos Integer según tu modelo)
-        entrada.setTipoDocumento(7); // ID del Tipo de Documento 'Devolucion de Venta'
-        entrada.setNumeroDocumento("FACT-" + factura.getCodigo()); // Guardamos el número de factura como documento de origen
-
-        // 3. Moneda (Valores por defecto si no están configurados)
-        entrada.setMoneda(1);
-        entrada.setNombreMoneda("DOP"); // O la moneda correspondiente en tu sistema
-
-        // 4. Usuario y Observaciones
-        entrada.setNombreUsuario(solicitud.getUsuario());
-        entrada.setAnulada(false);
-
-        String tipoDevStr = Boolean.TRUE.equals(factura.getAnulada()) ? "Devolución Total" : "Devolución Parcial";
-        entrada.setComentario(tipoDevStr + " de Factura #" + factura.getCodigo() + ". Motivo: " + solicitud.getMotivo());
-
-        // 5. Construir Colección de Detalles
         List<DetalleEntradaInventario> detallesList = new ArrayList<>();
 
-        for (SolicitudDevolucionDto.ItemDevolucionDto itemDev : solicitud.getItems()) {
+        if (solicitud.getItems() != null) {
 
-            DetalleFacturaDeVenta detFactura = factura.getDetalleFacturaDeVentaCollection().stream()
-                    .filter(d -> d.getCodigo().equals(itemDev.getIdDetalleFactura()))
-                    .findFirst()
-                    .orElse(null);
+            for (SolicitudDevolucionDto.ItemDevolucionDto itemDev : solicitud.getItems()) {
 
-            if (detFactura != null && Boolean.TRUE.equals(detFactura.getArticulo().getInventariable())) {
+                // Linea estática errónea eliminada
+                // 2. Buscar el detalle de la factura correspondiente al ítem
+                DetalleFacturaDeVenta det = factura.getDetalleFacturaDeVentaCollection().stream()
+                        .filter(d -> d.getCodigo() != null && d.getCodigo().equals(itemDev.getIdDetalleFactura()))
+                        .findFirst()
+                        .orElse(null);
 
-                DetalleEntradaInventario detEntrada = new DetalleEntradaInventario();
+                // 3. Validar que exista el detalle y el artículo sea inventariable
+                if (det != null && det.getArticulo() != null
+                        && Boolean.TRUE.equals(det.getArticulo().getInventariable())) {
 
-                // Vincular relación bidireccional
-                detEntrada.setEntradaInventario(entrada);
-                detEntrada.setArticulo(detFactura.getArticulo());
-                detEntrada.setCantidadRecibida(BigDecimal.valueOf(itemDev.getCantidadADevolver()));
-                detEntrada.setArticulo(detFactura.getArticulo());
+                    // Convertir cantidad de forma segura según su tipo
+                    BigDecimal cantidad = itemDev.getCantidadADevolver() != null
+                            ? new BigDecimal(itemDev.getCantidadADevolver().toString())
+                            : BigDecimal.ZERO;
 
-                double stockActual = detEntrada.getArticulo().getExistencia()
-                        != null ? detEntrada.getArticulo().getExistencia().doubleValue() : 0.0;
+                    DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
+                            entrada,
+                            det.getArticulo(),
+                            det.getArticuloEmpaque(),
+                            det.getFactorConversion(),
+                            det.getCantidadFisicaBase(),
+                            det.getItbis(),
+                            det.getSubTotal(),
+                            det.getTotal(),
+                            cantidad,
+                            det.getArticulo().getExistencia(),
+                            new Almacen(1),
+                            "General",
+                            "Unidad"
+                    );
 
-                detEntrada.setExistenciaActual(BigDecimal.valueOf(stockActual));
+                    // Asignar costos y precios de venta con fallbacks seguros
+                    BigDecimal costo = det.getPrecioCompra() != null ? det.getPrecioCompra() : BigDecimal.ZERO;
+                    BigDecimal precio = det.getPrecioVenta() != null ? det.getPrecioVenta() : costo;
 
-                detEntrada.setCantidadPedida(BigDecimal.ZERO);
-                detEntrada.setCantidadPendiente(BigDecimal.ZERO);
-                detEntrada.setNuevaExistencia(BigDecimal.valueOf(stockActual + itemDev.getCantidadADevolver()));
-                detEntrada.setNombreAlmacen("General");
-                detEntrada.setNombreUnidad("Unidad");
-                detEntrada.setUnidad(detFactura.getArticulo().getUnidadEntrada());
-                detEntrada.setPrecioCompra(detFactura.getArticulo().getPrecioCompra());
-                detEntrada.setAlmacen(new Almacen(1));
+                    detEntrada.setCostoUnitario(costo);
+                    detEntrada.setPrecioVenta(precio);
 
-                // CORRECCIÓN: Asignar la descripción requerida por Bean Validation (@NotNull)
-                detEntrada.setDescripcionArticulo(detFactura.getArticulo().getDescripcion());
-
-                // Si tu entidad DetalleEntradaInventario maneja costos/precios:
-                BigDecimal costo = detFactura.getPrecioCompra() != null ? detFactura.getPrecioCompra() : BigDecimal.ZERO;
-                double precio = detFactura.getPrecioVenta() != null ? detFactura.getPrecioVenta().doubleValue()
-                        : detFactura.getPrecioCompra().doubleValue();
-
-                detEntrada.setCostoUnitario(costo);
-                detEntrada.setPrecioVenta(BigDecimal.valueOf(precio));
-                detEntrada.setPrecioCompra(detFactura.getArticulo().getPrecioCompra());
-
-                detallesList.add(detEntrada);
+                    detallesList.add(detEntrada);
+                }
             }
         }
 
+        // 4. Asignar lista de detalles a la cabecera y guardar
         entrada.setDetalleEntradaInventarioCollection(detallesList);
 
-        // Guardar (CascadeType.ALL se encargará de insertar los detalles en la BD)
-        return entradaRepo.save(entrada);
+        return guardar(entrada, solicitud.getUsuario());
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public EntradaInventario crearEntradaPorAjuste(AjusteInventario ajuste, List<DetalleAjusteInventario> detalleAju) {
+        String usuario = ajuste.getUsuario() != null ? ajuste.getUsuario().getNombre() : "SISTEMA";
+        String observacion = "Entrada por Ajuste de Inventario #" + ajuste.getCodigo() + ". "
+                + (ajuste.getObservacion() != null ? ajuste.getObservacion() : "");
 
-        EntradaInventario entrada = new EntradaInventario();
-
-        Date fechaActual = new Date();
-        entrada.setFecha(fechaActual);
-        entrada.setFechaCreacion(fechaActual);
-        entrada.setFechaActualizacion(fechaActual);
-        entrada.setFechaContabilizacion(fechaActual);
-
-        // Tipo de Documento e Identificación (Ajuste Positivo)
-        entrada.setTipoDocumento(3); // ID del Tipo de Documento 'Ajuste de Inventario'
-        entrada.setNumeroDocumento("AJ-" + ajuste.getCodigo());
-
-        // Moneda
-        entrada.setMoneda(1);
-        entrada.setNombreMoneda("DOP");
-
-        // Usuario y Observaciones
-        entrada.setNombreUsuario(ajuste.getUsuario() != null ? ajuste.getUsuario().getNombre() : "SISTEMA");
-        entrada.setAnulada(false);
-        entrada.setComentario("Entrada por Ajuste de Inventario #" + ajuste.getCodigo() + ". "
-                + (ajuste.getObservacion() != null ? ajuste.getObservacion() : ""));
+        EntradaInventario entrada = inicializarCabeceraBase(3, "AJ-" + ajuste.getCodigo(), usuario, observacion);
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
         for (DetalleAjusteInventario det : detalleAju) {
 
-            if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().doubleValue() > 0) {
-
-                DetalleEntradaInventario detEntrada = new DetalleEntradaInventario();
-                detEntrada.setEntradaInventario(entrada); // Vinculación bidireccional
-                detEntrada.setArticulo(det.getArticulo());
-                detEntrada.setCantidadRecibida(det.getCantidad());
-
-                // Toma la descripción desde la relación del artículo
-                detEntrada.setDescripcionArticulo(det.getArticulo().getDescripcion());
-                detEntrada.setCostoUnitario(det.getArticulo().getPrecioCompra() != null
-                        ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
-
-                double stockActual = det.getArticulo().getExistencia() != null ? det.getArticulo().getExistencia().doubleValue() : 0.0;
-                detEntrada.setExistenciaActual(BigDecimal.valueOf(stockActual));
-
-                detEntrada.setCantidadPedida(BigDecimal.ZERO);
-                detEntrada.setCantidadPendiente(BigDecimal.ZERO);
-                detEntrada.setNuevaExistencia(BigDecimal.valueOf(stockActual + det.getCantidad().doubleValue()));
-                detEntrada.setNombreAlmacen("General");
-                detEntrada.setNombreUnidad("Unidad");
-                detEntrada.setUnidad(det.getArticulo().getUnidadEntrada());
-                detEntrada.setPrecioCompra(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
-                detEntrada.setAlmacen(new Almacen(1));
-
+            if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().compareTo(BigDecimal.ZERO) > 0) {
+                DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
+                        entrada,
+                        det.getArticulo(),
+                        det.getArticuloEmpaque(),
+                        det.getFactorConversion(),
+                        det.getCantidadFisicaBase(),
+                        det.getItbis(),
+                        det.getSubTotal(),
+                        det.getTotal(),
+                        det.getCantidad(),
+                        det.getArticulo().getExistencia(),
+                        new Almacen(1),
+                        "General",
+                        "Unidad"
+                );
                 detallesEntrada.add(detEntrada);
             }
         }
 
         entrada.setDetalleEntradaInventarioCollection(detallesEntrada);
-
-        // Al guardar se dispara EntradaInventarioCreadaEvent hacia el Kardex
-        guardar(entrada, entrada.getNombreUsuario());
-
-        return entrada;
+        return guardar(entrada, entrada.getNombreUsuario());
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public EntradaInventario crearEntradaPorAnulacionVenta(FacturaDeVenta factura, List<DetalleFacturaDeVenta> listaDetFact) {
+        String usuario = factura.getNombreUsuario() != null ? factura.getNombreUsuario() : "SISTEMA";
+        String comentario = "Entrada por anulacion de venta #" + factura.getCodigo() + ". "
+                + (factura.getComentario() != null ? factura.getComentario() : "");
 
-        EntradaInventario entrada = new EntradaInventario();
-
-        Date fechaActual = new Date();
-        entrada.setFecha(fechaActual);
-        entrada.setFechaCreacion(fechaActual);
-        entrada.setFechaActualizacion(fechaActual);
-        entrada.setFechaContabilizacion(fechaActual);
-
-        // Tipo de Documento e Identificación (Ajuste Positivo)
-        entrada.setTipoDocumento(6); // ID del Tipo de Documento 'Anulacion de Factura'
-        entrada.setNumeroDocumento("AN-" + factura.getCodigo());
-
-        // Moneda
-        entrada.setMoneda(1);
-        entrada.setNombreMoneda("DOP");
-
-        // Usuario y Observaciones
-        entrada.setNombreUsuario(factura.getNombreUsuario() != null ? factura.getNombreUsuario() : "SISTEMA");
-        entrada.setAnulada(false);
-        entrada.setComentario("Entrada por anulacion de venta #" + factura.getCodigo() + ". "
-                + (factura.getComentario() != null ? factura.getComentario() : ""));
+        EntradaInventario entrada = inicializarCabeceraBase(6, "AN-" + factura.getCodigo(), usuario, comentario);
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
-
         for (DetalleFacturaDeVenta det : listaDetFact) {
+            if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().compareTo(BigDecimal.ZERO) > 0) {
 
-            if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().doubleValue() > 0) {
-
-                DetalleEntradaInventario detEntrada = new DetalleEntradaInventario();
-                detEntrada.setEntradaInventario(entrada); // Vinculación bidireccional
-                detEntrada.setArticulo(det.getArticulo());
-                detEntrada.setCantidadRecibida(det.getCantidad());
-
-                // Toma la descripción desde la relación del artículo
-                detEntrada.setDescripcionArticulo(det.getArticulo().getDescripcion());
-                detEntrada.setCostoUnitario(det.getArticulo().getPrecioCompra() != null
-                        ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
-
-                BigDecimal existenciaActual = det.getArticulo().getExistencia() != null
-                        ? det.getArticulo().getExistencia() : BigDecimal.ZERO;
-                detEntrada.setExistenciaActual(existenciaActual);
-
-                detEntrada.setCantidadPedida(BigDecimal.ZERO);
-                detEntrada.setCantidadPendiente(BigDecimal.ZERO);
-                detEntrada.setNuevaExistencia(existenciaActual.add(det.getCantidad()));
-                detEntrada.setNombreAlmacen(det.getAlmacen().getNombre());
-                detEntrada.setNombreUnidad(det.getNombreUnidad());
-                detEntrada.setUnidad(det.getArticulo().getUnidadEntrada());
-                detEntrada.setPrecioCompra(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
-                detEntrada.setAlmacen(det.getAlmacen());
+                DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
+                        entrada,
+                        det.getArticulo(),
+                        det.getArticuloEmpaque(),
+                        det.getFactorConversion(),
+                        det.getCantidadFisicaBase(),
+                        det.getItbis(),
+                        det.getSubTotal(),
+                        det.getTotal(),
+                        det.getCantidad(),
+                        det.getArticulo().getExistencia(),
+                        det.getAlmacen(),
+                        det.getAlmacen() != null ? det.getAlmacen().getNombre() : "General",
+                        det.getNombreUnidad()
+                );
 
                 detallesEntrada.add(detEntrada);
             }
         }
 
         entrada.setDetalleEntradaInventarioCollection(detallesEntrada);
-
-        // Al guardar se dispara EntradaInventarioCreadaEvent hacia el Kardex
-        guardar(entrada, entrada.getNombreUsuario());
-
-        return entrada;
-
+        return guardar(entrada, entrada.getNombreUsuario());
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public EntradaInventario crearEntradaPorRecepcion(RecepcionMercancia recepcion, List<DetalleRecepcionMercancia> detalles) {
+        
+        String usuario = recepcion.getUsuario() != null ? recepcion.getUsuario().getNombre() : "SISTEMA";
+        String comentario = "Entrada por Recepcion de Mercancia #" + recepcion.getCodigo() + ". "
+                + (recepcion.getComentario() != null ? recepcion.getComentario() : "");
 
-        EntradaInventario entrada = new EntradaInventario();
-
-        Date fechaActual = new Date();
-        entrada.setFecha(fechaActual);
-        entrada.setFechaCreacion(fechaActual);
-        entrada.setFechaActualizacion(fechaActual);
-        entrada.setFechaContabilizacion(fechaActual);
-
-        // Tipo de Documento e Identificación (Ajuste Positivo)
-        entrada.setTipoDocumento(9); // ID del Tipo de Documento 'Recepcion de mercancia'
-        entrada.setNumeroDocumento("REC-" + recepcion.getCodigo());
-
-        // Moneda
-        entrada.setMoneda(1);
-        entrada.setNombreMoneda("DOP");
-
-        // Usuario y Observaciones
-        entrada.setNombreUsuario(recepcion.getUsuario() != null ? recepcion.getUsuario().getNombre() : "SISTEMA");
-        entrada.setAnulada(false);
-        entrada.setComentario("Entrada por Recepcion de Mercancia #" + recepcion.getCodigo() + ". "
-                + (recepcion.getComentario() != null ? recepcion.getComentario() : ""));
+        EntradaInventario entrada = inicializarCabeceraBase(9, "REC-" + recepcion.getCodigo(), usuario, comentario);
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
+
         for (DetalleRecepcionMercancia det : detalles) {
 
-            if (det.getArticulo() != null && det.getCantidadRecibida() != null && det.getCantidadRecibida().doubleValue() > 0) {
+            if (det.getArticulo() != null && det.getCantidadRecibida() != null && det.getCantidadRecibida().compareTo(BigDecimal.ZERO) > 0) {
 
-                DetalleEntradaInventario detEntrada = new DetalleEntradaInventario();
-                detEntrada.setEntradaInventario(entrada); // Vinculación bidireccional
-                detEntrada.setArticulo(det.getArticulo());
-                detEntrada.setCantidadRecibida(det.getCantidadRecibida());
+                DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
+                        entrada,
+                        det.getArticulo(),
+                        det.getArticuloEmpaque(),
+                        det.getFactorConversion(),
+                        det.getCantidadFisicaBase(),
+                        det.getItbis(),
+                        det.getSubTotal(),
+                        det.getTotal(),
+                        det.getCantidadRecibida(),
+                        det.getArticulo().getExistencia(),
+                        det.getAlmacen(),
+                        det.getAlmacen().getNombre(),
+                        det.getNombreUnidad()
+                );
+                detallesEntrada.add(detEntrada);
+            }
+        }
 
-                // Toma la descripción desde la relación del artículo
-                detEntrada.setDescripcionArticulo(det.getArticulo().getDescripcion());
-                detEntrada.setCostoUnitario(det.getArticulo().getPrecioCompra() != null
-                        ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
+        entrada.setDetalleEntradaInventarioCollection(detallesEntrada);
+        return guardar(entrada, entrada.getNombreUsuario());
+    }
 
-                double stockActual = det.getArticulo().getExistencia() != null ? det.getArticulo().getExistencia().doubleValue() : 0.0;
-                detEntrada.setExistenciaActual(BigDecimal.valueOf(stockActual));
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public EntradaInventario crearEntradaPorTraslado(TrasladoInventario traslado, List<DetalleTrasladoInventario> detalles) {
+        String usuario = traslado.getUsuarioEnvia() != null ? traslado.getUsuarioEnvia().getNombre() : "SISTEMA";
+        String comentario = "Entrada por Traslado de Mercancia #" + traslado.getCodigo() + ". "
+                + (traslado.getObservacion() != null ? traslado.getObservacion() : "");
 
-                detEntrada.setCantidadPedida(BigDecimal.ZERO);
-                detEntrada.setCantidadPendiente(BigDecimal.ZERO);
-                detEntrada.setNuevaExistencia(BigDecimal.valueOf(stockActual + det.getCantidadRecibida().doubleValue()));
-                detEntrada.setNombreAlmacen("General");
-                detEntrada.setNombreUnidad("Unidad");
-                detEntrada.setUnidad(det.getArticulo().getUnidadEntrada());
-                detEntrada.setPrecioCompra(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
-                detEntrada.setAlmacen(new Almacen(1));
+        EntradaInventario entrada = inicializarCabeceraBase(3, "AJ-" + traslado.getCodigo(), usuario, comentario);
+        Almacen almacenDestino = traslado.getAlmacenDestino();
+
+        List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
+        for (DetalleTrasladoInventario det : detalles) {
+            if (det.getArticulo() != null && det.getCantidadRecibida() != null && det.getCantidadRecibida().compareTo(BigDecimal.ZERO) > 0) {
+
+                BigDecimal stockActual = articuloAlmacenService
+                        .buscarPorArticuloYAlmacen(det.getArticulo().getCodigo(), almacenDestino.getCodigo())
+                        .map(ArticuloAlmacen::getExistencia)
+                        .orElse(BigDecimal.ZERO);
+
+                DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
+                        entrada,
+                        det.getArticulo(),
+                        det.getArticuloEmpaque(),
+                        det.getFactorConversion(),
+                        det.getCantidadFisicaBase(),
+                        det.getItbis(),
+                        det.getSubTotal(),
+                        det.getTotal(),
+                        det.getCantidadRecibida(),
+                        stockActual,
+                        almacenDestino,
+                        almacenDestino != null ? almacenDestino.getNombre() : "General",
+                        det.getNombreUnidad()
+                );
+                detEntrada.setCantidadPedida(det.getCantidadEnviada());
+                detEntrada.setUnidad(det.getUnidad());
 
                 detallesEntrada.add(detEntrada);
             }
         }
 
         entrada.setDetalleEntradaInventarioCollection(detallesEntrada);
-
-        // Al guardar se dispara EntradaInventarioCreadaEvent hacia el Kardex
-        guardar(entrada, entrada.getNombreUsuario());
-
-        return entrada;
+        return guardar(entrada, entrada.getNombreUsuario());
     }
 
-    @Override
-    public EntradaInventario crearEntradaPorTraslado(TrasladoInventario traslado, List<DetalleTrasladoInventario> detalles) {
-
+    // --- Métodos Helper ---
+    private EntradaInventario inicializarCabeceraBase(Integer tipoDocumento, String numDocumento, String usuario, String comentario) {
         EntradaInventario entrada = new EntradaInventario();
-
         Date fechaActual = new Date();
+
         entrada.setFecha(fechaActual);
         entrada.setFechaCreacion(fechaActual);
         entrada.setFechaActualizacion(fechaActual);
         entrada.setFechaContabilizacion(fechaActual);
-
-        // Tipo de Documento e Identificación (Ajuste Positivo)
-        entrada.setTipoDocumento(3); // ID del Tipo de Documento 'Ajuste de Inventario'
-        entrada.setNumeroDocumento("AJ-" + traslado.getCodigo());
-
-        // Moneda
+        entrada.setTipoDocumento(tipoDocumento);
+        entrada.setNumeroDocumento(numDocumento);
         entrada.setMoneda(1);
         entrada.setNombreMoneda("DOP");
-
-        // Usuario y Observaciones
-        entrada.setNombreUsuario(traslado.getUsuarioEnvia() != null ? traslado.getUsuarioEnvia().getNombre() : "SISTEMA");
+        entrada.setNombreUsuario(usuario);
         entrada.setAnulada(false);
-        entrada.setComentario("Entrada por Traslado de Mercancia #" + traslado.getCodigo() + ". "
-                + (traslado.getObservacion() != null ? traslado.getObservacion() : ""));
-
-        Almacen almacen = traslado.getAlmacenDestino();
-
-        List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
-
-        for (DetalleTrasladoInventario det : detalles) {
-
-            if (det.getArticulo() != null && det.getCantidadRecibida() != null && det.getCantidadRecibida().doubleValue() > 0) {
-
-                DetalleEntradaInventario detEntrada = new DetalleEntradaInventario();
-                detEntrada.setEntradaInventario(entrada); // Vinculación bidireccional
-                detEntrada.setArticulo(det.getArticulo());
-                detEntrada.setCantidadRecibida(det.getCantidadRecibida());
-
-                // Toma la descripción desde la relación del artículo
-                detEntrada.setDescripcionArticulo(det.getArticulo().getDescripcion());
-                detEntrada.setCostoUnitario(det.getArticulo().getPrecioCompra() != null
-                        ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
-
-                ArticuloAlmacen artiAlm = this.articuloAlmacenService
-                        .buscarPorArticuloYAlmacen(det.getArticulo().getCodigo(), almacen.getCodigo()).get();
-
-                double stockActual =artiAlm.getExistencia() != null ? artiAlm.getExistencia().doubleValue() : 0.0;
-                
-                detEntrada.setExistenciaActual(BigDecimal.valueOf(stockActual));
-
-                detEntrada.setCantidadPedida(det.getCantidadEnviada());
-                detEntrada.setCantidadPendiente(BigDecimal.ZERO);
-                detEntrada.setNuevaExistencia(BigDecimal.valueOf(stockActual + det.getCantidadRecibida().doubleValue()));
-                detEntrada.setNombreAlmacen(almacen.getNombre());
-                detEntrada.setNombreUnidad(det.getNombreUnidad());
-                detEntrada.setUnidad(det.getUnidad());
-                detEntrada.setPrecioCompra(det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO);
-                detEntrada.setAlmacen(almacen);
-
-                detallesEntrada.add(detEntrada);
-            }
-        }
-
-        entrada.setDetalleEntradaInventarioCollection(detallesEntrada);
-
-        // Al guardar se dispara EntradaInventarioCreadaEvent hacia el Kardex
-        guardar(entrada, entrada.getNombreUsuario());
+        entrada.setComentario(comentario);
 
         return entrada;
     }
 
+    private DetalleEntradaInventario buildDetalleEntradaBase(
+            EntradaInventario entrada,
+            Articulo articulo,
+            ArticuloEmpaque articuloEmpaque,
+            BigDecimal factorConversion,
+            BigDecimal cantidadEmpaque,
+            BigDecimal subTotal,
+            BigDecimal itbis,
+            BigDecimal total,
+            BigDecimal cantidadRecibida,
+            BigDecimal stockActual,
+            Almacen almacen,
+            String nombreAlmacen,
+            String nombreUnidad
+    ) {
+        BigDecimal actual = stockActual != null ? stockActual : BigDecimal.ZERO;
+        BigDecimal costo = articulo.getPrecioCompra() != null ? articulo.getPrecioCompra() : BigDecimal.ZERO;
+
+        DetalleEntradaInventario detEntrada = new DetalleEntradaInventario();
+        detEntrada.setEntradaInventario(entrada);
+        detEntrada.setArticulo(articulo);
+        detEntrada.setCantidadRecibida(cantidadRecibida);
+        detEntrada.setDescripcionArticulo(articulo.getDescripcion());
+        detEntrada.setCostoUnitario(costo);
+        detEntrada.setExistenciaActual(actual);
+        detEntrada.setCantidadPedida(BigDecimal.ZERO);
+        detEntrada.setCantidadPendiente(BigDecimal.ZERO);
+        detEntrada.setNuevaExistencia(actual.add(cantidadRecibida));
+        detEntrada.setNombreAlmacen(nombreAlmacen);
+        detEntrada.setNombreUnidad(nombreUnidad != null ? nombreUnidad : "Unidad");
+        detEntrada.setUnidad(articulo.getUnidadBase());
+        detEntrada.setArticuloEmpaque(articuloEmpaque);
+        detEntrada.setFactorConversion(factorConversion);
+        detEntrada.setCantidadFisicaBase(cantidadRecibida);
+        detEntrada.setPrecioCompra(costo);
+        detEntrada.setAlmacen(almacen);
+
+        return detEntrada;
+    }
 }

@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.servicio.interfaces.inventario;
 
+import com.maxsoft.application.dto.ArticuloRegistroDTO;
 import com.maxsoft.application.modelo.Articulo;
 import java.util.List;
 
@@ -20,5 +21,7 @@ public interface ArticuloService {
     void eliminarArticulo(int codigo);
 
     List<Articulo> getLista();
+    
+    Articulo guardarArticuloCompleto(ArticuloRegistroDTO dto);
 
 }

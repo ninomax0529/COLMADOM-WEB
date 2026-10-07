@@ -62,11 +62,11 @@ public class Rol implements Serializable {
     @Size(max = 0)
     @Column(name = "creado_por")
     private String creadoPor;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "rol")
+    private Collection<RolPermiso> rolPermisoCollection;
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Usuario usuario;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "rol")
-    private Collection<RolPermiso> rolPermisoCollection;
 
     public Rol() {
     }
@@ -129,20 +129,20 @@ public class Rol implements Serializable {
         this.creadoPor = creadoPor;
     }
 
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
-
     public Collection<RolPermiso> getRolPermisoCollection() {
         return rolPermisoCollection;
     }
 
     public void setRolPermisoCollection(Collection<RolPermiso> rolPermisoCollection) {
         this.rolPermisoCollection = rolPermisoCollection;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
     @Override

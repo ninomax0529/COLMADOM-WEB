@@ -45,6 +45,10 @@ public class DetalleEntradaInventario implements Serializable {
     @Column(name = "nombre_unidad")
     private String nombreUnidad;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
+    @Column(name = "factor_conversion")
+    private BigDecimal factorConversion;
+    @Column(name = "cantidad_fisica_base")
+    private BigDecimal cantidadFisicaBase;
     @Column(name = "cantidad_pedida")
     private BigDecimal cantidadPedida;
     @Column(name = "cantidad_recibida")
@@ -81,12 +85,21 @@ public class DetalleEntradaInventario implements Serializable {
     @Size(max = 50)
     @Column(name = "nombre_almacen")
     private String nombreAlmacen;
+    @Column(name = "sub_total")
+    private BigDecimal subTotal;
+    @Column(name = "itbis")
+    private BigDecimal itbis;
+    @Column(name = "total")
+    private BigDecimal total;
     @JoinColumn(name = "almacen", referencedColumnName = "codigo")
     @ManyToOne
     private Almacen almacen;
     @JoinColumn(name = "articulo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Articulo articulo;
+    @JoinColumn(name = "articulo_empaque", referencedColumnName = "codigo")
+    @ManyToOne
+    private ArticuloEmpaque articuloEmpaque;
     @JoinColumn(name = "entrada_inventario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private EntradaInventario entradaInventario;
@@ -128,6 +141,22 @@ public class DetalleEntradaInventario implements Serializable {
 
     public void setNombreUnidad(String nombreUnidad) {
         this.nombreUnidad = nombreUnidad;
+    }
+
+    public BigDecimal getFactorConversion() {
+        return factorConversion;
+    }
+
+    public void setFactorConversion(BigDecimal factorConversion) {
+        this.factorConversion = factorConversion;
+    }
+
+    public BigDecimal getCantidadFisicaBase() {
+        return cantidadFisicaBase;
+    }
+
+    public void setCantidadFisicaBase(BigDecimal cantidadFisicaBase) {
+        this.cantidadFisicaBase = cantidadFisicaBase;
     }
 
     public BigDecimal getCantidadPedida() {
@@ -258,6 +287,30 @@ public class DetalleEntradaInventario implements Serializable {
         this.nombreAlmacen = nombreAlmacen;
     }
 
+    public BigDecimal getSubTotal() {
+        return subTotal;
+    }
+
+    public void setSubTotal(BigDecimal subTotal) {
+        this.subTotal = subTotal;
+    }
+
+    public BigDecimal getItbis() {
+        return itbis;
+    }
+
+    public void setItbis(BigDecimal itbis) {
+        this.itbis = itbis;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
     public Almacen getAlmacen() {
         return almacen;
     }
@@ -272,6 +325,14 @@ public class DetalleEntradaInventario implements Serializable {
 
     public void setArticulo(Articulo articulo) {
         this.articulo = articulo;
+    }
+
+    public ArticuloEmpaque getArticuloEmpaque() {
+        return articuloEmpaque;
+    }
+
+    public void setArticuloEmpaque(ArticuloEmpaque articuloEmpaque) {
+        this.articuloEmpaque = articuloEmpaque;
     }
 
     public EntradaInventario getEntradaInventario() {

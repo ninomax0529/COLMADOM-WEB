@@ -38,5 +38,10 @@ public class ArticuloAlmacenServiceImpl implements ArticuloAlmacenService {
     public Optional<List<ArticuloAlmacen>> buscarPorAlmacen(Integer idAlmacen) {
         return repo.buscarPorAlmacen(idAlmacen);
     }
+
+    @Override
+    public Optional<List<ArticuloAlmacen>> buscarPorArticulo(Integer idArticulo) {
+        return repo.buscarPorArticulo(idArticulo);
+    }
     
 }

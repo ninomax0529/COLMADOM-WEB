@@ -721,7 +721,7 @@ public class PuntoDeVentaViewV12 extends HorizontalLayout
                 dinero(totalDescuento)
         );
 
-        item.setTotalItbis(
+        item.setItbis(
                 dinero(totalItbis)
         );
 
