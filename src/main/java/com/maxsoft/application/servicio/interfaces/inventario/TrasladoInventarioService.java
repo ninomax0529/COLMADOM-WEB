@@ -4,10 +4,15 @@
  */
 package com.maxsoft.application.servicio.interfaces.inventario;
 
-
+import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.TrasladoInventario;
+import java.util.List;
 
 public interface TrasladoInventarioService {
-    
+
     TrasladoInventario procesarTraslado(TrasladoInventario traslado);
+
+    List<TrasladoInventario> getLista();
+
+    List<DetalleTrasladoInventario> getDetalle(int obj);
 }

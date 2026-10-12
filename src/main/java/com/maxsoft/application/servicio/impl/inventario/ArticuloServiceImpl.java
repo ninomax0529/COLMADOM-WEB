@@ -160,7 +160,7 @@ public class ArticuloServiceImpl implements ArticuloService {
         List<ArticuloEmpaque> listaEmpaques = dto.getEmpaques();
         for (ArticuloEmpaque emp : listaEmpaques) {
 
-            emp.setCodigo(null);
+//            emp.setCodigo(null);
             emp.setArticulo(articulo); // Sincronizar relación bidireccional
             if (emp.getCodigo() == null) {
                 emp.setCreadoPor("admin");

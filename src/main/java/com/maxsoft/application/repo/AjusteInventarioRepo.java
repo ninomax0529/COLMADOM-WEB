@@ -4,7 +4,6 @@
  */
 package com.maxsoft.application.repo;
 
-
 import com.maxsoft.application.modelo.AjusteInventario;
 import com.maxsoft.application.modelo.DetalleAjusteInventario;
 import java.util.List;
@@ -14,6 +13,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface AjusteInventarioRepo extends JpaRepository<AjusteInventario, Integer> {
 
-    @Query("SELECT d FROM DetalleAjusteInventario d WHERE d.ajusteInventario.codigo = :codigo")
-    List<DetalleAjusteInventario> getDetalle(@Param("codigo") int codigo);
+    String strDet = "  select * from  detalle_ajuste_inventario o where ajuste_inventario=:obj ";
+
+    @Query(value = strDet, nativeQuery = true)
+    List<DetalleAjusteInventario> getDetalle(@Param("obj") int codigo);
 }

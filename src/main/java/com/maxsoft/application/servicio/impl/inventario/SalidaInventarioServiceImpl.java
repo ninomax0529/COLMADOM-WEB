@@ -45,11 +45,11 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
     @Autowired
     public SalidaInventarioServiceImpl(SalidaInventarioRepo salidaRepo,
-                                       ArticuloRepo articuloRepo,
-                                       MovimientoInventarioService movimientoService,
-                                       TipoDocumentoService tipoDocumentoService,
-                                       TipoMovimientoService tipoMovimientoService,
-                                       ArticuloAlmacenService articuloAlmacenService) {
+            ArticuloRepo articuloRepo,
+            MovimientoInventarioService movimientoService,
+            TipoDocumentoService tipoDocumentoService,
+            TipoMovimientoService tipoMovimientoService,
+            ArticuloAlmacenService articuloAlmacenService) {
         this.salidaRepo = salidaRepo;
         this.articuloRepo = articuloRepo;
         this.movimientoService = movimientoService;
@@ -63,7 +63,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
     public SalidaInventario guardar(SalidaInventario obj, String usuario) {
 
         // 1. Guardar la cabecera del documento de salida
-        SalidaInventario salidaGuardada = salidaRepo.saveAndFlush(obj);
+        SalidaInventario salidaGuardada = salidaRepo.save(obj);
 
         String numDocumento = "SAL-" + (salidaGuardada.getNumeroDocumento() != null
                 ? salidaGuardada.getNumeroDocumento()
@@ -85,42 +85,46 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
                 if (articuloProxy != null && articuloProxy.getCodigo() != null) {
 
+                    System.out.println("Factor " + detalle.getFactorConversion());
+                    System.out.println("CantidaBase " + detalle.getCantidadFisicaBase());
+
                     Articulo articulo = articuloRepo.findById(articuloProxy.getCodigo())
                             .orElse(articuloProxy);
 
-                    BigDecimal cantidadSalida = detalle.getCantidad() != null 
-                            ? detalle.getCantidad() 
+                    BigDecimal cantidadSalida = detalle.getCantidad() != null
+                            ? detalle.getCantidad()
                             : BigDecimal.ZERO;
 
-                    Almacen alm = detalle.getAlmacen() != null 
-                            ? detalle.getAlmacen() 
+                    Almacen alm = detalle.getAlmacen() != null
+                            ? detalle.getAlmacen()
                             : new Almacen(1);
 
                     if (cantidadSalida.compareTo(BigDecimal.ZERO) > 0) {
 
-                        BigDecimal costoUnitario = detalle.getCostoUnitario() != null 
-                                ? detalle.getCostoUnitario() 
+                        BigDecimal costoUnitario = detalle.getCostoUnitario() != null
+                                ? detalle.getCostoUnitario()
                                 : BigDecimal.ZERO;
                         BigDecimal subTotal = costoUnitario.multiply(cantidadSalida);
                         BigDecimal itbis = BigDecimal.ZERO;
                         BigDecimal total = subTotal.add(itbis);
+                        BigDecimal cantidadFisicaBase = detalle.getFactorConversion().multiply(cantidadSalida);
 
                         // LLAMADA CORREGIDA: 13 parámetros según la interfaz MovimientoInventarioService
                         movimientoService.registrarMovimiento(
-                                articulo,                                    // 1. Articulo
-                                alm,                                         // 2. Almacen
-                                null,                                        // 3. ArticuloEmpaque
-                                BigDecimal.ONE,                              // 4. factorConversion
-                                cantidadSalida,                              // 5. cantidadEmpaque
-                                subTotal,                                    // 6. subTotal
-                                itbis,                                       // 7. itbis
-                                total,                                       // 8. total
-                                tm,                                          // 9. TipoMovimiento
-                                tp,                                          // 10. TipoDocumento
-                                numDocumento,                                // 11. numeroDoc
-                                cantidadSalida,                              // 12. cantidad
-                                usuario != null ? usuario : "SISTEMA",        // 13. usuario
-                                obj.getObservacion()                         // 14. observacion
+                                articulo, // 1. Articulo
+                                alm, // 2. Almacen
+                                detalle.getArticuloEmpaque(), // 3. ArticuloEmpaque
+                                BigDecimal.ONE, // 4. factorConversion
+                                cantidadFisicaBase, // 5. cantidadEmpaque
+                                subTotal, // 6. subTotal
+                                itbis, // 7. itbis
+                                total, // 8. total
+                                tm, // 9. TipoMovimiento
+                                tp, // 10. TipoDocumento
+                                numDocumento, // 11. numeroDoc
+                                cantidadSalida, // 12. cantidad
+                                usuario != null ? usuario : "SISTEMA", // 13. usuario
+                                obj.getObservacion() // 14. observacion
                         );
                     }
                 }
@@ -156,15 +160,23 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 if (detFactura.getArticulo() != null && Boolean.TRUE.equals(detFactura.getArticulo().getInventariable())) {
 
                     DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
+
                     detSalida.setSalidaInventario(salida);
                     detSalida.setArticulo(detFactura.getArticulo());
                     detSalida.setDescripcionArticulo(detFactura.getArticulo().getDescripcion());
                     detSalida.setCantidad(detFactura.getCantidad());
                     detSalida.setAlmacen(detFactura.getAlmacen());
                     detSalida.setNombreAlmacen(detFactura.getNombreAlmacen());
+                    detSalida.setUnidad(detFactura.getUnidad());
+                    detSalida.setFactorConversion(detFactura.getFactorConversion());
+                    detSalida.setCantidadFisicaBase(detFactura.getCantidadFisicaBase());
+                    detSalida.setArticuloEmpaque(detFactura.getArticuloEmpaque());
+                    detSalida.setItbis(detFactura.getItbis());
+                    detSalida.setSubTotal(detFactura.getSubTotal());
+                    detSalida.setTotal(detFactura.getTotal());
 
                     BigDecimal stockActual = detFactura.getArticulo().getExistencia() != null
-                            ? detFactura.getArticulo().getExistencia() 
+                            ? detFactura.getArticulo().getExistencia()
                             : BigDecimal.ZERO;
 
                     detSalida.setExistenciaAnterior(stockActual);
@@ -218,10 +230,10 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                     detSalida.setCantidad(det.getCantidad());
                     detSalida.setAlmacen(det.getAlmacen());
 
-                    BigDecimal stockActual = det.getArticulo().getExistencia() != null 
-                            ? det.getArticulo().getExistencia() 
+                    BigDecimal stockActual = det.getArticulo().getExistencia() != null
+                            ? det.getArticulo().getExistencia()
                             : BigDecimal.ZERO;
-                            
+
                     detSalida.setExistenciaAnterior(stockActual);
                     detSalida.setExistencia(stockActual);
 //                    detSalida.setUnidad(det.getArticulo().getU);
@@ -285,12 +297,38 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
         List<DetalleSalidaInventario> detallesSalida = new ArrayList<>();
 
         if (detalles != null) {
+
             for (DetalleTrasladoInventario det : detalles) {
 
                 if (det.getArticulo() != null && det.getCantidadEnviada() != null && det.getCantidadEnviada().compareTo(BigDecimal.ZERO) > 0) {
 
                     DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
 
+                    // 1. Obtener el factor de conversión con fallback seguro a BigDecimal.ONE
+                    BigDecimal factorConversion = BigDecimal.ONE;
+
+                    if (det.getArticuloEmpaque() != null && det.getArticuloEmpaque().getFactorConversion() != null) {
+                        factorConversion = det.getArticuloEmpaque().getFactorConversion();
+                    } else if (det.getFactorConversion() != null && det.getFactorConversion().compareTo(BigDecimal.ZERO) > 0) {
+                        factorConversion = det.getFactorConversion();
+                    }
+
+// 2. Asignar explícitamente el factor al detalle de salida antes de operar
+                    detSalida.setFactorConversion(factorConversion);
+
+// 3. Obtener la cantidad enviada de manera segura
+                    BigDecimal cantidad = det.getCantidadEnviada() != null
+                            ? det.getCantidadEnviada()
+                            : BigDecimal.ZERO;
+
+                    detSalida.setCantidad(cantidad);
+
+// 4. Multiplicación segura evitando NullPointerException
+                    BigDecimal cantidadFisicaBase = cantidad.multiply(factorConversion);
+                    detSalida.setCantidadFisicaBase(cantidadFisicaBase);
+
+                    detSalida.setArticuloEmpaque(det.getArticuloEmpaque());
+                        
                     detSalida.setSalidaInventario(salida);
                     detSalida.setArticulo(det.getArticulo());
                     detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
@@ -319,6 +357,11 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                     detSalida.setCostoUnitario(costo);
                     detSalida.setPrecioCompra(costo);
                     detSalida.setPrecioVenta(precio);
+
+                    BigDecimal cantidadFisicaBase1 = detSalida.getCantidad()
+                            .multiply(detSalida.getFactorConversion());
+
+                    detSalida.setCantidadFisicaBase(cantidadFisicaBase1);
 
                     detallesSalida.add(detSalida);
                 }

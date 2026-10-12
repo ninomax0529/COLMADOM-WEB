@@ -141,4 +141,15 @@ public class TrasladoInventarioServiceImpl implements TrasladoInventarioService 
         // Guarda la cabecera y en cascada guarda todos los detalles
         return traslado;
     }
+
+    @Override
+    public List<TrasladoInventario> getLista() {
+
+        return trasladoRepo.findAll();
+    }
+
+    @Override
+    public List<DetalleTrasladoInventario> getDetalle(int obj) {
+        return trasladoRepo.getDetalle(obj);
+    }
 }

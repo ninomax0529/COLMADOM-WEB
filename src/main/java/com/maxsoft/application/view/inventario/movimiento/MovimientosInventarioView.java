@@ -31,8 +31,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Route(value = "consulta-movimientos-inventario")
+@Route(value = "inventario/consulta-movimientos-inventario")
 @PageTitle("Consulta de Movimientos de Inventario | MaxSoft")
+
 public class MovimientosInventarioView extends VerticalLayout {
 
     private final MovimientoInventarioService movimientoService;

@@ -8,6 +8,7 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -166,11 +167,11 @@ public class Articulo implements Serializable {
     private Collection<MovimientoInventario> movimientoInventarioCollection;
     @OneToMany(mappedBy = "articulo")
     private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo" ,fetch = FetchType.EAGER)
     private Collection<ArticuloAlmacen> articuloAlmacenCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo", fetch = FetchType.EAGER)
     private Collection<ArticuloEmpaque> articuloEmpaqueCollection;
 
     public Articulo() {

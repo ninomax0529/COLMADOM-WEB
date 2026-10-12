@@ -77,6 +77,7 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         }
 
         if (cantidadEmpaque == null || cantidadEmpaque.compareTo(BigDecimal.ZERO) <= 0) {
+            
             throw new IllegalArgumentException("La cantidad del movimiento debe ser estrictamente mayor a cero.");
         }
 
@@ -111,12 +112,13 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
 
                 // Validar disponibilidad si NO permite ventas sin existencia
                 if (!permiteSinStock && stockAnterior.compareTo(cantidad) < 0) {
+                    
                     throw new IllegalStateException("Stock insuficiente para '" + articulo.getDescripcion()
                             + "' en el almacén " + almacen.getNombre()
                             + ". Existencia actual: " + stockAnterior + ", Cantidad requerida: " + cantidad);
                 }
 
-                stockNuevo = stockAnterior.subtract(cantidad);
+                stockNuevo = stockAnterior.subtract(cantidadEmpaque);
             }
 
             default ->
@@ -130,11 +132,13 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         // 5. Actualizar existencia general acumulada en el Artículo (Suma total de almacenes)
         BigDecimal existenciaTotalGlobal = (articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO)
                 .add(stockNuevo.subtract(stockAnterior));
+        
         articulo.setExistencia(existenciaTotalGlobal);
         this.articuloRepo.save(articulo);
 
         // 6. Registrar Auditoría en MovimientoInventario / Kardex
         MovimientoInventario mov = new MovimientoInventario();
+        
         mov.setArticulo(articulo);
         mov.setAlmacen(almacen);
         mov.setArticuloEmpaque(articuloEmpaque);

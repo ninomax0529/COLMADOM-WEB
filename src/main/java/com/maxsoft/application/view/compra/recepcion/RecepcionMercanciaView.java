@@ -395,6 +395,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
 
         // Edición de Cantidad Recibida
         gridDetalles.addComponentColumn(d -> {
+            
             NumberField fieldCant = new NumberField();
             fieldCant.setValue(d.getCantidadRecibida() != null ? d.getCantidadRecibida().doubleValue() : 1.0);
             fieldCant.setMin(0.01);

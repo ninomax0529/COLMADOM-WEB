@@ -30,6 +30,7 @@ import java.math.BigDecimal;
     @NamedQuery(name = "DetalleAjusteInventario.findAll", query = "SELECT d FROM DetalleAjusteInventario d")})
 public class DetalleAjusteInventario implements Serializable {
 
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -91,6 +92,10 @@ public class DetalleAjusteInventario implements Serializable {
     @NotNull
     @Column(name = "total")
     private BigDecimal total;
+    @Column(name = "precio_compra")
+    private BigDecimal precioCompra;
+    @Column(name = "costo_unitario")
+    private BigDecimal costoUnitario;
 
     public DetalleAjusteInventario() {
     }
@@ -241,6 +246,34 @@ public class DetalleAjusteInventario implements Serializable {
 
     public void setTotal(BigDecimal total) {
         this.total = total;
+    }
+    
+        /**
+     * @return the precioCompra
+     */
+    public BigDecimal getPrecioCompra() {
+        return precioCompra;
+    }
+
+    /**
+     * @param precioCompra the precioCompra to set
+     */
+    public void setPrecioCompra(BigDecimal precioCompra) {
+        this.precioCompra = precioCompra;
+    }
+
+    /**
+     * @return the costoUnitario
+     */
+    public BigDecimal getCostoUnitario() {
+        return costoUnitario;
+    }
+
+    /**
+     * @param costoUnitario the costoUnitario to set
+     */
+    public void setCostoUnitario(BigDecimal costoUnitario) {
+        this.costoUnitario = costoUnitario;
     }
 
     @Override

@@ -78,8 +78,8 @@ public class AjusteInventarioServiceImpl implements AjusteInventarioService {
 
     @Override
     public List<DetalleAjusteInventario> getDetalle(int codigoAjuste) {
-        return (List<DetalleAjusteInventario>) ajusteRepo.findById(codigoAjuste)
-                .map(AjusteInventario::getDetalleAjusteInventarioCollection)
-                .orElse(new ArrayList<>());
+        
+        return  ajusteRepo.getDetalle(codigoAjuste);
+              
     }
 }

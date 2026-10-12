@@ -115,6 +115,10 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         ticketVenta.getItems().forEach(item -> {
             item.setFactura(factura);
             item.setCantidadDevuelta(BigDecimal.ZERO);
+            item.setNombreUnidad(item.getArticulo().getUnidadBase().getDescripcion());
+            item.setUnidad(item.getArticulo().getUnidadBase());
+            item.setFactorConversion(item.getArticuloEmpaque().getFactorConversion());
+            item.setCantidadFisicaBase(item.getFactorConversion().multiply(item.getCantidad()));
 
             BigDecimal precioCompra = (item.getArticulo() != null && item.getArticulo().getPrecioCompra() != null)
                     ? item.getArticulo().getPrecioCompra()
@@ -151,7 +155,6 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
 //                    return new VentaRealizadaEvent.ItemVentaDto(idArticulo, item.getCantidad(), idAlmacen);
 //                })
 //                .collect(Collectors.toList());
-
         // Publicación del evento
         // eventPublisher.publishEvent(new VentaRealizadaEvent(facturaGuardada.getCodigo(), itemsDto));
         return facturaGuardada;

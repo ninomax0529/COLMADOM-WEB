@@ -261,7 +261,7 @@ public class Usuario implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Usuario[ codigo=" + codigo + " ]";
+        return nombre;
     }
     
 }

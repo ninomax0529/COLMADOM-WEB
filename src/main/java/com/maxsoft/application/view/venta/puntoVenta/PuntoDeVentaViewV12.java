@@ -73,7 +73,6 @@ import java.util.List;
 import java.util.Optional;
 
 import net.sf.jasperreports.engine.JasperPrint;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
 @NpmPackage(value = "print-js", version = "1.6.0")

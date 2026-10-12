@@ -35,6 +35,7 @@ import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
@@ -85,6 +86,8 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
     private final VerticalLayout containerTabGeneral = new VerticalLayout();
     private final VerticalLayout containerTabAlmacenes = new VerticalLayout();
     private final VerticalLayout containerTabEmpaques = new VerticalLayout();
+    ListDataProvider<ArticuloEmpaque> dataProvider;
+    ListDataProvider<ArticuloAlmacen> artalmDataProvider;
 
     private Articulo articuloActual;
 
@@ -185,6 +188,7 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
     // TAB 2: CONFIGURACIÓN GRID STOCK POR ALMACÉN
     // ==========================================
     private void configurarGridAlmacenes() {
+
         gridAlmacenes.setWidthFull();
         gridAlmacenes.setHeight("300px");
 
@@ -198,12 +202,18 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
         gridAlmacenes.addColumn(ArticuloAlmacen::getUbicacionPasillo).setHeader("Ubicación / Pasillo");
 
         gridAlmacenes.addColumn(new ComponentRenderer<>(item -> {
-            Button btnEditar = new Button(new Icon(VaadinIcon.EDIT), e -> abrirModalAlmacen(item));
+
+            Button btnEditar = new Button(new Icon(VaadinIcon.EDIT), e -> {
+
+                abrirModalAlmacen(item);
+
+            });
+
             btnEditar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
             Button btnBorrar = new Button(new Icon(VaadinIcon.TRASH), e -> {
                 listaArticuloAlmacen.remove(item);
-                gridAlmacenes.setItems(listaArticuloAlmacen);
+//                gridAlmacenes.setItems(listaArticuloAlmacen);
             });
             btnBorrar.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
 
@@ -212,6 +222,18 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
 
         btnAgregarAlmacen.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btnAgregarAlmacen.addClickListener(e -> abrirModalAlmacen(null));
+
+        // 3. Configurar el DataProvider para romper la duplicidad del ID null
+        artalmDataProvider = new ListDataProvider<>(listaArticuloAlmacen) {
+            @Override
+            public Object getId(ArticuloAlmacen item) {
+                // Si el artículo ya está guardado en la BD, usa su ID real.
+                // Si es nuevo y su ID es null, usa el código de identidad único del objeto en Java.
+                return item.getCodigo() != null ? item.getCodigo() : System.identityHashCode(item);
+            }
+        };
+
+        gridAlmacenes.setDataProvider(artalmDataProvider);
 
         containerTabAlmacenes.add(btnAgregarAlmacen, gridAlmacenes);
     }
@@ -285,7 +307,8 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
                 listaArticuloAlmacen.add(aa);
             }
 
-            gridAlmacenes.setItems(listaArticuloAlmacen);
+            artalmDataProvider.refreshAll();
+//            gridAlmacenes.setItems(listaArticuloAlmacen);
             dialog.close();
         });
         btnGuardarModal.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -328,7 +351,7 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
             Button btnBorrar = new Button(new Icon(VaadinIcon.TRASH), e -> {
                 listaEmpaques.remove(empaque);
 
-                gridEmpaques.setItems(listaEmpaques);
+//                gridEmpaques.setItems(listaEmpaques);
             });
             btnBorrar.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
 
@@ -339,9 +362,22 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
         btnAgregarEmpaque.addClickListener(e -> abrirModalEmpaque(null));
 
         containerTabEmpaques.add(btnAgregarEmpaque, gridEmpaques);
+
+        // 3. Configurar el DataProvider para romper la duplicidad del ID null
+        dataProvider = new ListDataProvider<>(listaEmpaques) {
+            @Override
+            public Object getId(ArticuloEmpaque item) {
+                // Si el artículo ya está guardado en la BD, usa su ID real.
+                // Si es nuevo y su ID es null, usa el código de identidad único del objeto en Java.
+                return item.getCodigo() != null ? item.getCodigo() : System.identityHashCode(item);
+            }
+        };
+
+        gridEmpaques.setDataProvider(dataProvider);
     }
 
     private void abrirModalEmpaque(ArticuloEmpaque empaqueEditar) {
+
         Dialog dialog = new Dialog();
         boolean esEdicion = empaqueEditar != null;
         dialog.setHeaderTitle(esEdicion ? "Editar Empaque / Presentación" : "Agregar Nuevo Empaque / Presentación");
@@ -415,6 +451,7 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
 
             // CONTROL DUPLICADOS DE EMPAQUE
             for (ArticuloEmpaque empExistente : listaEmpaques) {
+
                 if (esEdicion && empExistente.equals(empaqueEditar)) {
                     continue;
                 }
@@ -442,7 +479,10 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
             }
 
             ArticuloEmpaque emp = esEdicion ? empaqueEditar : new ArticuloEmpaque();
-            emp.setCodigo(unidadSeleccionada.getCodigo());
+
+//            if (esEdicion == false) {
+//                emp.setCodigo(unidadSeleccionada.getCodigo());
+//            }
             emp.setArticulo(articuloActual);
             emp.setNombreEmpaque(unidadSeleccionada.getDescripcion());
             emp.setNombreArticulo(articuloActual.getDescripcion());
@@ -456,10 +496,14 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
             emp.setSeVendeEn(chkVenta.getValue());
 
             if (!esEdicion) {
+
                 listaEmpaques.add(emp);
             }
 
-            gridEmpaques.setItems(listaEmpaques);
+//            gridEmpaques.setItems(listaEmpaques);
+//            gridEmpaques.getDataProvider().refreshAll();
+            // 2. Le avisas al dataProvider que la lista cambió
+            dataProvider.refreshAll();
             dialog.close();
         });
         btnGuardarModal.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -490,8 +534,8 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
             listaArticuloAlmacen.addAll(articuloAlmacenService.buscarPorArticulo(articuloActual.getCodigo()).get());
         }
 
-        gridEmpaques.setItems(listaEmpaques);
-        gridAlmacenes.setItems(listaArticuloAlmacen);
+//        gridEmpaques.setItems(listaEmpaques);
+//        gridAlmacenes.setItems(listaArticuloAlmacen);
     }
 
     private void guardarArticulo() {
@@ -542,6 +586,8 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
 
 //                Notification.show("Debe agregar al menos un empaque/presentación para el artículo", 3000, Notification.Position.MIDDLE);
 //                return;
+            } else {
+                System.out.println("listaEmpaques" + listaEmpaques.size());
             }
 
             try {
