@@ -4,12 +4,13 @@
  */
 package com.maxsoft.application.servicio.interfaces.inventario;
 
-
 import com.maxsoft.application.modelo.ArticuloEmpaque;
 import java.util.List;
 import java.util.Optional;
 
 public interface ArticuloEmpaqueService {
+
+    List<ArticuloEmpaque> getArticuloEmpaqueParaVenta();
 
     List<ArticuloEmpaque> getPorArticulo(Integer codArticulo);
 

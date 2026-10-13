@@ -43,6 +43,9 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
         // 1. Asignar la relación bidireccional en el detalle
         if (recepcion.getDetalleRecepcionMercanciaCollection() != null) {
             recepcion.getDetalleRecepcionMercanciaCollection().forEach(o -> {
+                
+                
+                
                 o.setCodigo(null); // Asegurar que sea una inserción nueva
                 o.setRecepcionMercancia(recepcion);
             });

@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -46,8 +45,10 @@ public class AjusteInventarioServiceImpl implements AjusteInventarioService {
 
         // 2. Asociar cabecera y detalles
         ajuste.setFechaRegistro(new Date());
+        
         detalles.forEach(d -> {
             d.setAjusteInventario(ajuste);
+            d.setCantidadFisicaBase(d.getFactorConversion().multiply(d.getCantidad()));
             d.setCodigo(null);
         });
         ajuste.setDetalleAjusteInventarioCollection(detalles);

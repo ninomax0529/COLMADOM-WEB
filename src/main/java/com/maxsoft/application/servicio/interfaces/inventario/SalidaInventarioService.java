@@ -6,6 +6,7 @@ package com.maxsoft.application.servicio.interfaces.inventario;
 
 import com.maxsoft.application.modelo.AjusteInventario;
 import com.maxsoft.application.modelo.DetalleAjusteInventario;
+import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
 import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
@@ -37,7 +38,7 @@ public interface SalidaInventarioService {
 
     List<SalidaInventario> getLista(boolean estado);
 
-    SalidaInventario crearSalidaPorVenta(FacturaDeVenta factura);
+    SalidaInventario crearSalidaPorVenta(FacturaDeVenta factura,List<DetalleFacturaDeVenta> listaDet);
     
     SalidaInventario crearSalidaPorAjuste(AjusteInventario ajuste, List<DetalleAjusteInventario> detalles);
 

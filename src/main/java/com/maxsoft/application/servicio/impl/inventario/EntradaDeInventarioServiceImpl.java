@@ -86,22 +86,11 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
 
                 ArticuloEmpaque artEmpaque = this.articuloEmpaqueService
                         .getEmpaqueBase(articulo.getCodigo()).get();
-//
-//                ArticuloEmpaque artEmpaque = articulo.getUnidadBase() != null
-//                        ? articulo.getUnidadBase()
-//                        : null;
 
                 BigDecimal cantidadEntrante = detalle.getCantidadRecibida() != null
                         ? detalle.getCantidadRecibida()
                         : BigDecimal.ZERO;
 
-//                BigDecimal cantidadFisicaBase = detalle.getCantidadFisicaBase() != null
-//                        ? detalle.getCantidadFisicaBase()
-//                        : BigDecimal.ZERO;
-
-//                BigDecimal factorConversion = detalle.getFactorConversion() != null
-//                        ? detalle.getFactorConversion()
-//                        : BigDecimal.ONE;
                 if (cantidadEntrante.compareTo(BigDecimal.ZERO) > 0) {
 
                     // Cálculo/extracción de totales para la firma completa
@@ -113,7 +102,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                     BigDecimal itbis = BigDecimal.ZERO; // Ajustar si calculas ITBIS en el detalle
                     BigDecimal total = subTotal.add(itbis);
 
-                    BigDecimal  cantidadFisicaBase = detalle.getCantidadRecibida().multiply(detalle.getFactorConversion());
+                    BigDecimal cantidadFisicaBase = detalle.getCantidadRecibida().multiply(detalle.getFactorConversion());
 
                     // LLAMADA CORREGIDA CON LOS 13 PARÁMETROS DE LA INTERFAZ:
                     movimientoService.registrarMovimiento(
@@ -173,13 +162,13 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                 // Linea estática errónea eliminada
                 // 2. Buscar el detalle de la factura correspondiente al ítem
                 DetalleFacturaDeVenta det = factura.getDetalleFacturaDeVentaCollection().stream()
-                        .filter(d -> d.getCodigo() != null && d.getCodigo().equals(itemDev.getIdDetalleFactura()))
+                        .filter(d -> d.getCodigo() != null && d.getCodigo()
+                         .equals(itemDev.getIdDetalleFactura()))
                         .findFirst()
                         .orElse(null);
 
                 // 3. Validar que exista el detalle y el artículo sea inventariable
-                if (det != null && det.getArticulo() != null
-                        && Boolean.TRUE.equals(det.getArticulo().getInventariable())) {
+//                if (det != null && det.getArticulo() != null   && Boolean.TRUE.equals(det.getArticulo().getInventariable())) {
 
                     // Convertir cantidad de forma segura según su tipo
                     BigDecimal cantidad = itemDev.getCantidadADevolver() != null
@@ -197,9 +186,9 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                             det.getTotal(),
                             cantidad,
                             det.getArticulo().getExistencia(),
-                            new Almacen(1),
-                            "General",
-                            "Unidad"
+                            det.getAlmacen(),
+                            det.getAlmacen().getNombre(),
+                            det.getNombreUnidad()
                     );
 
                     // Asignar costos y precios de venta con fallbacks seguros
@@ -210,7 +199,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                     detEntrada.setPrecioVenta(precio);
 
                     detallesList.add(detEntrada);
-                }
+//                }
             }
         }
 
@@ -223,6 +212,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
     @Override
     @Transactional(rollbackFor = Exception.class)
     public EntradaInventario crearEntradaPorAjuste(AjusteInventario ajuste, List<DetalleAjusteInventario> detalleAju) {
+
         String usuario = ajuste.getUsuario() != null ? ajuste.getUsuario().getNombre() : "SISTEMA";
         String observacion = "Entrada por Ajuste de Inventario #" + ajuste.getCodigo() + ". "
                 + (ajuste.getObservacion() != null ? ajuste.getObservacion() : "");
@@ -230,6 +220,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         EntradaInventario entrada = inicializarCabeceraBase(3, "AJ-" + ajuste.getCodigo(), usuario, observacion);
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
+
         for (DetalleAjusteInventario det : detalleAju) {
 
             if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().compareTo(BigDecimal.ZERO) > 0) {
@@ -238,15 +229,15 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                         det.getArticulo(),
                         det.getArticuloEmpaque(),
                         det.getFactorConversion(),
-                        det.getCantidadFisicaBase(),
+                        det.getFactorConversion().multiply(det.getCantidad()),
                         det.getItbis(),
                         det.getSubTotal(),
                         det.getTotal(),
                         det.getCantidad(),
                         det.getArticulo().getExistencia(),
-                        new Almacen(1),
-                        "General",
-                        "Unidad"
+                        ajuste.getAlmacen(),
+                        ajuste.getAlmacen().getNombre(),
+                        det.getArticuloEmpaque().getNombreEmpaque()
                 );
                 detallesEntrada.add(detEntrada);
             }
@@ -266,8 +257,10 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         EntradaInventario entrada = inicializarCabeceraBase(6, "AN-" + factura.getCodigo(), usuario, comentario);
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
+        
         for (DetalleFacturaDeVenta det : listaDetFact) {
-            if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().compareTo(BigDecimal.ZERO) > 0) {
+            
+//            if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().compareTo(BigDecimal.ZERO) > 0) {
 
                 DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
                         entrada,
@@ -286,7 +279,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                 );
 
                 detallesEntrada.add(detEntrada);
-            }
+//            }
         }
 
         entrada.setDetalleEntradaInventarioCollection(detallesEntrada);
@@ -307,30 +300,29 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
 
         for (DetalleRecepcionMercancia det : detalles) {
 
-            if (det.getArticulo() != null && det.getCantidadRecibida() != null && det.getCantidadRecibida().compareTo(BigDecimal.ZERO) > 0) {
-
-                det.setCantidadFisicaBase( det.getCantidadRecibida().multiply(det.getFactorConversion()));
+//            if (det.getArticulo() != null && det.getCantidadRecibida() != null && det.getCantidadRecibida().compareTo(BigDecimal.ZERO) > 0) {
+            det.setCantidadFisicaBase(det.getCantidadRecibida().multiply(det.getFactorConversion()));
 //                System.out.println("getCantidadFisicaBase " + det.getCantidadFisicaBase()
 //                        .multiply(det.getFactorConversion()));
 
-                DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
-                        entrada,
-                        det.getArticulo(),
-                        det.getArticuloEmpaque(),
-                        det.getFactorConversion(),
-                        det.getCantidadFisicaBase(),
-                        det.getItbis(),
-                        det.getSubTotal(),
-                        det.getTotal(),
-                        det.getCantidadRecibida(),
-                        det.getArticulo().getExistencia(),
-                        det.getAlmacen(),
-                        det.getAlmacen().getNombre(),
-                        det.getNombreUnidad()
-                );
+            DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
+                    entrada,
+                    det.getArticulo(),
+                    det.getArticuloEmpaque(),
+                    det.getFactorConversion(),
+                    det.getCantidadFisicaBase(),
+                    det.getItbis(),
+                    det.getSubTotal(),
+                    det.getTotal(),
+                    det.getCantidadRecibida(),
+                    det.getArticulo().getExistencia(),
+                    det.getAlmacen(),
+                    det.getAlmacen().getNombre(),
+                    det.getNombreUnidad()
+            );
 
-                detallesEntrada.add(detEntrada);
-            }
+            detallesEntrada.add(detEntrada);
+//            }
         }
 
         entrada.setDetalleEntradaInventarioCollection(detallesEntrada);
@@ -340,7 +332,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
     @Override
     @Transactional(rollbackFor = Exception.class)
     public EntradaInventario crearEntradaPorTraslado(TrasladoInventario traslado, List<DetalleTrasladoInventario> detalles) {
-        
+
         String usuario = traslado.getUsuarioEnvia() != null ? traslado.getUsuarioEnvia().getNombre() : "SISTEMA";
         String comentario = "Entrada por Traslado de Mercancia #" + traslado.getCodigo() + ". "
                 + (traslado.getObservacion() != null ? traslado.getObservacion() : "");
@@ -349,9 +341,9 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         Almacen almacenDestino = traslado.getAlmacenDestino();
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
-        
+
         for (DetalleTrasladoInventario det : detalles) {
-            
+
             if (det.getArticulo() != null && det.getCantidadRecibida() != null && det.getCantidadRecibida().compareTo(BigDecimal.ZERO) > 0) {
 
                 BigDecimal stockActual = articuloAlmacenService
@@ -374,7 +366,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                         almacenDestino != null ? almacenDestino.getNombre() : "General",
                         det.getNombreUnidad()
                 );
-                
+
                 detEntrada.setCantidadPedida(det.getCantidadEnviada());
                 detEntrada.setUnidad(det.getUnidad());
 
@@ -425,6 +417,8 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         BigDecimal costo = articulo.getPrecioCompra() != null ? articulo.getPrecioCompra() : BigDecimal.ZERO;
 
         DetalleEntradaInventario detEntrada = new DetalleEntradaInventario();
+
+//        cantidadEmpaque.add(factorConversion.multiply(cantidadRecibida));
         detEntrada.setEntradaInventario(entrada);
         detEntrada.setArticulo(articulo);
         detEntrada.setCantidadRecibida(cantidadRecibida);
@@ -436,8 +430,8 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         detEntrada.setCantidadPendiente(BigDecimal.ZERO);
         detEntrada.setNuevaExistencia(actual.add(cantidadRecibida));
         detEntrada.setNombreAlmacen(nombreAlmacen);
-        detEntrada.setNombreUnidad(nombreUnidad != null ? nombreUnidad : "Unidad");
-        detEntrada.setUnidad(articulo.getUnidadBase());
+        detEntrada.setNombreUnidad(nombreUnidad);
+        detEntrada.setUnidad(articuloEmpaque.getUnidadEmpaque());
         detEntrada.setArticuloEmpaque(articuloEmpaque);
         detEntrada.setFactorConversion(factorConversion);
         detEntrada.setPrecioCompra(costo);

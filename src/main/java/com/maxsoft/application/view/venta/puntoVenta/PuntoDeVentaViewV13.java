@@ -27,6 +27,7 @@ import com.maxsoft.application.view.componente.pos.DialogoRenombrarTicket;
 import com.maxsoft.application.view.componente.pos.DialogoSeleccionCliente;
 import com.maxsoft.application.view.componente.pos.DialogoVentaPorMonto;
 import com.maxsoft.application.view.componente.pos.PanelCarritos;
+import com.maxsoft.application.view.componente.pos.PanelProducto;
 import com.maxsoft.application.view.componente.pos.PanelProductos;
 import com.maxsoft.application.view.componente.pos.PanelTicketContenido;
 import com.maxsoft.application.view.venta.cajaChica.DialogoAperturaCaja;
@@ -480,7 +481,7 @@ public class PuntoDeVentaViewV13 extends HorizontalLayout
     // ============================================================
     private VerticalLayout crearPanelProductos() {
 
-        return new PanelProductos(
+        return new PanelProducto(
                 articuloService,
                 this::agregarAlTicketActivo,
                 this::agregarAlTicketActivo,

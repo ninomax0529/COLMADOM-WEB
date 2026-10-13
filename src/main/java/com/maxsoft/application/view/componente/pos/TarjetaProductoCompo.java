@@ -4,7 +4,7 @@
  */
 package com.maxsoft.application.view.componente.pos;
 
-import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.ArticuloEmpaque;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Image;
@@ -18,13 +18,13 @@ import java.util.function.Consumer;
 
 public class TarjetaProductoCompo extends VerticalLayout {
 
-    private final Articulo articulo;
+    private final ArticuloEmpaque articulo;
 
     public TarjetaProductoCompo(
-            Articulo articulo,
+            ArticuloEmpaque articulo,
             String imageUrl,
-            BiConsumer<Articulo, BigDecimal> onCantidadChanged,
-            Consumer<Articulo> onVentaPorMontoRequested
+            BiConsumer<ArticuloEmpaque, BigDecimal> onCantidadChanged,
+            Consumer<ArticuloEmpaque> onVentaPorMontoRequested
     ) {
         this.articulo = articulo;
 
@@ -37,7 +37,7 @@ public class TarjetaProductoCompo extends VerticalLayout {
         setSpacing(false);
 
         // Imagen del producto
-        Image img = new Image(imageUrl, articulo.getDescripcion());
+        Image img = new Image(imageUrl, articulo.getNombreArticulo());
         img.setWidth("100px");
         img.setHeight("80px");
         img.getStyle()
@@ -46,7 +46,7 @@ public class TarjetaProductoCompo extends VerticalLayout {
                 .set("margin-bottom", "0.5rem");
 
         // Título/Descripción
-        Span nameLabel = new Span(articulo.getDescripcion());
+        Span nameLabel = new Span(articulo.getNombreArticulo());
         nameLabel.getStyle()
                 .set("font-weight", "650")
                 .set("font-size", "0.9rem")
@@ -93,7 +93,7 @@ public class TarjetaProductoCompo extends VerticalLayout {
         add(img, nameLabel, priceLabel, controls);
     }
 
-    public Articulo getArticulo() {
+    public ArticuloEmpaque getArticulo() {
         return articulo;
     }
 }

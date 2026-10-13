@@ -5,7 +5,9 @@
 package com.maxsoft.application.view.componente.pos;
 
 import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.ArticuloEmpaque;
 import com.maxsoft.application.modelo.FacturaDeVenta;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
 import com.vaadin.flow.component.button.Button;
@@ -30,14 +32,14 @@ import java.util.function.Consumer;
 
 public class PanelProductos extends VerticalLayout {
 
-    private ComboBox<Articulo> searchBox;
+    private ComboBox<ArticuloEmpaque> searchBox;
     FacturaDeVentaService facturaDeVentaService;
 
     public PanelProductos(
             
-            ArticuloService articuloServicel,
-            Consumer<Articulo> onAgregarAlTicketActivo,
-            BiConsumer<Articulo, BigDecimal> onAgregarCantidadAlTicketActivo,
+            ArticuloEmpaqueService articuloServicel,
+            Consumer<ArticuloEmpaque> onAgregarAlTicketActivo,
+            BiConsumer<ArticuloEmpaque, BigDecimal> onAgregarCantidadAlTicketActivo,
             BiConsumer<String, BigDecimal> onAbrirVentaPorMonto,
             Runnable onAbrirAperturaCaja,
             Runnable onAbrirCierreCaja,
@@ -49,7 +51,7 @@ public class PanelProductos extends VerticalLayout {
         H2 title = new H2("Colmado - Punto de Venta");
 
         searchBox = new ComboBox<>("Buscar producto o escanear código");
-        searchBox.setItems(articuloServicel.getLista());
+        searchBox.setItems(articuloServicel.getArticuloEmpaqueParaVenta());
         searchBox.setWidthFull();
         searchBox.setClearButtonVisible(true);
         searchBox.focus();
@@ -108,7 +110,7 @@ public class PanelProductos extends VerticalLayout {
         gridContainer.getStyle().set("gap", "1rem");
         gridContainer.setWidthFull();
 
-        for (Articulo art : articuloServicel.getLista()) {
+        for (ArticuloEmpaque art : articuloServicel.getArticuloEmpaqueParaVenta()) {
 
             TarjetaProductoCompo card = new TarjetaProductoCompo(
                     art,
@@ -120,7 +122,7 @@ public class PanelProductos extends VerticalLayout {
                     },
                     (articulo) -> {
                         if (onAbrirVentaPorMonto != null) {
-                            onAbrirVentaPorMonto.accept(articulo.getDescripcion(), articulo.getPrecioVenta());
+                            onAbrirVentaPorMonto.accept(articulo.getNombreArticulo(), articulo.getPrecioVenta());
                         }
                     }
             );
@@ -137,7 +139,7 @@ public class PanelProductos extends VerticalLayout {
     }
 
     // Método para permitir enfocar el buscador externamente si es necesario
-    public ComboBox<Articulo> getSearchBox() {
+    public ComboBox<ArticuloEmpaque> getSearchBox() {
         return searchBox;
     }
 

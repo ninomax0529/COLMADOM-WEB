@@ -59,7 +59,7 @@ public class DetalleFacturaDeVenta implements Serializable {
     private BigDecimal existenciaActual;
     @Column(name = "nueva_existencia")
     private BigDecimal nuevaExistencia;
-    @Size(max = 20)
+    @Size(max = 50)
     @Column(name = "nombre_almacen")
     private String nombreAlmacen;
     @Column(name = "precio_venta")

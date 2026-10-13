@@ -15,6 +15,7 @@ import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.SalidaInventario;
 import com.maxsoft.application.repo.FacturaDeventaRepo;
+import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
@@ -50,6 +51,8 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
 
     @Autowired
     ArticuloService articuloService;
+    @Autowired
+    AlmacenService almacenService;
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
@@ -66,18 +69,23 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         if (ticketVenta.getItems() == null || ticketVenta.getItems().isEmpty()) {
             throw new IllegalArgumentException("La factura no tiene detalle.");
         }
-
+        
+        Almacen alm = this.almacenService.getAlmacen(2);
+        
         for (DetalleFacturaDeVenta det : ticketVenta.getItems()) {
+
             BigDecimal cantidad = det.getCantidad() != null ? det.getCantidad() : BigDecimal.ZERO;
 
             if (cantidad.compareTo(BigDecimal.ZERO) <= 0) {
+
                 throw new IllegalArgumentException("El artículo '"
                         + (det.getDescripcionArticulo() != null ? det.getDescripcionArticulo() : "Desconocido")
                         + "' tiene la cantidad en cero o no válida.");
             }
 
             // Asignación de almacén predeterminado
-            det.setAlmacen(new Almacen(2));
+            det.setAlmacen(alm);
+            det.setNombreAlmacen(alm.getNombre());
 
             // Validar stock solo si el artículo existe y es inventariable
             if (det.getArticulo() != null && det.getArticulo().getCodigo() != null
@@ -113,10 +121,12 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
 
         // Asignar bidireccionalidad en los ítems
         ticketVenta.getItems().forEach(item -> {
+
             item.setFactura(factura);
             item.setCantidadDevuelta(BigDecimal.ZERO);
-            item.setNombreUnidad(item.getArticulo().getUnidadBase().getDescripcion());
-            item.setUnidad(item.getArticulo().getUnidadBase());
+//            item.setNombreUnidad(item.getArticulo().getUnidadBase().getDescripcion());
+//            item.setUnidad(item.getArticulo().getUnidadBase());
+
             item.setFactorConversion(item.getArticuloEmpaque().getFactorConversion());
             item.setCantidadFisicaBase(item.getFactorConversion().multiply(item.getCantidad()));
 
@@ -134,7 +144,9 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         FacturaDeVenta facturaGuardada = facttRepo.saveAndFlush(factura);
 
         // 5. Generar la Salida de Inventario (Nombre de variable en minúscula)
-        SalidaInventario salida = this.SalidaInventarioService.crearSalidaPorVenta(facturaGuardada);
+       List<DetalleFacturaDeVenta>  listaDet= this.facttRepo.getDetalle(factura.getCodigo());
+       
+        SalidaInventario salida = this.SalidaInventarioService.crearSalidaPorVenta(facturaGuardada,listaDet);
 
         // 6. Registrar Movimiento de Caja
         cajaService.registrarMovimientoPos(

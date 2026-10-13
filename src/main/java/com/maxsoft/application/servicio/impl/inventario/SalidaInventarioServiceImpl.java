@@ -4,6 +4,7 @@ import com.maxsoft.application.modelo.AjusteInventario;
 import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.ArticuloAlmacen;
+import com.maxsoft.application.modelo.ArticuloEmpaque;
 import com.maxsoft.application.modelo.DetalleAjusteInventario;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
@@ -17,10 +18,12 @@ import com.maxsoft.application.modelo.Usuario;
 import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.repo.SalidaInventarioRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoMovimientoService;
+import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -42,6 +45,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
     private final TipoDocumentoService tipoDocumentoService;
     private final TipoMovimientoService tipoMovimientoService;
     private final ArticuloAlmacenService articuloAlmacenService;
+    private final ArticuloEmpaqueService articuloEmpaqueService;
 
     @Autowired
     public SalidaInventarioServiceImpl(SalidaInventarioRepo salidaRepo,
@@ -49,13 +53,17 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
             MovimientoInventarioService movimientoService,
             TipoDocumentoService tipoDocumentoService,
             TipoMovimientoService tipoMovimientoService,
-            ArticuloAlmacenService articuloAlmacenService) {
+            ArticuloAlmacenService articuloAlmacenService,
+            ArticuloEmpaqueService articuloEmpaqueService
+    ) {
         this.salidaRepo = salidaRepo;
         this.articuloRepo = articuloRepo;
         this.movimientoService = movimientoService;
         this.tipoDocumentoService = tipoDocumentoService;
         this.tipoMovimientoService = tipoMovimientoService;
         this.articuloAlmacenService = articuloAlmacenService;
+        this.articuloEmpaqueService=articuloEmpaqueService;
+
     }
 
     @Override
@@ -109,11 +117,13 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                         BigDecimal total = subTotal.add(itbis);
                         BigDecimal cantidadFisicaBase = detalle.getFactorConversion().multiply(cantidadSalida);
 
+                        ArticuloEmpaque artEmpaq=this.articuloEmpaqueService.getEmpaqueBase(articulo.getCodigo()).get();
+                        
                         // LLAMADA CORREGIDA: 13 parámetros según la interfaz MovimientoInventarioService
                         movimientoService.registrarMovimiento(
                                 articulo, // 1. Articulo
                                 alm, // 2. Almacen
-                                detalle.getArticuloEmpaque(), // 3. ArticuloEmpaque
+                                artEmpaq, // 3. ArticuloEmpaque
                                 BigDecimal.ONE, // 4. factorConversion
                                 cantidadFisicaBase, // 5. cantidadEmpaque
                                 subTotal, // 6. subTotal
@@ -136,7 +146,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public SalidaInventario crearSalidaPorVenta(FacturaDeVenta factura) {
+    public SalidaInventario crearSalidaPorVenta(FacturaDeVenta factura, List<DetalleFacturaDeVenta> listaDEtFactura) {
 
         SalidaInventario salida = new SalidaInventario();
         Date fechaActual = new Date();
@@ -154,10 +164,13 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
         List<DetalleSalidaInventario> detalles = new ArrayList<>();
 
-        if (factura.getDetalleFacturaDeVentaCollection() != null) {
-            for (DetalleFacturaDeVenta detFactura : factura.getDetalleFacturaDeVentaCollection()) {
+        if (!listaDEtFactura.isEmpty()) {
 
-                if (detFactura.getArticulo() != null && Boolean.TRUE.equals(detFactura.getArticulo().getInventariable())) {
+            System.out.println("listaDEtFactura "+listaDEtFactura.size());
+            
+            for (DetalleFacturaDeVenta detFactura : listaDEtFactura) {
+
+//                if (detFactura.getArticulo() != null && Boolean.TRUE.equals(detFactura.getArticulo().getInventariable())) {
 
                     DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
 
@@ -188,8 +201,11 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                     detSalida.setPrecioVenta(detFactura.getPrecioVenta() != null ? detFactura.getPrecioVenta() : BigDecimal.ZERO);
 
                     detalles.add(detSalida);
-                }
+//                }
             }
+            
+        }else{
+              throw new IllegalArgumentException("Detalle de la factura vacio '" );
         }
 
         salida.setDetalleSalidaInventarioCollection(detalles);
@@ -219,11 +235,13 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
         List<DetalleSalidaInventario> detallesSalida = new ArrayList<>();
 
         if (detalles != null) {
+
             for (DetalleAjusteInventario det : detalles) {
 
-                if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().compareTo(BigDecimal.ZERO) > 0) {
+//                if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().compareTo(BigDecimal.ZERO) > 0) {
 
                     DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
+
                     detSalida.setSalidaInventario(salida);
                     detSalida.setArticulo(det.getArticulo());
                     detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
@@ -236,7 +254,10 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
                     detSalida.setExistenciaAnterior(stockActual);
                     detSalida.setExistencia(stockActual);
-//                    detSalida.setUnidad(det.getArticulo().getU);
+                    detSalida.setUnidad(det.getArticuloEmpaque().getUnidadEmpaque());
+                    detSalida.setFactorConversion(det.getFactorConversion());
+                    detSalida.setCantidadFisicaBase(det.getFactorConversion().multiply(det.getCantidad()));
+                    detSalida.setArticuloEmpaque(det.getArticuloEmpaque());
 
                     BigDecimal costo = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
                     BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
@@ -246,7 +267,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                     detSalida.setPrecioVenta(precio);
 
                     detallesSalida.add(detSalida);
-                }
+//                }
             }
         }
 
@@ -300,7 +321,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
             for (DetalleTrasladoInventario det : detalles) {
 
-                if (det.getArticulo() != null && det.getCantidadEnviada() != null && det.getCantidadEnviada().compareTo(BigDecimal.ZERO) > 0) {
+//                if (det.getArticulo() != null && det.getCantidadEnviada() != null && det.getCantidadEnviada().compareTo(BigDecimal.ZERO) > 0) {
 
                     DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
 
@@ -328,7 +349,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                     detSalida.setCantidadFisicaBase(cantidadFisicaBase);
 
                     detSalida.setArticuloEmpaque(det.getArticuloEmpaque());
-                        
+
                     detSalida.setSalidaInventario(salida);
                     detSalida.setArticulo(det.getArticulo());
                     detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
@@ -364,7 +385,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                     detSalida.setCantidadFisicaBase(cantidadFisicaBase1);
 
                     detallesSalida.add(detSalida);
-                }
+//                }
             }
         }
 

@@ -70,5 +70,10 @@ public class ArticuloEmpaqueServiceImpl implements ArticuloEmpaqueService {
         repository.deleteById(codigo);
     }
 
+    @Override
+    public List<ArticuloEmpaque> getArticuloEmpaqueParaVenta() {
+       return repository.getArticuloEmpaqueParaVenta();
+    }
+
  
 }

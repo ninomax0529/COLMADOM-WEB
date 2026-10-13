@@ -57,29 +57,12 @@ public class DetalleEntradaInventario implements Serializable {
     private BigDecimal cantidadPendiente;
     @Column(name = "precio_compra")
     private BigDecimal precioCompra;
-    @Column(name = "precio_compra_anterior")
-    private BigDecimal precioCompraAnterior;
     @Column(name = "costo_unitario")
     private BigDecimal costoUnitario;
-    @Column(name = "orden_compra")
-    private Integer ordenCompra;
-    @Size(max = 20)
-    @Column(name = "numero_orden")
-    private String numeroOrden;
-    @Size(max = 30)
-    @Column(name = "numero_factura")
-    private String numeroFactura;
-    @Column(name = "suplidor")
-    private Integer suplidor;
-    @Size(max = 50)
-    @Column(name = "nombre_suplidor")
-    private String nombreSuplidor;
     @Column(name = "existencia_actual")
     private BigDecimal existenciaActual;
     @Column(name = "nueva_existencia")
     private BigDecimal nuevaExistencia;
-    @Column(name = "precio_venta_anterior")
-    private BigDecimal precioVentaAnterior;
     @Column(name = "precio_venta")
     private BigDecimal precioVenta;
     @Size(max = 50)
@@ -191,60 +174,12 @@ public class DetalleEntradaInventario implements Serializable {
         this.precioCompra = precioCompra;
     }
 
-    public BigDecimal getPrecioCompraAnterior() {
-        return precioCompraAnterior;
-    }
-
-    public void setPrecioCompraAnterior(BigDecimal precioCompraAnterior) {
-        this.precioCompraAnterior = precioCompraAnterior;
-    }
-
     public BigDecimal getCostoUnitario() {
         return costoUnitario;
     }
 
     public void setCostoUnitario(BigDecimal costoUnitario) {
         this.costoUnitario = costoUnitario;
-    }
-
-    public Integer getOrdenCompra() {
-        return ordenCompra;
-    }
-
-    public void setOrdenCompra(Integer ordenCompra) {
-        this.ordenCompra = ordenCompra;
-    }
-
-    public String getNumeroOrden() {
-        return numeroOrden;
-    }
-
-    public void setNumeroOrden(String numeroOrden) {
-        this.numeroOrden = numeroOrden;
-    }
-
-    public String getNumeroFactura() {
-        return numeroFactura;
-    }
-
-    public void setNumeroFactura(String numeroFactura) {
-        this.numeroFactura = numeroFactura;
-    }
-
-    public Integer getSuplidor() {
-        return suplidor;
-    }
-
-    public void setSuplidor(Integer suplidor) {
-        this.suplidor = suplidor;
-    }
-
-    public String getNombreSuplidor() {
-        return nombreSuplidor;
-    }
-
-    public void setNombreSuplidor(String nombreSuplidor) {
-        this.nombreSuplidor = nombreSuplidor;
     }
 
     public BigDecimal getExistenciaActual() {
@@ -261,14 +196,6 @@ public class DetalleEntradaInventario implements Serializable {
 
     public void setNuevaExistencia(BigDecimal nuevaExistencia) {
         this.nuevaExistencia = nuevaExistencia;
-    }
-
-    public BigDecimal getPrecioVentaAnterior() {
-        return precioVentaAnterior;
-    }
-
-    public void setPrecioVentaAnterior(BigDecimal precioVentaAnterior) {
-        this.precioVentaAnterior = precioVentaAnterior;
     }
 
     public BigDecimal getPrecioVenta() {
