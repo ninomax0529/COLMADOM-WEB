@@ -29,12 +29,6 @@ import java.util.Collection;
     @NamedQuery(name = "Moneda.findAll", query = "SELECT m FROM Moneda m")})
 public class Moneda implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 30)
@@ -43,6 +37,13 @@ public class Moneda implements Serializable {
     @Size(max = 10)
     @Column(name = "simbolo")
     private String simbolo;
+
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @OneToMany(mappedBy = "moneda")
     private Collection<OrdenDeCompra> ordenDeCompraCollection;
 
@@ -66,21 +67,6 @@ public class Moneda implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getSimbolo() {
-        return simbolo;
-    }
-
-    public void setSimbolo(String simbolo) {
-        this.simbolo = simbolo;
-    }
 
     public Collection<OrdenDeCompra> getOrdenDeCompraCollection() {
         return ordenDeCompraCollection;
@@ -113,6 +99,22 @@ public class Moneda implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.Moneda[ codigo=" + codigo + " ]";
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getSimbolo() {
+        return simbolo;
+    }
+
+    public void setSimbolo(String simbolo) {
+        this.simbolo = simbolo;
     }
     
 }

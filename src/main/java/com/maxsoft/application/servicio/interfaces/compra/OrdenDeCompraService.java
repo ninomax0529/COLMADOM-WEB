@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.servicio.interfaces.compra;
 
+import com.maxsoft.application.modelo.DetalleOrdendeDeCompra;
 import com.maxsoft.application.modelo.OrdenDeCompra;
 
 import java.math.BigDecimal;
@@ -15,6 +16,8 @@ public interface OrdenDeCompraService {
     List<OrdenDeCompra> getLista();
 
     List<OrdenDeCompra> getListarPendientes();
+    
+     List<OrdenDeCompra> getListaOcPendiente();
 
     Optional<OrdenDeCompra> buscarPorCodigo(Integer codigo);
 
@@ -27,4 +30,5 @@ public interface OrdenDeCompraService {
     OrdenDeCompra anularOrden(Integer codigoOrden, String motivo);
 
     OrdenDeCompra registrarRecepcionParcial(Integer codigoOrden, Integer codigoDetalle, BigDecimal cantidadRecibida);
+    List<DetalleOrdendeDeCompra> getDetalle(int oc);
 }

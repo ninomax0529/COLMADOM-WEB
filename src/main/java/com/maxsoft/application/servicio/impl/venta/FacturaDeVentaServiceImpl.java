@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
+
+    private static final Logger log = LoggerFactory.getLogger(FacturaDeVentaServiceImpl.class);
 
     @Autowired
     private FacturaDeventaRepo facttRepo;
@@ -69,9 +73,9 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         if (ticketVenta.getItems() == null || ticketVenta.getItems().isEmpty()) {
             throw new IllegalArgumentException("La factura no tiene detalle.");
         }
-        
+
         Almacen alm = this.almacenService.getAlmacen(2);
-        
+
         for (DetalleFacturaDeVenta det : ticketVenta.getItems()) {
 
             BigDecimal cantidad = det.getCantidad() != null ? det.getCantidad() : BigDecimal.ZERO;
@@ -144,9 +148,9 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         FacturaDeVenta facturaGuardada = facttRepo.saveAndFlush(factura);
 
         // 5. Generar la Salida de Inventario (Nombre de variable en minúscula)
-       List<DetalleFacturaDeVenta>  listaDet= this.facttRepo.getDetalle(factura.getCodigo());
-       
-        SalidaInventario salida = this.SalidaInventarioService.crearSalidaPorVenta(facturaGuardada,listaDet);
+        List<DetalleFacturaDeVenta> listaDet = this.facttRepo.getDetalle(factura.getCodigo());
+
+        SalidaInventario salida = this.SalidaInventarioService.crearSalidaPorVenta(facturaGuardada, listaDet);
 
         // 6. Registrar Movimiento de Caja
         cajaService.registrarMovimientoPos(
@@ -194,15 +198,15 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         factura.setFechaAnulada(new Date());
 
         FacturaDeVenta facturaAnulada = facttRepo.save(factura);
+        List<DetalleFacturaDeVenta> listaDetFactura = facttRepo.getDetalle(facturaAnulada.getCodigo());
 
         // 5. Mapear ítems inventariables para el evento de devolución
-        List<DetalleFacturaDeVenta> itemsDto = facturaAnulada.getDetalleFacturaDeVentaCollection()
-                .stream()
-                .filter(item -> Boolean.TRUE.equals(item.getArticulo().getInventariable()))
-                .map(item -> item)
-                .collect(Collectors.toList());
-
-        this.entradaInventarioService.crearEntradaPorAnulacionVenta(factura, itemsDto);
+//        List<DetalleFacturaDeVenta> itemsDto = listaDetFactura
+//                .stream()
+//                .filter(item -> Boolean.TRUE.equals(item.getArticulo().getInventariable()))
+//                .map(item -> item)
+//                .collect(Collectors.toList());
+        this.entradaInventarioService.crearEntradaPorAnulacionVenta(factura, listaDetFactura);
 
         // 4. Revertir dinero de Caja (Movimiento de Egreso o Ajuste)
         cajaService.registrarMovimientoPos(
@@ -213,20 +217,6 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
                 nombreUsuario
         );
 
-        // 5. Mapear ítems inventariables para el evento de devolución
-//        List<VentaAnuladaEvent.ItemAnulacionDto> itemsDto = facturaAnulada.getDetalleFacturaDeVentaCollection().stream()
-//                .filter(item -> item.getArticulo() != null
-//                && item.getArticulo().getCodigo() != null
-//                && Boolean.TRUE.equals(item.getArticulo().getInventariable()))
-//                .map(item -> new VentaAnuladaEvent.ItemAnulacionDto(item.getArticulo().getCodigo(), item.getCantidad()))
-//                .collect(Collectors.toList());
-// 6. Disparar Evento para la Entrada en Kardex e Incremento de Inventario
-//        eventPublisher.publishEvent(new VentaAnuladaEvent(
-//                facturaAnulada.getCodigo(),
-//                nombreUsuario,
-//                motivoAnulacion,
-//                itemsDto
-//        ));
         return facturaAnulada;
     }
 
@@ -253,14 +243,22 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             BigDecimal montoTotalReembolso = BigDecimal.ZERO;
             List<VentaDevueltaEvent.ItemAnulacionDto> itemsParaKardex = new ArrayList<>();
 
+            List<DetalleFacturaDeVenta> listaDetFactura = facttRepo.getDetalle(factura.getCodigo());
             // 3. Validar y procesar cada ítem enviado
             for (SolicitudDevolucionDto.ItemDevolucionDto itemDev : solicitud.getItems()) {
 
-                DetalleFacturaDeVenta detalle = factura.getDetalleFacturaDeVentaCollection().stream()
-                        .filter(d -> d.getCodigo().equals(itemDev.getIdDetalleFactura()))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException("El detalle enviado no pertenece a la factura #" + factura.getCodigo()));
+                DetalleFacturaDeVenta detalle
+                        = listaDetFactura.stream()
+                                .filter(d -> d.getCodigo().equals(itemDev.getIdDetalleFactura()))
+                                .findFirst()
+                                .orElseThrow(() -> new IllegalArgumentException("El detalle enviado no pertenece a la factura #" + factura.getCodigo()));
 
+//                DetalleFacturaDeVenta detalle =
+//                        factura.getDetalleFacturaDeVentaCollection().stream()
+//                        .filter(d -> d.getCodigo().equals(itemDev.getIdDetalleFactura()))
+//                        .findFirst()
+//                        .orElseThrow(() -> new IllegalArgumentException("El detalle enviado no pertenece a la factura #" + factura.getCodigo()));
+                System.out.println(" detalle.getCantidadDevuelta():" + detalle.getCantidadDevuelta());
                 double devueltoPrevio = detalle.getCantidadDevuelta() != null ? detalle.getCantidadDevuelta().doubleValue() : 0.0;
                 double disponibleParaDevolver = detalle.getCantidad().doubleValue() - devueltoPrevio;
 
@@ -291,13 +289,18 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
                 }
             }
 
-            // 4. Evaluar si la devolución terminó cubriendo TODOS los ítems de la factura
-            boolean esDevolucionTotal = factura.getDetalleFacturaDeVentaCollection().stream()
+            boolean esDevolucionTotal = listaDetFactura.stream()
                     .allMatch(d -> {
                         double devuelto = d.getCantidadDevuelta() != null ? d.getCantidadDevuelta().doubleValue() : 0.0;
                         return Double.compare(devuelto, d.getCantidad().doubleValue()) == 0;
                     });
 
+            // 4. Evaluar si la devolución terminó cubriendo TODOS los ítems de la factura
+//            boolean esDevolucionTotal = factura.getDetalleFacturaDeVentaCollection().stream()
+//                    .allMatch(d -> {
+//                        double devuelto = d.getCantidadDevuelta() != null ? d.getCantidadDevuelta().doubleValue() : 0.0;
+//                        return Double.compare(devuelto, d.getCantidad().doubleValue()) == 0;
+//                    });
             if (esDevolucionTotal) {
                 factura.setAnulada(true);
                 factura.setFechaAnulada(new Date());
@@ -311,6 +314,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             // -----------------------------------------------------------------------------------
             EntradaInventario entradaCreada = entradaInventarioService.crearEntradaPorDevolucion(facturaGuardada, solicitud);
 
+            log.info("Entrada creada con exito ", entradaCreada);
             // 5. Egreso de Dinero en Caja POS
             // NOTA: Aseguramos la lectura del tipo de venta/documento evitando nulls
             String tipoVentaNombre = (facturaGuardada.getTipoVenta() != null)
@@ -327,17 +331,17 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             );
 
             // 6. Publicar evento para Kardex
-            eventPublisher.publishEvent(new VentaDevueltaEvent(
-                    facturaGuardada.getCodigo(),
-                    entradaCreada.getCodigo(), // <--- Pasa el código de entrada generado
-                    solicitud.getUsuario(),
-                    solicitud.getMotivo(),
-                    esDevolucionTotal,
-                    itemsParaKardex
-            ));
-
+//            eventPublisher.publishEvent(new VentaDevueltaEvent(
+//                    facturaGuardada.getCodigo(),
+//                    entradaCreada.getCodigo(), // <--- Pasa el código de entrada generado
+//                    solicitud.getUsuario(),
+//                    solicitud.getMotivo(),
+//                    esDevolucionTotal,
+//                    itemsParaKardex
+//            ));
         } catch (Exception ex) {
 
+            log.error("Error procesando la devolucion");
             ex.printStackTrace();
         }
 

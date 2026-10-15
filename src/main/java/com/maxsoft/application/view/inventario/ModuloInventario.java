@@ -9,13 +9,9 @@ import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.inventario.ajuste.ConsultaAjusteInventarioView;
 import com.maxsoft.application.view.inventario.ajuste.RegistroAjusteDeInventarioView;
 import com.maxsoft.application.view.inventario.articulo.ArticuloAlmacenView;
-import com.maxsoft.application.view.inventario.articulo.RegistrarArticuloViewV1;
-import com.maxsoft.application.view.inventario.entrada.ConsultaEntradaInventarioView;
 import com.maxsoft.application.view.inventario.entrada.EntradaDeIventarioView;
 import com.maxsoft.application.view.inventario.movimiento.MovimientosInventarioView;
-import com.maxsoft.application.view.inventario.salida.ConsultaSalidaInventarioView;
 import com.maxsoft.application.view.inventario.salida.SalidaDeIventarioView;
-import com.maxsoft.application.view.inventario.traslado.ConsultaTrasladoInventarioView;
 import com.maxsoft.application.view.inventario.traslado.TrasladoInventarioView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -60,10 +56,10 @@ public class ModuloInventario extends AppLayout {
         RouterLink linkMovimiento = createLink(VaadinIcon.FILE_TABLE, "Movimiento", MovimientosInventarioView.class);
         RouterLink linkTrasladoInventario = createLink(VaadinIcon.FILE_TABLE, "Traslado", TrasladoInventarioView.class);
         RouterLink linkTrasladoArticalmacen = createLink(VaadinIcon.FILE_TABLE, "Articulo Almacen", ArticuloAlmacenView.class);
-        RouterLink linkConsultaTrasladoInventarioView = createLink(VaadinIcon.FILE_TABLE, "Consulta Traslado", ConsultaTrasladoInventarioView.class);
+//        RouterLink linkConsultaTrasladoInventarioView = createLink(VaadinIcon.FILE_TABLE, "Consulta Traslado", ConsultaTrasladoInventarioView.class);
         RouterLink linkConsultaAjusteInventarioView = createLink(VaadinIcon.FILE_TABLE, "Consulta Ajuste", ConsultaAjusteInventarioView.class);
-        RouterLink linkConsultaSalidaInventarioView = createLink(VaadinIcon.FILE_TABLE, "Consulta Salida Inv", ConsultaSalidaInventarioView.class);
-        RouterLink linkConsultaEntradaInventarioView = createLink(VaadinIcon.FILE_TABLE, "Consulta Entrada Inv.", ConsultaEntradaInventarioView.class);
+//        RouterLink linkConsultaSalidaInventarioView = createLink(VaadinIcon.FILE_TABLE, "Consulta Salida Inv", ConsultaSalidaInventarioView.class);
+//        RouterLink linkConsultaEntradaInventarioView = createLink(VaadinIcon.FILE_TABLE, "Consulta Entrada Inv.", ConsultaEntradaInventarioView.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
         ////
@@ -72,13 +68,13 @@ public class ModuloInventario extends AppLayout {
                 linkArticulo,
                 //                linkRegistrarArticuloViewV1,
                 linkEntrada,
-                linkConsultaEntradaInventarioView,
+//                linkConsultaEntradaInventarioView,
                 linkSalida,
-                linkConsultaSalidaInventarioView,
+//                linkConsultaSalidaInventarioView,
                 linkAjuste,
                 linkConsultaAjusteInventarioView,
                 linkTrasladoInventario,
-                linkConsultaTrasladoInventarioView,
+//                linkConsultaTrasladoInventarioView,
                 linkMovimiento,
                 linkTrasladoArticalmacen,
                 linkModulo

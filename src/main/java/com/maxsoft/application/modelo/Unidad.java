@@ -46,6 +46,8 @@ public class Unidad implements Serializable {
     @NotNull
     @Column(name = "habilitada")
     private boolean habilitada;
+    @OneToMany(mappedBy = "unidad")
+    private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
     @OneToMany(mappedBy = "unidadBase")
     private Collection<Articulo> articuloCollection;
 
@@ -202,6 +204,24 @@ public class Unidad implements Serializable {
         return descripcion;
     }
 
+
+    public Collection<Articulo> getArticuloCollection() {
+        return articuloCollection;
+    }
+
+    public void setArticuloCollection(Collection<Articulo> articuloCollection) {
+        this.articuloCollection = articuloCollection;
+    }
+
+
+    public Collection<DetalleOrdendeDeCompra> getDetalleOrdendeDeCompraCollection() {
+        return detalleOrdendeDeCompraCollection;
+    }
+
+    public void setDetalleOrdendeDeCompraCollection(Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection) {
+        this.detalleOrdendeDeCompraCollection = detalleOrdendeDeCompraCollection;
+    }
+
     public String getDescripcion() {
         return descripcion;
     }
@@ -224,14 +244,6 @@ public class Unidad implements Serializable {
 
     public void setHabilitada(boolean habilitada) {
         this.habilitada = habilitada;
-    }
-
-    public Collection<Articulo> getArticuloCollection() {
-        return articuloCollection;
-    }
-
-    public void setArticuloCollection(Collection<Articulo> articuloCollection) {
-        this.articuloCollection = articuloCollection;
     }
     
 }

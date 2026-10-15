@@ -33,12 +33,6 @@ import java.util.Date;
     @NamedQuery(name = "Almacen.findAll", query = "SELECT a FROM Almacen a")})
 public class Almacen implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Size(max = 50)
     @Column(name = "nombre")
     private String nombre;
@@ -55,6 +49,13 @@ public class Almacen implements Serializable {
     @Size(min = 1, max = 50)
     @Column(name = "creado_por")
     private String creadoPor;
+
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @OneToMany(mappedBy = "almacen")
     private Collection<DetalleEntradaInventario> detalleEntradaInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacenDestino")
@@ -101,22 +102,6 @@ public class Almacen implements Serializable {
 
     public void setCodigo(Integer codigo) {
         this.codigo = codigo;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getUbicacion() {
-        return ubicacion;
-    }
-
-    public void setUbicacion(String ubicacion) {
-        this.ubicacion = ubicacion;
     }
 
     public Date getFechaCreacion() {
@@ -263,5 +248,22 @@ public class Almacen implements Serializable {
     public String toString() {
         return nombre;
     }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getUbicacion() {
+        return ubicacion;
+    }
+
+    public void setUbicacion(String ubicacion) {
+        this.ubicacion = ubicacion;
+    }
+
     
 }

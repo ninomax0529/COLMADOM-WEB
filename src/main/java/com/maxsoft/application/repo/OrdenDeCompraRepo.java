@@ -4,7 +4,8 @@
  */
 package com.maxsoft.application.repo;
 
-
+import com.maxsoft.application.modelo.DetalleOrdendeDeCompra;
+import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.OrdenDeCompra;
 import com.maxsoft.application.modelo.Proveedor;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface OrdenDeCompraRepo extends JpaRepository<OrdenDeCompra, Integer> {
@@ -31,10 +33,19 @@ public interface OrdenDeCompraRepo extends JpaRepository<OrdenDeCompra, Integer>
 //           "LEFT JOIN FETCH o.moneda " +
 //           "WHERE o.codigo = :codigo")
 //    Optional<OrdenDeCompra> buscarPorCodigo(@Param("codigo") Integer codigo);
-
-    @Query("SELECT DISTINCT o FROM OrdenDeCompra o " +
-          // "LEFT JOIN FETCH o.DetalleOrdendeDeCompra d " +
-           "WHERE o.facturada = false AND o.anulada = false")
+    @Query("SELECT DISTINCT o FROM OrdenDeCompra o "
+            + // "LEFT JOIN FETCH o.DetalleOrdendeDeCompra d " +
+            "WHERE o.facturada = false AND o.anulada = false")
     List<OrdenDeCompra> pendientesDeFacturacion();
+
+    String strDet = "  SELECT * FROM  orden_de_compra   where  anulada=false   and estado='PENDIENTE' ";
+
+    @Query(value = strDet, nativeQuery = true)
+    public List<OrdenDeCompra> getListaOcPendiente();
+
+    String strDet1 = "  SELECT * FROM  detalle_ordende_de_compra  where orden_de_compra=:oc ";
+
+    @Query(value = strDet1, nativeQuery = true)
+    public List<DetalleOrdendeDeCompra> getDetalle(int oc);
 
 }

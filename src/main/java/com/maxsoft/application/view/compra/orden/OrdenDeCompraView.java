@@ -1,11 +1,13 @@
 package com.maxsoft.application.view.compra.orden;
 
 import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.ArticuloEmpaque;
 import com.maxsoft.application.modelo.DetalleOrdendeDeCompra;
 import com.maxsoft.application.modelo.OrdenDeCompra;
 import com.maxsoft.application.modelo.Proveedor;
 import com.maxsoft.application.servicio.interfaces.compra.OrdenDeCompraService;
 import com.maxsoft.application.servicio.interfaces.compra.ProveedorService;
+import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.util.ClaseUtil;
 
@@ -39,21 +41,26 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 @PageTitle("Nueva Orden de Compra")
 @Route(value = "compra/ordenCompra")
-
 public class OrdenDeCompraView extends VerticalLayout {
 
     private final OrdenDeCompraService ordenCompraService;
     private final ProveedorService proveedorService;
     private final ArticuloService articuloService;
+    private final ArticuloEmpaqueService articuloEmpaqueService;
 
     // Modelos
     private final OrdenDeCompra ordenCompra = new OrdenDeCompra();
     private final List<DetalleOrdendeDeCompra> detalles = new ArrayList<>();
     private final Binder<OrdenDeCompra> binder = new Binder<>(OrdenDeCompra.class);
+
+    // % de ITBIS por línea (IdentityHashMap: equals de la entidad puede depender del id, que aquí es null)
+    private final Map<DetalleOrdendeDeCompra, BigDecimal> itbisPorcPorDetalle = new IdentityHashMap<>();
 
     // Encabezado
     private final TextField txtNumero = new TextField("Número Orden");
@@ -66,9 +73,10 @@ public class OrdenDeCompraView extends VerticalLayout {
 
     // Formulario de Detalle
     private final ComboBox<Articulo> cbArticulo = new ComboBox<>("Artículo");
+    private final ComboBox<ArticuloEmpaque> cbEmpaque = new ComboBox<>("Presentación / Empaque");
     private final TextField txtDescripcion = new TextField("Descripción");
     private final NumberField numCantidad = new NumberField("Cantidad");
-    private final NumberField numPrecio = new NumberField("Precio Unitario");
+    private final NumberField numPrecio = new NumberField("P. Unitario Empaque");
     private final NumberField numItbisPorc = new NumberField("% ITBIS");
     private final Button btnAgregarDetalle = new Button("Agregar Detalle", VaadinIcon.PLUS.create());
 
@@ -86,10 +94,12 @@ public class OrdenDeCompraView extends VerticalLayout {
 
     public OrdenDeCompraView(OrdenDeCompraService ordenCompraService,
             ProveedorService proveedorService,
-            ArticuloService articuloService) {
+            ArticuloService articuloService,
+            ArticuloEmpaqueService articuloEmpaqueService) {
         this.ordenCompraService = ordenCompraService;
         this.proveedorService = proveedorService;
         this.articuloService = articuloService;
+        this.articuloEmpaqueService = articuloEmpaqueService;
 
         setSpacing(true);
         setPadding(true);
@@ -104,6 +114,9 @@ public class OrdenDeCompraView extends VerticalLayout {
         cargarDatosIniciales();
     }
 
+    // =====================================================================
+    // ENCABEZADO
+    // =====================================================================
     private void crearFormularioEncabezado() {
         FormLayout formLayout = new FormLayout();
 
@@ -148,6 +161,9 @@ public class OrdenDeCompraView extends VerticalLayout {
         }
     }
 
+    // =====================================================================
+    // AGREGAR DETALLE (con multi-empaque)
+    // =====================================================================
     private void crearSeccionAgregarDetalle() {
         HorizontalLayout layoutDetalle = new HorizontalLayout();
         layoutDetalle.setWidthFull();
@@ -159,54 +175,167 @@ public class OrdenDeCompraView extends VerticalLayout {
         cbArticulo.setWidth("20%");
         cbArticulo.addValueChangeListener(e -> seleccionarArticulo(e.getValue()));
 
+        cbEmpaque.setItemLabelGenerator(this::etiquetaEmpaque);
+        cbEmpaque.setPlaceholder("Seleccionar Empaque...");
+        cbEmpaque.setWidth("18%");
+        cbEmpaque.addValueChangeListener(e -> sugerirPrecioDeEmpaque(e.getValue()));
+
         txtDescripcion.setPlaceholder("Descripción del artículo");
-        txtDescripcion.setWidth("30%");
+        txtDescripcion.setWidth("22%");
 
-        numCantidad.setMin(1);
+        numCantidad.setMin(0.01);
         numCantidad.setValue(1.0);
-        numCantidad.setWidth("12%");
-
-        // Atajo enfocado únicamente en la caja de texto "Cantidad"
-        numCantidad.addKeyPressListener(Key.ENTER, e -> {
-
-            try {
-
-                agregarDetalleAGrid();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-
+        numCantidad.setWidth("10%");
+        numCantidad.addKeyPressListener(Key.ENTER, e ->{
+            agregarDetalleAGrid();
         });
 
         numPrecio.setMin(0);
         numPrecio.setPlaceholder("0.00");
-        numPrecio.setWidth("13%");
+        numPrecio.setWidth("12%");
 
         numItbisPorc.setPlaceholder("18.0");
         numItbisPorc.setValue(18.0);
-        numItbisPorc.setWidth("10%");
+        numItbisPorc.setWidth("8%");
 
         btnAgregarDetalle.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        btnAgregarDetalle.addClickListener(e -> agregarDetalleAGrid());
+        btnAgregarDetalle.addClickListener(e ->{
+         agregarDetalleAGrid();
+        });
 
-        layoutDetalle.add(cbArticulo, txtDescripcion, numCantidad, numPrecio, numItbisPorc, btnAgregarDetalle);
+        layoutDetalle.add(cbArticulo, cbEmpaque, txtDescripcion, numCantidad, numPrecio, numItbisPorc, btnAgregarDetalle);
         add(layoutDetalle);
     }
 
+    private String etiquetaEmpaque(ArticuloEmpaque e) {
+        String unidad = e.getUnidadEmpaque() != null ? e.getUnidadEmpaque().getDescripcion() : "Sin unidad";
+        BigDecimal f = e.getFactorConversion() != null ? e.getFactorConversion() : BigDecimal.ONE;
+        return unidad + " (x" + f.stripTrailingZeros().toPlainString() + ")";
+    }
+
     private void seleccionarArticulo(Articulo articulo) {
-        if (articulo != null) {
-            txtDescripcion.setValue(articulo.getDescripcion() != null ? articulo.getDescripcion() : "");
-            numPrecio.setValue(articulo.getPrecioCompra() != null ? articulo.getPrecioCompra().doubleValue() : 0.0);
-            numItbisPorc.setValue(articulo.getPrecioCompra() != null ? articulo.getPrecioCompra().doubleValue() : 18.0);
-            numCantidad.focus();
+        cbEmpaque.clear();
+        cbEmpaque.setItems(List.of());
+
+        if (articulo == null) {
+            return;
+        }
+
+        txtDescripcion.setValue(articulo.getDescripcion() != null ? articulo.getDescripcion() : "");
+
+        List<ArticuloEmpaque> todos = articuloEmpaqueService.getPorArticulo(articulo.getCodigo());
+        if (todos == null || todos.isEmpty()) {
+            Notification.show("El artículo " + articulo.getCodigo() + " no tiene empaques configurados.",
+                    3500, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_WARNING);
+            return;
+        }
+
+        // Preferir los habilitados para compra; si ninguno lo está, mostrar todos
+        List<ArticuloEmpaque> empaquesCompra = todos.stream()
+                .filter(emp -> Boolean.TRUE.equals(emp.getSeCompraEn()))
+                .toList();
+        List<ArticuloEmpaque> disponibles = empaquesCompra.isEmpty() ? todos : empaquesCompra;
+
+        cbEmpaque.setItems(disponibles);
+
+        // Autoseleccionar el empaque base (o el primero); esto dispara la sugerencia de precio
+        disponibles.stream()
+                .filter(emp -> Boolean.TRUE.equals(emp.getEsEmpaqueBase()))
+                .findFirst()
+                .or(() -> disponibles.stream().findFirst())
+                .ifPresent(cbEmpaque::setValue);
+
+        numCantidad.focus();
+    }
+
+    /**
+     * Sugiere el precio de compra del empaque; si no tiene, el del artículo.
+     */
+    private void sugerirPrecioDeEmpaque(ArticuloEmpaque emp) {
+        if (emp != null && emp.getPrecioCompra() != null) {
+            numPrecio.setValue(emp.getPrecioCompra().doubleValue());
+        } else if (cbArticulo.getValue() != null && cbArticulo.getValue().getPrecioCompra() != null) {
+            numPrecio.setValue(cbArticulo.getValue().getPrecioCompra().doubleValue());
         }
     }
 
+    private void agregarDetalleAGrid() {
+        
+        try {
+            if (cbArticulo.isEmpty() || cbEmpaque.isEmpty()
+                    || numCantidad.getValue() == null || numCantidad.getValue() <= 0
+                    || numPrecio.getValue() == null) {
+                Notification.show("Seleccione artículo, empaque, cantidad y precio válidos.", 3000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
+            Articulo articulo = cbArticulo.getValue();
+            ArticuloEmpaque empaque = cbEmpaque.getValue();
+            String descripcion = txtDescripcion.getValue() != null && !txtDescripcion.getValue().isBlank()
+                    ? txtDescripcion.getValue().trim() : articulo.getDescripcion();
+
+            // Duplicado = mismo artículo + mismo empaque (el mismo artículo en otra presentación sí se permite)
+            boolean yaExiste = detalles.stream().anyMatch(d
+                    -> d.getArticulo() != null && d.getArticulo().getCodigo().equals(articulo.getCodigo())
+                    && d.getArticuloEmpaque() != null && d.getArticuloEmpaque().getCodigo().equals(empaque.getCodigo()));
+
+            if (yaExiste) {
+                Notification.show("Esta presentación del artículo ya está agregada en la orden.", 3500, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_WARNING);
+                return;
+            }
+
+            BigDecimal cantidad = BigDecimal.valueOf(numCantidad.getValue());
+            BigDecimal precioEmpaque = BigDecimal.valueOf(numPrecio.getValue());
+            BigDecimal porcItbis = BigDecimal.valueOf(numItbisPorc.getValue() != null ? numItbisPorc.getValue() : 0.0);
+            BigDecimal factor = empaque.getFactorConversion() != null ? empaque.getFactorConversion() : BigDecimal.ONE;
+
+            BigDecimal subTotal = cantidad.multiply(precioEmpaque).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal itbis = subTotal.multiply(porcItbis).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+            DetalleOrdendeDeCompra detalle = new DetalleOrdendeDeCompra();
+            detalle.setCodigo(articulo.getCodigo());
+            detalle.setArticulo(articulo);
+            detalle.setDescripcionArticulo(descripcion);
+
+            // Multi-empaque (estos campos deben existir en DetalleOrdendeDeCompra)
+            detalle.setArticuloEmpaque(empaque);
+            detalle.setFactorConversion(factor);
+            detalle.setCantidadFisicaBase(cantidad.multiply(factor));
+
+
+            detalle.setCantidad(cantidad);              // en unidades del empaque
+            detalle.setCantidadRecibida(BigDecimal.ZERO);
+            detalle.setPendiente(cantidad);             // pendiente también en unidades del empaque
+            detalle.setPrecioUnitario(precioEmpaque);   // precio por empaque
+            detalle.setSubTotal(subTotal);
+            detalle.setItbis(itbis);
+            detalle.setTotal(subTotal.add(itbis));
+
+            detalles.add(detalle);
+            itbisPorcPorDetalle.put(detalle, porcItbis);
+            actualizarGridYTotales();
+            limpiarFormularioDetalle();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Notification.show("Error al agregar el detalle: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
+    }
+
+    // =====================================================================
+    // GRID
+    // =====================================================================
     private void configurarGridDetalles() {
         gridDetalles.addThemeVariants(GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_COMPACT);
 
         gridDetalles.addColumn(d -> d.getArticulo() != null ? d.getArticulo().getCodigo() : "-").setHeader("Código").setAutoWidth(true);
         gridDetalles.addColumn(DetalleOrdendeDeCompra::getDescripcionArticulo).setHeader("Descripción").setFlexGrow(3);
+
+        gridDetalles.addColumn(d -> d.getArticuloEmpaque() != null && d.getArticuloEmpaque().getUnidadEmpaque() != null
+                ? d.getArticuloEmpaque().getUnidadEmpaque().getDescripcion() : "-").setHeader("Presentación").setAutoWidth(true);
 
         // Edición de Cantidad
         gridDetalles.addComponentColumn(detalle -> {
@@ -223,7 +352,12 @@ public class OrdenDeCompraView extends VerticalLayout {
             return fieldCantidad;
         }).setHeader("Cantidad").setAutoWidth(true);
 
-        // Edición de Precio Unitario
+        // Equivalencia en unidad base
+        gridDetalles.addColumn(d -> d.getCantidadFisicaBase() != null
+                ? d.getCantidadFisicaBase().stripTrailingZeros().toPlainString() + " (Base)" : "-")
+                .setHeader("Equiv. Base").setAutoWidth(true);
+
+        // Edición de Precio Unitario (por empaque)
         gridDetalles.addComponentColumn(detalle -> {
             NumberField fieldPrecio = new NumberField();
             fieldPrecio.setValue(detalle.getPrecioUnitario() != null ? detalle.getPrecioUnitario().doubleValue() : 0.0);
@@ -256,24 +390,19 @@ public class OrdenDeCompraView extends VerticalLayout {
     }
 
     private void recalcularFila(DetalleOrdendeDeCompra detalle, BigDecimal nuevaCantidad, BigDecimal nuevoPrecio) {
-        BigDecimal porcItbis = BigDecimal.ZERO;
-
-        if (detalle.getSubTotal() != null && detalle.getSubTotal().compareTo(BigDecimal.ZERO) > 0) {
-            porcItbis = detalle.getItbis().multiply(BigDecimal.valueOf(100)).divide(detalle.getSubTotal(), 2, RoundingMode.HALF_UP);
-        } else if (numItbisPorc.getValue() != null) {
-            porcItbis = BigDecimal.valueOf(numItbisPorc.getValue());
-        }
+        BigDecimal porcItbis = itbisPorcPorDetalle.getOrDefault(detalle, BigDecimal.ZERO);
+        BigDecimal factor = detalle.getFactorConversion() != null ? detalle.getFactorConversion() : BigDecimal.ONE;
 
         BigDecimal subTotal = nuevaCantidad.multiply(nuevoPrecio).setScale(2, RoundingMode.HALF_UP);
         BigDecimal itbis = subTotal.multiply(porcItbis).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal total = subTotal.add(itbis);
 
         detalle.setCantidad(nuevaCantidad);
+        detalle.setCantidadFisicaBase(nuevaCantidad.multiply(factor)); // mantener la conversión al cambiar la cantidad
         detalle.setPendiente(nuevaCantidad);
         detalle.setPrecioUnitario(nuevoPrecio);
         detalle.setSubTotal(subTotal);
         detalle.setItbis(itbis);
-        detalle.setTotal(total);
+        detalle.setTotal(subTotal.add(itbis));
 
         actualizarTotalesGenerales();
         gridDetalles.getDataProvider().refreshItem(detalle);
@@ -292,6 +421,7 @@ public class OrdenDeCompraView extends VerticalLayout {
 
         dialog.addConfirmListener(e -> {
             detalles.remove(detalle);
+            itbisPorcPorDetalle.remove(detalle);
             actualizarGridYTotales();
             Notification.show("Artículo eliminado de la orden.", 2500, Notification.Position.BOTTOM_END);
         });
@@ -299,92 +429,6 @@ public class OrdenDeCompraView extends VerticalLayout {
         dialog.open();
     }
 
-    private void agregarDetalleAGrid() {
-        // 1. Validar campos obligatorios
-        if ((cbArticulo.isEmpty() && txtDescripcion.isEmpty()) || numCantidad.getValue() == null || numPrecio.getValue() == null) {
-            Notification.show("Seleccione un artículo o ingrese una descripción, cantidad y precio válidos.", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            return;
-        }
-
-        Articulo articuloSeleccionado = cbArticulo.getValue();
-        String descripcionIngresada = txtDescripcion.getValue() != null ? txtDescripcion.getValue().trim() : "";
-
-        // 2. Validar si el artículo ya existe en la lista
-        boolean yaExiste = detalles.stream().anyMatch(d -> {
-            // Caso A: Coincide por objeto Articulo (si proviene del ComboBox)
-            if (articuloSeleccionado != null && d.getArticulo() != null) {
-                return d.getArticulo().getCodigo().equals(articuloSeleccionado.getCodigo());
-            }
-            // Caso B: Coincide por la Descripción del texto
-            return d.getDescripcionArticulo() != null
-                    && d.getDescripcionArticulo().equalsIgnoreCase(descripcionIngresada);
-        });
-
-        if (yaExiste) {
-            Notification.show("El artículo '" + (articuloSeleccionado != null ? articuloSeleccionado.getDescripcion() : descripcionIngresada) + "' ya está agregado en la orden.", 3500, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_WARNING);
-            return;
-        }
-
-        // 3. Crear y calcular el nuevo detalle
-        BigDecimal cantidad = BigDecimal.valueOf(numCantidad.getValue());
-        BigDecimal precioUnitario = BigDecimal.valueOf(numPrecio.getValue());
-        BigDecimal porcItbis = BigDecimal.valueOf(numItbisPorc.getValue() != null ? numItbisPorc.getValue() : 0.0);
-
-        BigDecimal subTotal = cantidad.multiply(precioUnitario).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal itbis = subTotal.multiply(porcItbis).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal total = subTotal.add(itbis);
-
-        DetalleOrdendeDeCompra detalle = new DetalleOrdendeDeCompra();
-        detalle.setCodigo(articuloSeleccionado.getCodigo());
-        detalle.setArticulo(articuloSeleccionado);
-        detalle.setDescripcionArticulo(descripcionIngresada);
-        detalle.setCantidad(cantidad);
-        detalle.setCantidadRecibida(BigDecimal.ZERO);
-        detalle.setPendiente(cantidad);
-        detalle.setPrecioUnitario(precioUnitario);
-        detalle.setSubTotal(subTotal);
-        detalle.setItbis(itbis);
-        detalle.setTotal(total);
-
-        detalles.add(detalle);
-        actualizarGridYTotales();
-        limpiarFormularioDetalle();
-    }
-
-//    private void agregarDetalleAGrid() {
-//        
-//        if ((cbArticulo.isEmpty() && txtDescripcion.isEmpty()) || numCantidad.getValue() == null || numPrecio.getValue() == null) {
-//            Notification.show("Seleccione un artículo o ingrese una descripción, cantidad y precio válidos.", 3000, Notification.Position.MIDDLE)
-//                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-//            return;
-//        }
-//
-//        BigDecimal cantidad = BigDecimal.valueOf(numCantidad.getValue());
-//        BigDecimal precioUnitario = BigDecimal.valueOf(numPrecio.getValue());
-//        BigDecimal porcItbis = BigDecimal.valueOf(numItbisPorc.getValue() != null ? numItbisPorc.getValue() : 0.0);
-//
-//        BigDecimal subTotal = cantidad.multiply(precioUnitario).setScale(2, RoundingMode.HALF_UP);
-//        BigDecimal itbis = subTotal.multiply(porcItbis).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-//        BigDecimal total = subTotal.add(itbis);
-//
-//        DetalleOrdendeDeCompra detalle = new DetalleOrdendeDeCompra();
-//        detalle.setCodigo(cbArticulo.getValue().getCodigo());
-//        detalle.setArticulo(cbArticulo.getValue());
-//        detalle.setDescripcionArticulo(txtDescripcion.getValue());
-//        detalle.setCantidad(cantidad);
-//        detalle.setCantidadRecibida(BigDecimal.ZERO);
-//        detalle.setPendiente(cantidad);
-//        detalle.setPrecioUnitario(precioUnitario);
-//        detalle.setSubTotal(subTotal);
-//        detalle.setItbis(itbis);
-//        detalle.setTotal(total);
-//
-//        detalles.add(detalle);
-//        actualizarGridYTotales();
-//        limpiarFormularioDetalle();
-//    }
     private void actualizarGridYTotales() {
         gridDetalles.getDataProvider().refreshAll();
         actualizarTotalesGenerales();
@@ -402,12 +446,17 @@ public class OrdenDeCompraView extends VerticalLayout {
 
     private void limpiarFormularioDetalle() {
         cbArticulo.clear();
+        cbEmpaque.clear();
+        cbEmpaque.setItems(List.of());
         txtDescripcion.clear();
         numCantidad.setValue(1.0);
         numPrecio.clear();
         cbArticulo.focus();
     }
 
+    // =====================================================================
+    // TOTALES Y ACCIONES
+    // =====================================================================
     private void crearSeccionTotalesYAcciones() {
         HorizontalLayout layoutInferior = new HorizontalLayout();
         layoutInferior.setWidthFull();
@@ -416,11 +465,13 @@ public class OrdenDeCompraView extends VerticalLayout {
 
         FormLayout layoutTotales = new FormLayout();
         layoutTotales.addFormItem(lblSubTotal, "SubTotal:");
-        layoutTotales.addFormItem(lblItbis, "ITBIS (18%):");
+        layoutTotales.addFormItem(lblItbis, "ITBIS:");
         layoutTotales.addFormItem(lblTotal, "Total General:");
 
         btnGuardar.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        btnGuardar.addClickListener(e -> guardarOrden());
+        btnGuardar.addClickListener(e -> {
+            guardarOrden();
+        });
 
         btnCancelar.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("ordenes-compra")));
 
@@ -450,8 +501,12 @@ public class OrdenDeCompraView extends VerticalLayout {
         }
 
         try {
+            
             ordenCompra.setNumero(txtNumero.getValue());
             ordenCompra.setProveedor(cbSuplidor.getValue());
+            ordenCompra.setNombreProveedor(cbSuplidor.getValue().getNombre());
+            ordenCompra.setRnc(cbSuplidor.getValue().getRnc());
+            ordenCompra.setPlazo(cbSuplidor.getValue().getPlazo());
             ordenCompra.setFecha(Date.from(dtFecha.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
             ordenCompra.setFechaDeEntrega(Date.from(dtFechaEntrega.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
             ordenCompra.setComentario(txtComentario.getValue());
@@ -469,10 +524,9 @@ public class OrdenDeCompraView extends VerticalLayout {
             ordenCompra.setSubtotal(subG);
 
             detalles.forEach(o -> {
-
                 o.setCodigo(null);
                 o.setOrdenDeCompra(ordenCompra);
-
+                o.setUnidad(o.getArticuloEmpaque().getUnidadEmpaque());
             });
 
             ordenCompra.setDetalleOrdendeDeCompraCollection(detalles);
@@ -480,11 +534,8 @@ public class OrdenDeCompraView extends VerticalLayout {
             ordenCompraService.guardar(ordenCompra);
 
             ClaseUtil.mostrarNotificacion("Orden de Compra guardada exitosamente.", NotificationVariant.LUMO_PRIMARY);
-//            Notification.show(, 3000, Notification.Position.BOTTOM_END)
-//                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             limpiarFormularioCompleto();
 
-//            getUI().ifPresent(ui -> ui.navigate());
         } catch (Exception ex) {
             ex.printStackTrace();
             Notification.show("Error al guardar la orden: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
@@ -493,14 +544,12 @@ public class OrdenDeCompraView extends VerticalLayout {
     }
 
     private void limpiarFormularioCompleto() {
-        // 1. Limpiar lista y actualizar Grid y Totales
         detalles.clear();
+        itbisPorcPorDetalle.clear();
         actualizarGridYTotales();
 
-        // 2. Generar un nuevo número de orden
         txtNumero.setValue("OC-" + System.currentTimeMillis() / 1000);
 
-        // 3. Resetear datos del Encabezado
         cbSuplidor.clear();
         txtTipoProveedor.clear();
         txtPlazoProveedor.clear();
@@ -508,10 +557,8 @@ public class OrdenDeCompraView extends VerticalLayout {
         dtFechaEntrega.setValue(LocalDate.now().plusDays(7));
         txtComentario.clear();
 
-        // 4. Resetear la sección de Detalle
         limpiarFormularioDetalle();
 
-        // 5. Enfocar el primer campo editable
         cbSuplidor.focus();
     }
 }

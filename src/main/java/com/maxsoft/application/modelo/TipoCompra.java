@@ -28,15 +28,16 @@ import java.util.Collection;
     @NamedQuery(name = "TipoCompra.findAll", query = "SELECT t FROM TipoCompra t")})
 public class TipoCompra implements Serializable {
 
+    @Size(max = 50)
+    @Column(name = "nombre")
+    private String nombre;
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @Size(max = 50)
-    @Column(name = "nombre")
-    private String nombre;
     @OneToMany(mappedBy = "tipoCompra")
     private Collection<OrdenDeCompra> ordenDeCompraCollection;
 
@@ -55,13 +56,6 @@ public class TipoCompra implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
 
     public Collection<OrdenDeCompra> getOrdenDeCompraCollection() {
         return ordenDeCompraCollection;
@@ -94,6 +88,14 @@ public class TipoCompra implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.TipoCompra[ codigo=" + codigo + " ]";
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
     }
     
 }

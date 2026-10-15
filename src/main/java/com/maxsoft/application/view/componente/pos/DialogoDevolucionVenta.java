@@ -122,8 +122,10 @@ public class DialogoDevolucionVenta extends Dialog {
     private void calcularTotalReembolso() {
         
         double total = gridItems.getGenericDataView().getItems()
-                .mapToDouble(item -> item.getCantidadADevolver().doubleValue() * item.getPrecioUnitario())
+                .mapToDouble(item -> item.getCantidadADevolver()==null ? 0.00 : 
+                        item.getCantidadADevolver().doubleValue() * item.getPrecioUnitario())
                 .sum();
+        
         lblTotalReembolso.setText(String.format("Total a Reembolsar: $%.2f", total));
     }
 
@@ -141,11 +143,19 @@ public class DialogoDevolucionVenta extends Dialog {
         solicitud.setUsuario(usuarioActual);
 
         List<SolicitudDevolucionDto.ItemDevolucionDto> itemsDev = new ArrayList<>();
+        
         for (ItemDevolucionModel model : items) {
+            
+            if(model.getCantidadADevolver()==null){
+                model.setCantidadADevolver(BigDecimal.ZERO);
+            }
+            
             if (model.getCantidadADevolver().doubleValue() > 0) {
+                
                 SolicitudDevolucionDto.ItemDevolucionDto itemDto = new SolicitudDevolucionDto.ItemDevolucionDto();
                 itemDto.setIdDetalleFactura(model.getIdDetalle());
-                itemDto.setCantidadADevolver(model.getCantidadADevolver());
+                itemDto.setCantidadADevolver(model.getCantidadADevolver() == null ? BigDecimal.ZERO : model.getCantidadADevolver()
+                );
                 itemsDev.add(itemDto);
             }
         }

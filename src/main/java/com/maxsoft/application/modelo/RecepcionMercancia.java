@@ -37,45 +37,40 @@ import java.util.Date;
     @NamedQuery(name = "RecepcionMercancia.findAll", query = "SELECT r FROM RecepcionMercancia r")})
 public class RecepcionMercancia implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Column(name = "fecha")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fecha;
     @Basic(optional = false)
-    @NotNull
+    @NotNull()
     @Size(min = 1, max = 50)
     @Column(name = "numero_documento")
     private String numeroDocumento;
     @Basic(optional = false)
     @NotNull
-    @Size(min = 1, max = 20)
-    @Column(name = "nombre_documento")
+    @Size(min = 1, max =50)
+    @Column( name="nombre_documento")
     private String nombreDocumento;
     @Size(max = 150)
     @Column(name = "nombre_proveedor")
     private String nombreProveedor;
     @Basic(optional = false)
     @NotNull
-    @Lob
+    @Lob()
     @Size(min = 1, max = 65535)
     @Column(name = "comentario")
     private String comentario;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
-    @NotNull
+    @NotNull()
     @Column(name = "subtotal")
     private BigDecimal subtotal;
     @Basic(optional = false)
     @NotNull
     @Column(name = "total_itbis")
     private BigDecimal totalItbis;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
     @NotNull
     @Column(name = "total")
@@ -90,6 +85,18 @@ public class RecepcionMercancia implements Serializable {
     @Size(min = 1, max = 120)
     @Column(name = "nombre_usuario")
     private String nombreUsuario;
+    @Size(max = 20)
+    @Column(name = "numero_oc")
+    private String numeroOc;
+    @JoinColumn(name = "orden_compra", referencedColumnName = "codigo")
+    @ManyToOne
+    private OrdenDeCompra ordenCompra;
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "recepcionMercancia")
     private Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection;
     @JoinColumn(name = "almacen", referencedColumnName = "codigo")
@@ -136,13 +143,6 @@ public class RecepcionMercancia implements Serializable {
         this.codigo = codigo;
     }
 
-    public Date getFecha() {
-        return fecha;
-    }
-
-    public void setFecha(Date fecha) {
-        this.fecha = fecha;
-    }
 
     public String getNumeroDocumento() {
         return numeroDocumento;
@@ -168,21 +168,6 @@ public class RecepcionMercancia implements Serializable {
         this.nombreProveedor = nombreProveedor;
     }
 
-    public String getComentario() {
-        return comentario;
-    }
-
-    public void setComentario(String comentario) {
-        this.comentario = comentario;
-    }
-
-    public BigDecimal getSubtotal() {
-        return subtotal;
-    }
-
-    public void setSubtotal(BigDecimal subtotal) {
-        this.subtotal = subtotal;
-    }
 
     public BigDecimal getTotalItbis() {
         return totalItbis;
@@ -192,13 +177,6 @@ public class RecepcionMercancia implements Serializable {
         this.totalItbis = totalItbis;
     }
 
-    public BigDecimal getTotal() {
-        return total;
-    }
-
-    public void setTotal(BigDecimal total) {
-        this.total = total;
-    }
 
     public String getNombreEstado() {
         return nombreEstado;
@@ -287,6 +265,54 @@ public class RecepcionMercancia implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.RecepcionMercancia[ codigo=" + codigo + " ]";
+    }
+
+    public Date getFecha() {
+        return fecha;
+    }
+
+    public void setFecha(Date fecha) {
+        this.fecha = fecha;
+    }
+
+    public String getComentario() {
+        return comentario;
+    }
+
+    public void setComentario(String comentario) {
+        this.comentario = comentario;
+    }
+
+    public BigDecimal getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(BigDecimal subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public String getNumeroOc() {
+        return numeroOc;
+    }
+
+    public void setNumeroOc(String numeroOc) {
+        this.numeroOc = numeroOc;
+    }
+
+    public OrdenDeCompra getOrdenCompra() {
+        return ordenCompra;
+    }
+
+    public void setOrdenCompra(OrdenDeCompra ordenCompra) {
+        this.ordenCompra = ordenCompra;
     }
     
 }

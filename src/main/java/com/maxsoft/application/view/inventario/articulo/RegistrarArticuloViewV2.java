@@ -217,7 +217,7 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
             });
             btnBorrar.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
 
-            return new HorizontalLayout(btnEditar, btnBorrar);
+            return new HorizontalLayout(btnEditar);
         })).setHeader("Acciones");
 
         btnAgregarAlmacen.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -391,6 +391,7 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
         BigDecimalField txtFactor = new BigDecimalField("Factor Conversión (Equivalencia en Uds)");
         txtFactor.setValue(BigDecimal.ONE);
 
+        TextField txtDescEmpaque = new TextField("Descripcion Empaque");
         TextField txtBarcode = new TextField("Código de Barras");
         BigDecimalField txtPrecioCompraEmp = new BigDecimalField("Precio Compra Presentación");
         BigDecimalField txtPrecioVentaEmp = new BigDecimalField("Precio Venta Presentación");
@@ -404,6 +405,9 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
             cbUnidad.setValue(empaqueEditar.getUnidadEmpaque());
             txtFactor.setValue(empaqueEditar.getFactorConversion());
             txtBarcode.setValue(empaqueEditar.getCodigoBarra() == null ? "1" : empaqueEditar.getCodigoBarra());
+
+            txtDescEmpaque.setValue(empaqueEditar.getDescripcionEmpaque() == null ? "" : empaqueEditar.getDescripcionEmpaque());
+
             txtPrecioCompraEmp.setValue(empaqueEditar.getPrecioCompra());
             txtPrecioVentaEmp.setValue(empaqueEditar.getPrecioVenta());
             chkBase.setValue(Boolean.TRUE.equals(empaqueEditar.getEsEmpaqueBase()));
@@ -436,13 +440,22 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
             }
         });
 
-        FormLayout form = new FormLayout(cbUnidad, txtFactor, txtBarcode, txtPrecioCompraEmp, txtPrecioVentaEmp, chkBase, chkCompra, chkVenta);
+        FormLayout form = new FormLayout(
+                txtDescEmpaque,
+                cbUnidad, txtFactor, txtBarcode, txtPrecioCompraEmp, txtPrecioVentaEmp, chkBase, chkCompra, chkVenta);
+
         form.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 1), new FormLayout.ResponsiveStep("300px", 2));
 
         Button btnGuardarModal = new Button(esEdicion ? "Guardar" : "Agregar", e -> {
             Unidad unidadSeleccionada = cbUnidad.getValue();
             BigDecimal factor = txtFactor.getValue();
             String barcode = txtBarcode.getValue() != null ? txtBarcode.getValue().trim() : "";
+
+            if (txtDescEmpaque.getValue().isEmpty()) {
+                
+                Notification.show("La descripcion del empaque esta vacia", 3000, Notification.Position.MIDDLE);
+                return;
+            }
 
             if (unidadSeleccionada == null || factor == null) {
                 Notification.show("Ingrese los datos requeridos", 3000, Notification.Position.MIDDLE);
@@ -494,6 +507,7 @@ public class RegistrarArticuloViewV2 extends VerticalLayout implements HasUrlPar
             emp.setEsEmpaqueBase(esBase);
             emp.setSeCompraEn(chkCompra.getValue());
             emp.setSeVendeEn(chkVenta.getValue());
+            emp.setDescripcionEmpaque(txtDescEmpaque.getValue());
 
             if (!esEdicion) {
 

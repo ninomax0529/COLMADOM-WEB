@@ -529,6 +529,18 @@ public class Articulo implements Serializable {
     public String toString() {
         return descripcion;
     }
+    public String getNombreUnidadBase() {
+        return nombreUnidadBase;
+    }
+    public void setNombreUnidadBase(String nombreUnidadBase) {
+        this.nombreUnidadBase = nombreUnidadBase;
+    }
+    public Unidad getUnidadBase() {
+        return unidadBase;
+    }
+    public void setUnidadBase(Unidad unidadBase) {
+        this.unidadBase = unidadBase;
+    }
 
     public int getNumero() {
         return numero;
@@ -538,6 +550,7 @@ public class Articulo implements Serializable {
         this.numero = numero;
     }
 
+  
     public String getDescripcion() {
         return descripcion;
     }
@@ -554,7 +567,6 @@ public class Articulo implements Serializable {
         this.inventariable = inventariable;
     }
 
-  
     public String getModelo() {
         return modelo;
     }
@@ -579,7 +591,7 @@ public class Articulo implements Serializable {
     public void setCompuesto(boolean compuesto) {
         this.compuesto = compuesto;
     }
-  
+
     public boolean getPerecedero() {
         return perecedero;
     }
@@ -596,20 +608,5 @@ public class Articulo implements Serializable {
         this.habilitado = habilitado;
     }
 
-    public String getNombreUnidadBase() {
-        return nombreUnidadBase;
-    }
-
-    public void setNombreUnidadBase(String nombreUnidadBase) {
-        this.nombreUnidadBase = nombreUnidadBase;
-    }
-
-    public Unidad getUnidadBase() {
-        return unidadBase;
-    }
-
-    public void setUnidadBase(Unidad unidadBase) {
-        this.unidadBase = unidadBase;
-    }
     
 }

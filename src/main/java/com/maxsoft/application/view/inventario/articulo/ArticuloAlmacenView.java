@@ -71,12 +71,13 @@ public class ArticuloAlmacenView extends VerticalLayout {
         configurarControlesSuperiores();
         configurarGrid();
 
-        HorizontalLayout hlFiltros = new HorizontalLayout(txtBuscar, cbFiltroAlmacen, btnNuevo);
+        HorizontalLayout hlFiltros = new HorizontalLayout(txtBuscar, cbFiltroAlmacen);
         hlFiltros.setWidthFull();
         hlFiltros.setAlignItems(Alignment.BASELINE);
 
         add(hlFiltros, grid);
         actualizarGrid();
+        aplicarFiltroTexto();
     }
 
     private void configurarControlesSuperiores() {
@@ -106,29 +107,37 @@ public class ArticuloAlmacenView extends VerticalLayout {
         grid.addColumn(ArticuloAlmacen::getMinimo).setHeader("Mínimo").setAutoWidth(true);
         grid.addColumn(ArticuloAlmacen::getMaximo).setHeader("Máximo").setAutoWidth(true);
         grid.addColumn(ArticuloAlmacen::getUbicacionPasillo).setHeader("Pasillo/Ubicación").setAutoWidth(true);
+//
+//        grid.addColumn(new ComponentRenderer<>(item -> {
+//
+//            Button btnEditar = new Button(new Icon(VaadinIcon.EDIT), e -> {
+//            
+//                abrirFormularioModal(item);
+//            });
+//            
+//            btnEditar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+//
+//            Button btnBorrar = new Button(new Icon(VaadinIcon.TRASH), e -> {
+//                ConfirmDialog dialog = new ConfirmDialog(
+//                        "¿Desea eliminar la configuración de '" + item.getDescripcionArticulo() + "' en '" + item.getNombreAlmacen() + "'?",
+//                        () -> {
+    
 
-        grid.addColumn(new ComponentRenderer<>(item -> {
-
-            Button btnEditar = new Button(new Icon(VaadinIcon.EDIT), e -> abrirFormularioModal(item));
-            btnEditar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-            Button btnBorrar = new Button(new Icon(VaadinIcon.TRASH), e -> {
-                ConfirmDialog dialog = new ConfirmDialog(
-                        "¿Desea eliminar la configuración de '" + item.getDescripcionArticulo() + "' en '" + item.getNombreAlmacen() + "'?",
-                        () -> {
-//                            articuloAlmacenService.eliminar(item.getCodigo());
-                            actualizarGrid();
-                            ClaseUtil.mostrarNotificacion("Registro eliminado exitosamente", NotificationVariant.LUMO_SUCCESS);
-                        },
-                        () -> {
-                        }
-                );
-                dialog.open();
-            });
-            btnBorrar.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
-
-            return new HorizontalLayout(btnEditar, btnBorrar);
-        })).setHeader("Acciones").setAutoWidth(true);
+    ////                            articuloAlmacenService.el(item.getCodigo());
+//                            actualizarGrid();
+//                            ClaseUtil.mostrarNotificacion("Registro eliminado exitosamente", NotificationVariant.LUMO_SUCCESS);
+//                        },
+//                        () -> {
+//                        }
+//                );
+//                dialog.open();
+//            });
+//            
+//            btnBorrar.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+//
+//            return new HorizontalLayout(btnEditar);
+//        })).setHeader("Acciones").setAutoWidth(true);
+        
     }
 
     private void actualizarGrid() {
@@ -158,7 +167,7 @@ public class ArticuloAlmacenView extends VerticalLayout {
     }
 
     private void abrirFormularioModal(ArticuloAlmacen entidad) {
-        
+
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(entidad.getCodigo() == null ? "Nueva Configuración Artículo-Almacén" : "Editar Asignación");
         dialog.setWidth("550px");
@@ -184,9 +193,8 @@ public class ArticuloAlmacenView extends VerticalLayout {
 //            cbArticulo.setEnabled(false);
 //            cbAlmacenModal.setEnabled(false);
 //        }
-
         cbArticulo.addValueChangeListener(e -> {
-            if (e.getValue() != null && e.getValue().getUnidadBase()!= null) {
+            if (e.getValue() != null && e.getValue().getUnidadBase() != null) {
                 entidad.setUnidad(e.getValue().getUnidadBase());
             }
         });
@@ -238,5 +246,29 @@ public class ArticuloAlmacenView extends VerticalLayout {
         dialog.add(formLayout);
         dialog.getFooter().add(btnCancelarModal, btnGuardarModal);
         dialog.open();
+    }
+
+    /**
+     * Filtro de texto en memoria sobre el resultado ya cargado.
+     */
+    private void aplicarFiltroTexto() {
+
+        if (dataView == null) {
+            return;
+        }
+
+        String term = txtBuscar.getValue() == null ? "" : txtBuscar.getValue().trim().toLowerCase();
+
+        dataView.setFilter(e -> {
+            if (term.isEmpty()) {
+                return true;
+            }
+            boolean matchCod = e.getCodigo() != null && e.getCodigo().toString().contains(term);
+            boolean matchCom = e.getDescripcionArticulo()!= null && e.getDescripcionArticulo().toLowerCase().contains(term);
+            boolean matchUsr = e.getNombreAlmacen()!= null && e.getNombreAlmacen().toLowerCase().contains(term);
+            return matchCod || matchCom || matchUsr;
+        });
+
+//        colCodigo.setFooter("TOTAL ENTRADAS: " + dataViewEntradas.getItemCount());
     }
 }

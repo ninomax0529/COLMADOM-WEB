@@ -35,18 +35,16 @@ import java.util.Date;
     @NamedQuery(name = "ArticuloEmpaque.findAll", query = "SELECT a FROM ArticuloEmpaque a")})
 public class ArticuloEmpaque implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Size(max = 60)
     @Column(name = "nombre_articulo")
     private String nombreArticulo;
+    @Size(max = 60)
+    @Column(name = "descripcion_empaque")
+    private String descripcionEmpaque;
     @Size(max = 25)
     @Column(name = "nombre_empaque")
     private String nombreEmpaque;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
     @NotNull
@@ -55,6 +53,16 @@ public class ArticuloEmpaque implements Serializable {
     @Size(max = 50)
     @Column(name = "codigo_barra")
     private String codigoBarra;
+    @Size(max = 50)
+    @Column(name = "creado_por")
+    private String creadoPor;
+
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Column(name = "precio_compra")
     private BigDecimal precioCompra;
     @Column(name = "precio_venta")
@@ -70,9 +78,6 @@ public class ArticuloEmpaque implements Serializable {
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
-    @Size(max = 50)
-    @Column(name = "creado_por")
-    private String creadoPor;
     @OneToMany(mappedBy = "articuloEmpaque")
     private Collection<DetalleEntradaInventario> detalleEntradaInventarioCollection;
     @OneToMany(mappedBy = "articuloEmpaque")
@@ -130,6 +135,20 @@ public class ArticuloEmpaque implements Serializable {
 
     public void setNombreEmpaque(String nombreEmpaque) {
         this.nombreEmpaque = nombreEmpaque;
+    }
+
+    /**
+     * @return the descripcionEmpaque
+     */
+    public String getDescripcionEmpaque() {
+        return descripcionEmpaque;
+    }
+
+    /**
+     * @param descripcionEmpaque the descripcionEmpaque to set
+     */
+    public void setDescripcionEmpaque(String descripcionEmpaque) {
+        this.descripcionEmpaque = descripcionEmpaque;
     }
 
     public BigDecimal getFactorConversion() {
@@ -314,7 +333,7 @@ public class ArticuloEmpaque implements Serializable {
 
     @Override
     public String toString() {
-        return  nombreArticulo;
+        return nombreArticulo;
     }
-    
+
 }

@@ -33,25 +33,26 @@ import java.util.Date;
     @NamedQuery(name = "TipoDocumento.findAll", query = "SELECT t FROM TipoDocumento t")})
 public class TipoDocumento implements Serializable {
 
+    @Basic(optional = false)
+    @NotNull
+    @Size(min = 1, max = 45)
+    @Column(name = "nombre")
+    private String nombre;
+    @Size(max = 50)
+    @Column(name = "creado_por")
+    private String creadoPor;
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 45)
-    @Column(name = "nombre")
-    private String nombre;
     @Column(name = "modulo")
     private Integer modulo;
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
-    @Size(max = 50)
-    @Column(name = "creado_por")
-    private String creadoPor;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoDocumento")
     private Collection<SecuenciaDocumento> secuenciaDocumentoCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoDocumento")
@@ -81,13 +82,6 @@ public class TipoDocumento implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
 
     public Integer getModulo() {
         return modulo;
@@ -168,6 +162,14 @@ public class TipoDocumento implements Serializable {
     @Override
     public String toString() {
         return nombre;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
     }
     
 }

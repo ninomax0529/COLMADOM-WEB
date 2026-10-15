@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.servicio.impl.compra;
 
+import com.maxsoft.application.modelo.DetalleOrdendeDeCompra;
 import com.maxsoft.application.modelo.OrdenDeCompra;
 import com.maxsoft.application.repo.OrdenDeCompraRepo;
 import com.maxsoft.application.servicio.interfaces.compra.OrdenDeCompraService;
@@ -57,6 +58,16 @@ public class OrdenDeCompraServiceImpl implements OrdenDeCompraService {
     @Override
     public OrdenDeCompra registrarRecepcionParcial(Integer codigoOrden, Integer codigoDetalle, BigDecimal cantidadRecibida) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    @Override
+    public List<OrdenDeCompra> getListaOcPendiente() {
+      return repo.getListaOcPendiente();
+    }
+
+    @Override
+    public List<DetalleOrdendeDeCompra> getDetalle(int oc) {
+       return repo.getDetalle(oc);
     }
     
 }

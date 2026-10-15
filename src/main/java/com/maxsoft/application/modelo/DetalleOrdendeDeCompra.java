@@ -38,8 +38,6 @@ public class DetalleOrdendeDeCompra implements Serializable {
     @Size(max = 80)
     @Column(name = "descripcion_articulo")
     private String descripcionArticulo;
-    @Column(name = "unidad")
-    private Integer unidad;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "precio_unitario")
     private BigDecimal precioUnitario;
@@ -76,6 +74,9 @@ public class DetalleOrdendeDeCompra implements Serializable {
     @JoinColumn(name = "orden_de_compra", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private OrdenDeCompra ordenDeCompra;
+    @JoinColumn(name = "unidad", referencedColumnName = "codigo")
+    @ManyToOne
+    private Unidad unidad;
 
     public DetalleOrdendeDeCompra() {
     }
@@ -98,14 +99,6 @@ public class DetalleOrdendeDeCompra implements Serializable {
 
     public void setDescripcionArticulo(String descripcionArticulo) {
         this.descripcionArticulo = descripcionArticulo;
-    }
-
-    public Integer getUnidad() {
-        return unidad;
-    }
-
-    public void setUnidad(Integer unidad) {
-        this.unidad = unidad;
     }
 
     public BigDecimal getPrecioUnitario() {
@@ -234,6 +227,14 @@ public class DetalleOrdendeDeCompra implements Serializable {
 
     public void setOrdenDeCompra(OrdenDeCompra ordenDeCompra) {
         this.ordenDeCompra = ordenDeCompra;
+    }
+
+    public Unidad getUnidad() {
+        return unidad;
+    }
+
+    public void setUnidad(Unidad unidad) {
+        this.unidad = unidad;
     }
 
     @Override

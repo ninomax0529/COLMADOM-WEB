@@ -8,6 +8,7 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,6 +26,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Date;
+import org.hibernate.annotations.Fetch;
 
 /**
  *
@@ -36,15 +38,6 @@ import java.util.Date;
     @NamedQuery(name = "OrdenDeCompra.findAll", query = "SELECT o FROM OrdenDeCompra o")})
 public class OrdenDeCompra implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
-    @Column(name = "fecha")
-    @Temporal(TemporalType.DATE)
-    private Date fecha;
     @Size(max = 25)
     @Column(name = "numero")
     private String numero;
@@ -54,12 +47,40 @@ public class OrdenDeCompra implements Serializable {
     @Size(max = 45)
     @Column(name = "rnc")
     private String rnc;
-    @Column(name = "fecha_de_entrega")
-    @Temporal(TemporalType.DATE)
-    private Date fechaDeEntrega;
     @Size(max = 255)
     @Column(name = "comentario")
     private String comentario;
+    @Size(max = 10)
+    @Column(name = "estado")
+    private String estado;
+    @Size(max = 45)
+    @Column(name = "nombre_autorizador")
+    private String nombreAutorizador;
+    @Size(max = 4)
+    @Column(name = "completada")
+    private String completada;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "facturada")
+    private boolean facturada;
+    @Size(max = 50)
+    @Column(name = "nombre_solicitante")
+    private String nombreSolicitante;
+    @OneToMany(mappedBy = "ordenCompra")
+    private Collection<RecepcionMercancia> recepcionMercanciaCollection;
+
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
+    @Column(name = "fecha")
+    @Temporal(TemporalType.DATE)
+    private Date fecha;
+    @Column(name = "fecha_de_entrega")
+    @Temporal(TemporalType.DATE)
+    private Date fechaDeEntrega;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "subtotal")
     private BigDecimal subtotal;
@@ -71,9 +92,6 @@ public class OrdenDeCompra implements Serializable {
     private BigDecimal total;
     @Column(name = "anulada")
     private Boolean anulada;
-    @Size(max = 10)
-    @Column(name = "estado")
-    private String estado;
     @Column(name = "usuario")
     private Integer usuario;
     @Column(name = "autorizada")
@@ -86,12 +104,6 @@ public class OrdenDeCompra implements Serializable {
     private Date fechaAnulada;
     @Column(name = "autorizador")
     private Integer autorizador;
-    @Size(max = 45)
-    @Column(name = "nombre_autorizador")
-    private String nombreAutorizador;
-    @Size(max = 4)
-    @Column(name = "completada")
-    private String completada;
     @Column(name = "total_itbis")
     private BigDecimal totalItbis;
     @Column(name = "total_a_pagar")
@@ -100,10 +112,6 @@ public class OrdenDeCompra implements Serializable {
     private BigDecimal totalIsr;
     @Column(name = "otros_impuesto")
     private BigDecimal otrosImpuesto;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "facturada")
-    private boolean facturada;
     @Column(name = "fecha_facturada")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaFacturada;
@@ -116,9 +124,6 @@ public class OrdenDeCompra implements Serializable {
     private Integer cotizacion;
     @Column(name = "solicitud")
     private Integer solicitud;
-    @Size(max = 50)
-    @Column(name = "nombre_solicitante")
-    private String nombreSolicitante;
     @JoinColumn(name = "moneda", referencedColumnName = "codigo")
     @ManyToOne
     private Moneda moneda;
@@ -131,7 +136,8 @@ public class OrdenDeCompra implements Serializable {
     @JoinColumn(name = "tipo_compra", referencedColumnName = "codigo")
     @ManyToOne
     private TipoCompra tipoCompra;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "ordenDeCompra")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "ordenDeCompra",
+            fetch = FetchType.EAGER) // Cambiar Lazy por EAGER)
     private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
 
     public OrdenDeCompra() {
@@ -162,13 +168,6 @@ public class OrdenDeCompra implements Serializable {
         this.fecha = fecha;
     }
 
-    public String getNumero() {
-        return numero;
-    }
-
-    public void setNumero(String numero) {
-        this.numero = numero;
-    }
 
     public String getNombreProveedor() {
         return nombreProveedor;
@@ -178,13 +177,6 @@ public class OrdenDeCompra implements Serializable {
         this.nombreProveedor = nombreProveedor;
     }
 
-    public String getRnc() {
-        return rnc;
-    }
-
-    public void setRnc(String rnc) {
-        this.rnc = rnc;
-    }
 
     public Date getFechaDeEntrega() {
         return fechaDeEntrega;
@@ -194,13 +186,6 @@ public class OrdenDeCompra implements Serializable {
         this.fechaDeEntrega = fechaDeEntrega;
     }
 
-    public String getComentario() {
-        return comentario;
-    }
-
-    public void setComentario(String comentario) {
-        this.comentario = comentario;
-    }
 
     public BigDecimal getSubtotal() {
         return subtotal;
@@ -242,13 +227,6 @@ public class OrdenDeCompra implements Serializable {
         this.anulada = anulada;
     }
 
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
 
     public Integer getUsuario() {
         return usuario;
@@ -298,13 +276,6 @@ public class OrdenDeCompra implements Serializable {
         this.nombreAutorizador = nombreAutorizador;
     }
 
-    public String getCompletada() {
-        return completada;
-    }
-
-    public void setCompletada(String completada) {
-        this.completada = completada;
-    }
 
     public BigDecimal getTotalItbis() {
         return totalItbis;
@@ -338,13 +309,6 @@ public class OrdenDeCompra implements Serializable {
         this.otrosImpuesto = otrosImpuesto;
     }
 
-    public boolean getFacturada() {
-        return facturada;
-    }
-
-    public void setFacturada(boolean facturada) {
-        this.facturada = facturada;
-    }
 
     public Date getFechaFacturada() {
         return fechaFacturada;
@@ -458,5 +422,60 @@ public class OrdenDeCompra implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.OrdenDeCompra[ codigo=" + codigo + " ]";
     }
+    public Collection<RecepcionMercancia> getRecepcionMercanciaCollection() {
+        return recepcionMercanciaCollection;
+    }
+    public void setRecepcionMercanciaCollection(Collection<RecepcionMercancia> recepcionMercanciaCollection) {
+        this.recepcionMercanciaCollection = recepcionMercanciaCollection;
+    }
+
+    public String getNumero() {
+        return numero;
+    }
+
+    public void setNumero(String numero) {
+        this.numero = numero;
+    }
+
+    public String getRnc() {
+        return rnc;
+    }
+
+    public void setRnc(String rnc) {
+        this.rnc = rnc;
+    }
+
+    public String getComentario() {
+        return comentario;
+    }
+
+    public void setComentario(String comentario) {
+        this.comentario = comentario;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
+
+    public String getCompletada() {
+        return completada;
+    }
+
+    public void setCompletada(String completada) {
+        this.completada = completada;
+    }
+
+    public boolean getFacturada() {
+        return facturada;
+    }
+
+    public void setFacturada(boolean facturada) {
+        this.facturada = facturada;
+    }
+
     
 }

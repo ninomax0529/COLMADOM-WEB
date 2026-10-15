@@ -347,7 +347,7 @@ public class PuntoDeVentaViewV14 extends HorizontalLayout
             if (!event.isOpened() && !cajaAbierta) {
 
                 getUI().ifPresent(ui
-                        -> ui.navigate("puntoDeVentav9")
+                        -> ui.navigate("puntoDeVentav14")
                 );
             }
         });
