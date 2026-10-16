@@ -44,20 +44,17 @@ public class ModuloCompra extends AppLayout {
 
     private void createDrawer() {
 
-        RouterLink linkOrdenDeCompraView = createLink(VaadinIcon.DASHBOARD, "Orden Compra", OrdenDeCompraView.class);
-        RouterLink linkOrdenDeConsultaCompraView = createLink(VaadinIcon.DASHBOARD, "Consulta Orden", ConsultaOrdenesDeCompraView.class);
-        RouterLink linkRecepcionMercanciaView = createLink(VaadinIcon.DASHBOARD, "Recepcion Mercancia", RecepcionMercanciaView.class);
-           RouterLink linkConsultaRecepcionMercanciaView = createLink(VaadinIcon.DASHBOARD, "Consulta Recepcion", ConsultaRecepcionMercanciaView.class);
+//        RouterLink linkOrdenDeCompraView = createLink(VaadinIcon.DASHBOARD, "Orden Compra", OrdenDeCompraView.class);
+        RouterLink linkOrdenDeConsultaCompraView = createLink(VaadinIcon.DASHBOARD, "Orden de Compra", ConsultaOrdenesDeCompraView.class);
+//        RouterLink linkRecepcionMercanciaView = createLink(VaadinIcon.DASHBOARD, "Recepcion Mercancia", RecepcionMercanciaView.class);
+        RouterLink linkConsultaRecepcionMercanciaView = createLink(VaadinIcon.DASHBOARD, "Recepcion Mercancia", ConsultaRecepcionMercanciaView.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
         ////
 //        // Layout vertical que contiene los enlaces del menú
-        VerticalLayout menuLayout = new VerticalLayout(
-                linkOrdenDeCompraView,
+        VerticalLayout menuLayout = new VerticalLayout(      
                 linkOrdenDeConsultaCompraView,
-                linkRecepcionMercanciaView,
                 linkConsultaRecepcionMercanciaView,
-                
                 linkModulo);
 
         menuLayout.setPadding(false);

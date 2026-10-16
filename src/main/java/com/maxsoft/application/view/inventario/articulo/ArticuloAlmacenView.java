@@ -11,7 +11,6 @@ import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.util.ClaseUtil;
-import com.maxsoft.application.view.dialogo.ConfirmDialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -19,6 +18,7 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -30,7 +30,6 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -75,7 +74,9 @@ public class ArticuloAlmacenView extends VerticalLayout {
         hlFiltros.setWidthFull();
         hlFiltros.setAlignItems(Alignment.BASELINE);
 
-        add(hlFiltros, grid);
+        add(
+       new H2("Articulo Almacen"),
+         hlFiltros, grid);
         actualizarGrid();
         aplicarFiltroTexto();
     }

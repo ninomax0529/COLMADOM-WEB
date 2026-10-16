@@ -21,6 +21,16 @@ public interface ArticuloEmpaqueService {
     ArticuloEmpaque guardar(ArticuloEmpaque empaque);
 
     void guardarLista(List<ArticuloEmpaque> empaques, String usuario);
+    List<ArticuloEmpaque> buscarPorDescripcionEfectivo(String filtro);
+    
+    void actualizarCodigoBarra(Integer empaqueId, String nuevoCodigo);
+    
+    Optional<ArticuloEmpaque> buscarPorCodigoBarra(String codigoBarra);
+    
+    // AGREGA ESTA LÍNEA:
+    List<ArticuloEmpaque> buscarPorDescripcionEfectivoPaginado(String filtro, int offset, int limit);
+    
+    
 
     void eliminar(Integer codigo);
 }

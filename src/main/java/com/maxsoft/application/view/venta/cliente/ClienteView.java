@@ -19,12 +19,13 @@ import com.maxsoft.application.view.componente.ToolBarBotonera;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.router.PageTitle;
 //import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
 //@PermitAll
 @PageTitle("Clientes")
-@Route( value = "venta/cliente")
+@Route(value = "venta/cliente")
 
 public class ClienteView extends VerticalLayout {
 
@@ -38,7 +39,7 @@ public class ClienteView extends VerticalLayout {
         this.clienteService = clienteService;
         setSizeFull();
         setSpacing(false);
-      
+
         GridListDataView<Cliente> dataView = grid.setItems(clienteService.getLista());
 
 // Crear el filtro avanzado
@@ -47,7 +48,6 @@ public class ClienteView extends VerticalLayout {
 // Agregar filtros por nombre y cédula
         filtro.addFiltro("Nombre", Cliente::getNombre);
         filtro.addFiltro("Cédula", Cliente::getCedula);
-
 
 //        add(new H3("Gestión de Clientes"));
         botonera.getNuevo().addClickListener(e -> {
@@ -62,7 +62,9 @@ public class ClienteView extends VerticalLayout {
 
         actualizarLista();
 
-        add(botonera,filtro, grid);
+        add(botonera,
+                new H2("Clientes"),
+                filtro, grid);
     }
 
     private void configurarGrid() {

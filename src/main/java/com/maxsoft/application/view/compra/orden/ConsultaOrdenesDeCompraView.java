@@ -21,6 +21,7 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -102,7 +103,7 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
         botonera.getNuevo().addClickListener(e -> {
             // lógica de nuevo
 
-                 UI.getCurrent().navigate(OrdenDeCompraView.class);
+            UI.getCurrent().navigate(OrdenDeCompraView.class);
 
         });
 
@@ -121,7 +122,11 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
         configurarGrid();
         configurarGridDetalle();
 
-        add(botonera, crearBarraFiltros(), tabs);
+        add(
+                botonera,
+                new H2("Orden de Compra"),
+                crearBarraFiltros(),
+                tabs);
 
         aplicarFiltros(); // Carga inicial
     }

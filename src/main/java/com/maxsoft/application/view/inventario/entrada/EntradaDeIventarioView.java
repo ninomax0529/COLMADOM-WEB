@@ -20,6 +20,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -117,7 +118,9 @@ public class EntradaDeIventarioView extends VerticalLayout {
         configurarGrid();
         configurarGridDetalle();
 
-        add(botonera, crearBarraFiltros(), tabs);
+        add(botonera,
+                new H2("Entrada de Inventario"),
+                crearBarraFiltros(), tabs);
 
         buscar();
 
@@ -140,9 +143,9 @@ public class EntradaDeIventarioView extends VerticalLayout {
         txtBuscar.setClearButtonVisible(true);
         txtBuscar.setValueChangeMode(ValueChangeMode.LAZY);
         txtBuscar.addValueChangeListener(e -> {
-        
-                aplicarFiltroTexto();
-        } );
+
+            aplicarFiltroTexto();
+        });
 
         btnBuscar = new Button("Buscar", VaadinIcon.SEARCH.create(), e -> buscar());
         btnBuscar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);

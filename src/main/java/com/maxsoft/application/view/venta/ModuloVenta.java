@@ -31,7 +31,7 @@ import org.vaadin.lineawesome.LineAwesomeIconUrl;
 @PageTitle("Venta")
 @Route("mdlVenta")
 @Layout(value = "venta")
-@Menu(order = 3, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
+@Menu(order = 2, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 public class ModuloVenta extends AppLayout {
 
     public ModuloVenta() {

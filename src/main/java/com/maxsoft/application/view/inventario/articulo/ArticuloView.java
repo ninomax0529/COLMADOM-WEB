@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.data.value.ValueChangeMode;
@@ -50,7 +51,9 @@ public class ArticuloView extends VerticalLayout {
         setSizeFull();
         setSpacing(false);
 
-        add(botonera, txtFiltroArt, grid); // parte superior
+        add(botonera,
+                new H2("Articulos"),
+                txtFiltroArt, grid); // parte superior
 
         botonera.getNuevo().addClickListener(e -> {
             // lógica de nuevo
@@ -73,7 +76,7 @@ public class ArticuloView extends VerticalLayout {
         grid.addColumn(Articulo::getDescripcion).setHeader("Descripcion").setAutoWidth(true);
         grid.addColumn(Articulo::getPrecioCompra).setHeader("Precio.Compra").setAutoWidth(true);
         grid.addColumn(Articulo::getPrecioVenta).setHeader("Precio.Venta").setAutoWidth(true);
-         grid.addColumn(Articulo::getExistencia).setHeader("Existencia").setAutoWidth(true);
+        grid.addColumn(Articulo::getExistencia).setHeader("Existencia").setAutoWidth(true);
         grid.addColumn(Articulo::getUnidadDeVenta).setHeader("Unidad").setAutoWidth(true);
 
         grid.setSizeFull();

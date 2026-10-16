@@ -12,6 +12,7 @@ import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -28,9 +29,8 @@ public class FacturaDeVentaView extends VerticalLayout {
     private final FacturaDeVentaService facturaService;
     private final Grid<FacturaDeVenta> grid = new Grid<>(FacturaDeVenta.class, false);
     private Grid<DetalleFacturaDeVenta> gridDetalle = new Grid<>(DetalleFacturaDeVenta.class, false);
-    
-//    ToolBarBotonera botonera = new ToolBarBotonera(true, false, false);
 
+//    ToolBarBotonera botonera = new ToolBarBotonera(true, false, false);
     List<DetalleFacturaDeVenta> listDet;
 
     List<FacturaDeVenta> listaFactura;
@@ -60,7 +60,10 @@ public class FacturaDeVentaView extends VerticalLayout {
         configurarGrid();
         configurarGridDetalle();
 
-        add(tabs);
+        add(
+                new H2("Facturas de Venta"),
+                tabs
+        );
 
     }
 
@@ -95,16 +98,14 @@ public class FacturaDeVentaView extends VerticalLayout {
 
 //        gridDetalle.addColumn(DetalleFacturaDeVenta::getArticulo).setHeader("Codigo")
 //                .setFooter("TOTAL:");
-
         gridDetalle.addColumn(DetalleFacturaDeVenta::getDescripcionArticulo)
                 .setHeader("Descripcion")
                 .setKey("descripcion")
-                 .setFooter("TOTAL:")
-                ;
+                .setFooter("TOTAL:");
 
         gridDetalle.addColumn(DetalleFacturaDeVenta::getCantidad)
                 .setHeader("Cantidad")
-                .setKey("cantidad");        
+                .setKey("cantidad");
 
         gridDetalle.addColumn(DetalleFacturaDeVenta::getNombreUnidad)
                 .setHeader("Unidad")
@@ -117,11 +118,10 @@ public class FacturaDeVentaView extends VerticalLayout {
         gridDetalle.addColumn(DetalleFacturaDeVenta::getSubTotal)
                 .setHeader("Sub Total")
                 .setKey("subTotal");
-        
-         gridDetalle.addColumn(DetalleFacturaDeVenta::getTotal)
+
+        gridDetalle.addColumn(DetalleFacturaDeVenta::getTotal)
                 .setHeader("Total")
                 .setKey("total");
-
 
         gridDetalle.getColumns().forEach(col -> {
             col.setAutoWidth(true);

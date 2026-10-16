@@ -24,13 +24,13 @@ import com.maxsoft.application.view.componente.ToolBarBotonera;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 
-
 @PageTitle("Registro de Clientes")
-@Route(value ="venta/RegistroCliente")
+@Route(value = "venta/RegistroCliente")
 public class RegistroClienteView extends VerticalLayout implements HasUrlParameter<String> {
 
     private final ClienteService clienteService;
@@ -50,10 +50,12 @@ public class RegistroClienteView extends VerticalLayout implements HasUrlParamet
 
     @Autowired
     public RegistroClienteView(ClienteService clienteService) {
-        
+
         this.clienteService = clienteService;
-             
-        add(botonera);
+
+        add(botonera,
+                new H2("Nuevo Cliente")
+        );
 
         configurarFormulario();
 
@@ -76,7 +78,7 @@ public class RegistroClienteView extends VerticalLayout implements HasUrlParamet
         codigo.setEnabled(false);
         form.add(codigo, habilitado, nombre, cedula, celular, direccion, lugarDeTrabajo, referencia);
 
-           habilitado.setValue(Boolean.TRUE);
+        habilitado.setValue(Boolean.TRUE);
         binder.bindInstanceFields(this);
 
         add(form);

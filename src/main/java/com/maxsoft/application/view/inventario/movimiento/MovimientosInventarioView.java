@@ -15,6 +15,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -63,7 +64,9 @@ public class MovimientosInventarioView extends VerticalLayout {
         crearFiltros();
         crearGrid();
 
-        add(crearLayoutFiltros(), grid);
+        add(
+                new H2("Movimiento de Inventario"),
+                crearLayoutFiltros(), grid);
 
         // Cargar movimientos del mes actual al iniciar
         filtrarMovimientos();
@@ -125,12 +128,12 @@ public class MovimientosInventarioView extends VerticalLayout {
                 .setHeader("Artículo")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
-          grid.addColumn(m -> m.getAlmacen()!= null ? m.getAlmacen().getNombre(): "")
+        grid.addColumn(m -> m.getAlmacen() != null ? m.getAlmacen().getNombre() : "")
                 .setHeader("Almacen")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
-             grid.addColumn(m -> m.getArticuloEmpaque()!= null
-                     ? m.getArticuloEmpaque().getNombreEmpaque(): "")
+        grid.addColumn(m -> m.getArticuloEmpaque() != null
+                ? m.getArticuloEmpaque().getNombreEmpaque() : "")
                 .setHeader("Empaque")
                 .setAutoWidth(true)
                 .setFlexGrow(1);
