@@ -8,7 +8,6 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -99,14 +98,14 @@ public class FacturaDeVenta implements Serializable {
     private BigDecimal porcientoItbis;
     @Column(name = "total")
     private BigDecimal total;
-    @Column(name = "total_abonado")
-    private BigDecimal totalAbonado;
+    @Column(name = "total_pagado")
+    private BigDecimal totalPagado;
     @Column(name = "total_pendiente")
     private BigDecimal totalPendiente;
     @Size(max = 45)
     @Column(name = "direccion")
     private String direccion;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura" ,fetch = FetchType.EAGER) // Cambiar Lazy por EAGER)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @JoinColumn(name = "cliente", referencedColumnName = "codigo")
     @ManyToOne
@@ -312,12 +311,12 @@ public class FacturaDeVenta implements Serializable {
         this.total = total;
     }
 
-    public BigDecimal getTotalAbonado() {
-        return totalAbonado;
+    public BigDecimal getTotalPagado() {
+        return totalPagado;
     }
 
-    public void setTotalAbonado(BigDecimal totalAbonado) {
-        this.totalAbonado = totalAbonado;
+    public void setTotalPagado(BigDecimal totalPagado) {
+        this.totalPagado = totalPagado;
     }
 
     public BigDecimal getTotalPendiente() {

@@ -33,6 +33,12 @@ import java.util.Date;
     @NamedQuery(name = "Unidad.findAll", query = "SELECT u FROM Unidad u")})
 public class Unidad implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Size(max = 50)
     @Column(name = "descripcion")
     private String descripcion;
@@ -42,34 +48,27 @@ public class Unidad implements Serializable {
     @Size(max = 50)
     @Column(name = "creada_por")
     private String creadaPor;
+    @Column(name = "fecha_creacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaCreacion;
     @Basic(optional = false)
     @NotNull
     @Column(name = "habilitada")
     private boolean habilitada;
-    @OneToMany(mappedBy = "unidad")
-    private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
-    @OneToMany(mappedBy = "unidadBase")
-    private Collection<Articulo> articuloCollection;
-
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
-    @Column(name = "fecha_creacion")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaCreacion;
     @OneToMany(mappedBy = "unidad")
     private Collection<DetalleEntradaInventario> detalleEntradaInventarioCollection;
     @OneToMany(mappedBy = "unidad")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @OneToMany(mappedBy = "unidad")
     private Collection<DetalleTrasladoInventario> detalleTrasladoInventarioCollection;
+    @OneToMany(mappedBy = "unidadBase")
+    private Collection<Articulo> articuloCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "unidad")
     private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "unidad")
     private Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection;
+    @OneToMany(mappedBy = "unidad")
+    private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
     @OneToMany(mappedBy = "unidad")
     private Collection<ArticuloAlmacen> articuloAlmacenCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "unidad")
@@ -97,6 +96,21 @@ public class Unidad implements Serializable {
         this.codigo = codigo;
     }
 
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public String getAbreviatura() {
+        return abreviatura;
+    }
+
+    public void setAbreviatura(String abreviatura) {
+        this.abreviatura = abreviatura;
+    }
 
     public String getCreadaPor() {
         return creadaPor;
@@ -114,6 +128,13 @@ public class Unidad implements Serializable {
         this.fechaCreacion = fechaCreacion;
     }
 
+    public boolean getHabilitada() {
+        return habilitada;
+    }
+
+    public void setHabilitada(boolean habilitada) {
+        this.habilitada = habilitada;
+    }
 
     public Collection<DetalleEntradaInventario> getDetalleEntradaInventarioCollection() {
         return detalleEntradaInventarioCollection;
@@ -139,6 +160,14 @@ public class Unidad implements Serializable {
         this.detalleTrasladoInventarioCollection = detalleTrasladoInventarioCollection;
     }
 
+    public Collection<Articulo> getArticuloCollection() {
+        return articuloCollection;
+    }
+
+    public void setArticuloCollection(Collection<Articulo> articuloCollection) {
+        this.articuloCollection = articuloCollection;
+    }
+
     public Collection<DetalleAjusteInventario> getDetalleAjusteInventarioCollection() {
         return detalleAjusteInventarioCollection;
     }
@@ -153,6 +182,14 @@ public class Unidad implements Serializable {
 
     public void setDetalleRecepcionMercanciaCollection(Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection) {
         this.detalleRecepcionMercanciaCollection = detalleRecepcionMercanciaCollection;
+    }
+
+    public Collection<DetalleOrdendeDeCompra> getDetalleOrdendeDeCompraCollection() {
+        return detalleOrdendeDeCompraCollection;
+    }
+
+    public void setDetalleOrdendeDeCompraCollection(Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection) {
+        this.detalleOrdendeDeCompraCollection = detalleOrdendeDeCompraCollection;
     }
 
     public Collection<ArticuloAlmacen> getArticuloAlmacenCollection() {
@@ -201,49 +238,7 @@ public class Unidad implements Serializable {
 
     @Override
     public String toString() {
-        return descripcion;
-    }
-
-
-    public Collection<Articulo> getArticuloCollection() {
-        return articuloCollection;
-    }
-
-    public void setArticuloCollection(Collection<Articulo> articuloCollection) {
-        this.articuloCollection = articuloCollection;
-    }
-
-
-    public Collection<DetalleOrdendeDeCompra> getDetalleOrdendeDeCompraCollection() {
-        return detalleOrdendeDeCompraCollection;
-    }
-
-    public void setDetalleOrdendeDeCompraCollection(Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection) {
-        this.detalleOrdendeDeCompraCollection = detalleOrdendeDeCompraCollection;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
-
-    public String getAbreviatura() {
         return abreviatura;
-    }
-
-    public void setAbreviatura(String abreviatura) {
-        this.abreviatura = abreviatura;
-    }
-
-    public boolean getHabilitada() {
-        return habilitada;
-    }
-
-    public void setHabilitada(boolean habilitada) {
-        this.habilitada = habilitada;
     }
     
 }

@@ -6,7 +6,6 @@ package com.maxsoft.application.servicio.impl.venta;
 
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
 import com.maxsoft.application.evento.VentaDevueltaEvent;
-import com.maxsoft.application.evento.VentaRealizadaEvent;
 import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.CajaTurno;
@@ -27,7 +26,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +49,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
     @Autowired
     private EntradaDeInventarioService entradaInventarioService;
     @Autowired
-    SalidaInventarioService SalidaInventarioService;
+    SalidaInventarioService salidaInventarioService;
 
     @Autowired
     ArticuloService articuloService;
@@ -150,7 +148,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         // 5. Generar la Salida de Inventario (Nombre de variable en minúscula)
         List<DetalleFacturaDeVenta> listaDet = this.facttRepo.getDetalle(factura.getCodigo());
 
-        SalidaInventario salida = this.SalidaInventarioService.crearSalidaPorVenta(facturaGuardada, listaDet);
+        SalidaInventario salida = this.salidaInventarioService.crearSalidaPorVenta(facturaGuardada, listaDet);
 
         // 6. Registrar Movimiento de Caja
         cajaService.registrarMovimientoPos(

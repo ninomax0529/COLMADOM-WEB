@@ -26,7 +26,6 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Date;
-import org.hibernate.annotations.Fetch;
 
 /**
  *
@@ -66,8 +65,6 @@ public class OrdenDeCompra implements Serializable {
     @Size(max = 50)
     @Column(name = "nombre_solicitante")
     private String nombreSolicitante;
-    @OneToMany(mappedBy = "ordenCompra")
-    private Collection<RecepcionMercancia> recepcionMercanciaCollection;
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -136,9 +133,10 @@ public class OrdenDeCompra implements Serializable {
     @JoinColumn(name = "tipo_compra", referencedColumnName = "codigo")
     @ManyToOne
     private TipoCompra tipoCompra;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "ordenDeCompra",
-            fetch = FetchType.EAGER) // Cambiar Lazy por EAGER)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "ordenDeCompra" ,    fetch = FetchType.EAGER) // Cambiar Lazy por EAGER)
     private Collection<DetalleOrdendeDeCompra> detalleOrdendeDeCompraCollection;
+    @OneToMany(mappedBy = "ordenCompra")
+    private Collection<RecepcionMercancia> recepcionMercanciaCollection;
 
     public OrdenDeCompra() {
     }
@@ -398,6 +396,14 @@ public class OrdenDeCompra implements Serializable {
         this.detalleOrdendeDeCompraCollection = detalleOrdendeDeCompraCollection;
     }
 
+    public Collection<RecepcionMercancia> getRecepcionMercanciaCollection() {
+        return recepcionMercanciaCollection;
+    }
+
+    public void setRecepcionMercanciaCollection(Collection<RecepcionMercancia> recepcionMercanciaCollection) {
+        this.recepcionMercanciaCollection = recepcionMercanciaCollection;
+    }
+
     @Override
     public int hashCode() {
         int hash = 0;
@@ -421,12 +427,6 @@ public class OrdenDeCompra implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.OrdenDeCompra[ codigo=" + codigo + " ]";
-    }
-    public Collection<RecepcionMercancia> getRecepcionMercanciaCollection() {
-        return recepcionMercanciaCollection;
-    }
-    public void setRecepcionMercanciaCollection(Collection<RecepcionMercancia> recepcionMercanciaCollection) {
-        this.recepcionMercanciaCollection = recepcionMercanciaCollection;
     }
 
     public String getNumero() {
@@ -476,6 +476,5 @@ public class OrdenDeCompra implements Serializable {
     public void setFacturada(boolean facturada) {
         this.facturada = facturada;
     }
-
     
 }

@@ -35,16 +35,21 @@ import java.util.Date;
     @NamedQuery(name = "ArticuloEmpaque.findAll", query = "SELECT a FROM ArticuloEmpaque a")})
 public class ArticuloEmpaque implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Size(max = 60)
     @Column(name = "nombre_articulo")
     private String nombreArticulo;
-    @Size(max = 60)
-    @Column(name = "descripcion_empaque")
-    private String descripcionEmpaque;
     @Size(max = 25)
     @Column(name = "nombre_empaque")
     private String nombreEmpaque;
-    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
+    @Size(max = 60)
+    @Column(name = "descripcion_empaque")
+    private String descripcionEmpaque;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
     @NotNull
@@ -53,16 +58,6 @@ public class ArticuloEmpaque implements Serializable {
     @Size(max = 50)
     @Column(name = "codigo_barra")
     private String codigoBarra;
-    @Size(max = 50)
-    @Column(name = "creado_por")
-    private String creadoPor;
-
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Column(name = "precio_compra")
     private BigDecimal precioCompra;
     @Column(name = "precio_venta")
@@ -78,12 +73,19 @@ public class ArticuloEmpaque implements Serializable {
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
+    @Size(max = 50)
+    @Column(name = "creado_por")
+    private String creadoPor;
     @OneToMany(mappedBy = "articuloEmpaque")
     private Collection<DetalleEntradaInventario> detalleEntradaInventarioCollection;
     @OneToMany(mappedBy = "articuloEmpaque")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @OneToMany(mappedBy = "articuloEmpaque")
     private Collection<DetalleTrasladoInventario> detalleTrasladoInventarioCollection;
+    @OneToMany(mappedBy = "articuloEmpaque")
+    private Collection<DetalleFacturaDeCompra> detalleFacturaDeCompraCollection;
+    @OneToMany(mappedBy = "articuloEmpaque")
+    private Collection<DetalleMerma> detalleMermaCollection;
     @OneToMany(mappedBy = "articuloEmpaque")
     private Collection<DetalleAjusteInventario> detalleAjusteInventarioCollection;
     @OneToMany(mappedBy = "articuloEmpaque")
@@ -137,16 +139,10 @@ public class ArticuloEmpaque implements Serializable {
         this.nombreEmpaque = nombreEmpaque;
     }
 
-    /**
-     * @return the descripcionEmpaque
-     */
     public String getDescripcionEmpaque() {
         return descripcionEmpaque;
     }
 
-    /**
-     * @param descripcionEmpaque the descripcionEmpaque to set
-     */
     public void setDescripcionEmpaque(String descripcionEmpaque) {
         this.descripcionEmpaque = descripcionEmpaque;
     }
@@ -255,6 +251,22 @@ public class ArticuloEmpaque implements Serializable {
         this.detalleTrasladoInventarioCollection = detalleTrasladoInventarioCollection;
     }
 
+    public Collection<DetalleFacturaDeCompra> getDetalleFacturaDeCompraCollection() {
+        return detalleFacturaDeCompraCollection;
+    }
+
+    public void setDetalleFacturaDeCompraCollection(Collection<DetalleFacturaDeCompra> detalleFacturaDeCompraCollection) {
+        this.detalleFacturaDeCompraCollection = detalleFacturaDeCompraCollection;
+    }
+
+    public Collection<DetalleMerma> getDetalleMermaCollection() {
+        return detalleMermaCollection;
+    }
+
+    public void setDetalleMermaCollection(Collection<DetalleMerma> detalleMermaCollection) {
+        this.detalleMermaCollection = detalleMermaCollection;
+    }
+
     public Collection<DetalleAjusteInventario> getDetalleAjusteInventarioCollection() {
         return detalleAjusteInventarioCollection;
     }
@@ -333,7 +345,7 @@ public class ArticuloEmpaque implements Serializable {
 
     @Override
     public String toString() {
-        return nombreArticulo;
+        return descripcionEmpaque;
     }
-
+    
 }

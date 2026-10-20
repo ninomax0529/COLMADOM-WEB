@@ -77,6 +77,8 @@ public class Almacen implements Serializable {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacen")
     private Collection<MovimientoInventario> movimientoInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacen")
+    private Collection<Merma> mermaCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "almacen")
     private Collection<ArticuloAlmacen> articuloAlmacenCollection;
     @OneToMany(mappedBy = "almacen")
     private Collection<DetalleSalidaInventario> detalleSalidaInventarioCollection;
@@ -103,6 +105,7 @@ public class Almacen implements Serializable {
     public void setCodigo(Integer codigo) {
         this.codigo = codigo;
     }
+
 
     public Date getFechaCreacion() {
         return fechaCreacion;
@@ -200,6 +203,14 @@ public class Almacen implements Serializable {
         this.movimientoInventarioCollection = movimientoInventarioCollection;
     }
 
+    public Collection<Merma> getMermaCollection() {
+        return mermaCollection;
+    }
+
+    public void setMermaCollection(Collection<Merma> mermaCollection) {
+        this.mermaCollection = mermaCollection;
+    }
+
     public Collection<ArticuloAlmacen> getArticuloAlmacenCollection() {
         return articuloAlmacenCollection;
     }
@@ -246,7 +257,7 @@ public class Almacen implements Serializable {
 
     @Override
     public String toString() {
-        return nombre;
+        return "com.maxsoft.application.modelo.Almacen[ codigo=" + codigo + " ]";
     }
 
     public String getNombre() {

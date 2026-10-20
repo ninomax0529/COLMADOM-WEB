@@ -5,6 +5,7 @@
 package com.maxsoft.application.modelo;
 
 import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -38,6 +39,8 @@ public class TipoCompra implements Serializable {
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "tipoCompra")
+    private Collection<FacturaDeCompra> facturaDeCompraCollection;
     @OneToMany(mappedBy = "tipoCompra")
     private Collection<OrdenDeCompra> ordenDeCompraCollection;
 
@@ -56,6 +59,14 @@ public class TipoCompra implements Serializable {
         this.codigo = codigo;
     }
 
+
+    public Collection<FacturaDeCompra> getFacturaDeCompraCollection() {
+        return facturaDeCompraCollection;
+    }
+
+    public void setFacturaDeCompraCollection(Collection<FacturaDeCompra> facturaDeCompraCollection) {
+        this.facturaDeCompraCollection = facturaDeCompraCollection;
+    }
 
     public Collection<OrdenDeCompra> getOrdenDeCompraCollection() {
         return ordenDeCompraCollection;

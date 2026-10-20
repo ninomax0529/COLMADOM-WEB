@@ -66,6 +66,8 @@ public class Usuario implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaActualizacion;
     @OneToMany(mappedBy = "usuario")
+    private Collection<FacturaDeCompra> facturaDeCompraCollection;
+    @OneToMany(mappedBy = "usuario")
     private Collection<Documento> documentoCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuarioEnvia")
     private Collection<TrasladoInventario> trasladoInventarioCollection;
@@ -75,6 +77,8 @@ public class Usuario implements Serializable {
     private Collection<UsuarioRol> usuarioRolCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
     private Collection<AjusteInventario> ajusteInventarioCollection;
+    @OneToMany(mappedBy = "usuario")
+    private Collection<Merma> mermaCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "usuario")
     private Collection<Rol> rolCollection;
     @OneToMany(mappedBy = "usuario")
@@ -139,6 +143,14 @@ public class Usuario implements Serializable {
         this.fechaActualizacion = fechaActualizacion;
     }
 
+    public Collection<FacturaDeCompra> getFacturaDeCompraCollection() {
+        return facturaDeCompraCollection;
+    }
+
+    public void setFacturaDeCompraCollection(Collection<FacturaDeCompra> facturaDeCompraCollection) {
+        this.facturaDeCompraCollection = facturaDeCompraCollection;
+    }
+
     public Collection<Documento> getDocumentoCollection() {
         return documentoCollection;
     }
@@ -177,6 +189,14 @@ public class Usuario implements Serializable {
 
     public void setAjusteInventarioCollection(Collection<AjusteInventario> ajusteInventarioCollection) {
         this.ajusteInventarioCollection = ajusteInventarioCollection;
+    }
+
+    public Collection<Merma> getMermaCollection() {
+        return mermaCollection;
+    }
+
+    public void setMermaCollection(Collection<Merma> mermaCollection) {
+        this.mermaCollection = mermaCollection;
     }
 
     public Collection<Rol> getRolCollection() {

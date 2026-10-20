@@ -7,6 +7,7 @@ package com.maxsoft.application.view.compra;
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.compra.orden.ConsultaOrdenesDeCompraView;
 import com.maxsoft.application.view.compra.orden.OrdenDeCompraView;
+import com.maxsoft.application.view.compra.proveedor.ProveedorView;
 import com.maxsoft.application.view.compra.recepcion.ConsultaRecepcionMercanciaView;
 import com.maxsoft.application.view.compra.recepcion.RecepcionMercanciaView;
 import com.vaadin.flow.component.Component;
@@ -46,7 +47,7 @@ public class ModuloCompra extends AppLayout {
 
 //        RouterLink linkOrdenDeCompraView = createLink(VaadinIcon.DASHBOARD, "Orden Compra", OrdenDeCompraView.class);
         RouterLink linkOrdenDeConsultaCompraView = createLink(VaadinIcon.DASHBOARD, "Orden de Compra", ConsultaOrdenesDeCompraView.class);
-//        RouterLink linkRecepcionMercanciaView = createLink(VaadinIcon.DASHBOARD, "Recepcion Mercancia", RecepcionMercanciaView.class);
+        RouterLink linkProveedorView = createLink(VaadinIcon.DASHBOARD, "Proveedor", ProveedorView.class);
         RouterLink linkConsultaRecepcionMercanciaView = createLink(VaadinIcon.DASHBOARD, "Recepcion Mercancia", ConsultaRecepcionMercanciaView.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
@@ -55,6 +56,7 @@ public class ModuloCompra extends AppLayout {
         VerticalLayout menuLayout = new VerticalLayout(      
                 linkOrdenDeConsultaCompraView,
                 linkConsultaRecepcionMercanciaView,
+                linkProveedorView,
                 linkModulo);
 
         menuLayout.setPadding(false);

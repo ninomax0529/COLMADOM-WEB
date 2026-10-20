@@ -143,7 +143,7 @@ public class Categoria implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Categoria[ codigo=" + codigo + " ]";
+        return nombre;
     }
     
 }

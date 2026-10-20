@@ -163,42 +163,41 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                 // 2. Buscar el detalle de la factura correspondiente al ítem
                 DetalleFacturaDeVenta det = factura.getDetalleFacturaDeVentaCollection().stream()
                         .filter(d -> d.getCodigo() != null && d.getCodigo()
-                         .equals(itemDev.getIdDetalleFactura()))
+                        .equals(itemDev.getIdDetalleFactura()))
                         .findFirst()
                         .orElse(null);
 
                 // 3. Validar que exista el detalle y el artículo sea inventariable
 //                if (det != null && det.getArticulo() != null   && Boolean.TRUE.equals(det.getArticulo().getInventariable())) {
+                // Convertir cantidad de forma segura según su tipo
+                BigDecimal cantidad = itemDev.getCantidadADevolver() != null
+                        ? new BigDecimal(itemDev.getCantidadADevolver().toString())
+                        : BigDecimal.ZERO;
 
-                    // Convertir cantidad de forma segura según su tipo
-                    BigDecimal cantidad = itemDev.getCantidadADevolver() != null
-                            ? new BigDecimal(itemDev.getCantidadADevolver().toString())
-                            : BigDecimal.ZERO;
+                DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
+                        entrada,
+                        det.getArticulo(),
+                        det.getArticuloEmpaque(),
+                        det.getFactorConversion(),
+                        det.getCantidadFisicaBase(),
+                        det.getTotalItbis(),
+                        det.getSubTotal(),
+                        det.getTotal(),
+                        cantidad,
+                        det.getArticulo().getExistencia(),
+                        det.getAlmacen(),
+                        det.getAlmacen().getNombre(),
+                        det.getNombreUnidad()
+                );
 
-                    DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
-                            entrada,
-                            det.getArticulo(),
-                            det.getArticuloEmpaque(),
-                            det.getFactorConversion(),
-                            det.getCantidadFisicaBase(),
-                            det.getItbis(),
-                            det.getSubTotal(),
-                            det.getTotal(),
-                            cantidad,
-                            det.getArticulo().getExistencia(),
-                            det.getAlmacen(),
-                            det.getAlmacen().getNombre(),
-                            det.getNombreUnidad()
-                    );
+                // Asignar costos y precios de venta con fallbacks seguros
+                BigDecimal costo = det.getPrecioCompra() != null ? det.getPrecioCompra() : BigDecimal.ZERO;
+                BigDecimal precio = det.getPrecioVenta() != null ? det.getPrecioVenta() : costo;
 
-                    // Asignar costos y precios de venta con fallbacks seguros
-                    BigDecimal costo = det.getPrecioCompra() != null ? det.getPrecioCompra() : BigDecimal.ZERO;
-                    BigDecimal precio = det.getPrecioVenta() != null ? det.getPrecioVenta() : costo;
+                detEntrada.setCostoUnitario(costo);
+                detEntrada.setPrecioVenta(precio);
 
-                    detEntrada.setCostoUnitario(costo);
-                    detEntrada.setPrecioVenta(precio);
-
-                    detallesList.add(detEntrada);
+                detallesList.add(detEntrada);
 //                }
             }
         }
@@ -257,28 +256,27 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         EntradaInventario entrada = inicializarCabeceraBase(6, "AN-" + factura.getCodigo(), usuario, comentario);
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
-        
+
         for (DetalleFacturaDeVenta det : listaDetFact) {
-            
+
 //            if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().compareTo(BigDecimal.ZERO) > 0) {
+            DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
+                    entrada,
+                    det.getArticulo(),
+                    det.getArticuloEmpaque(),
+                    det.getFactorConversion(),
+                    det.getCantidadFisicaBase(),
+                    det.getTotalItbis(),
+                    det.getSubTotal(),
+                    det.getTotal(),
+                    det.getCantidad(),
+                    det.getArticulo().getExistencia(),
+                    det.getAlmacen(),
+                    det.getAlmacen() != null ? det.getAlmacen().getNombre() : "General",
+                    det.getNombreUnidad()
+            );
 
-                DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
-                        entrada,
-                        det.getArticulo(),
-                        det.getArticuloEmpaque(),
-                        det.getFactorConversion(),
-                        det.getCantidadFisicaBase(),
-                        det.getItbis(),
-                        det.getSubTotal(),
-                        det.getTotal(),
-                        det.getCantidad(),
-                        det.getArticulo().getExistencia(),
-                        det.getAlmacen(),
-                        det.getAlmacen() != null ? det.getAlmacen().getNombre() : "General",
-                        det.getNombreUnidad()
-                );
-
-                detallesEntrada.add(detEntrada);
+            detallesEntrada.add(detEntrada);
 //            }
         }
 

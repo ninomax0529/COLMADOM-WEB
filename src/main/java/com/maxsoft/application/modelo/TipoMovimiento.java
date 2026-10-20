@@ -127,7 +127,7 @@ public class TipoMovimiento implements Serializable {
 
     @Override
     public String toString() {
-        return nombre;
+        return "com.maxsoft.application.modelo.TipoMovimiento[ codigo=" + codigo + " ]";
     }
     
 }

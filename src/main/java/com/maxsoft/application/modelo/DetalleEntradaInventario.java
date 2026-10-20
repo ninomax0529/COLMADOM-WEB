@@ -41,18 +41,18 @@ public class DetalleEntradaInventario implements Serializable {
     @Size(min = 1, max = 250)
     @Column(name = "descripcion_articulo")
     private String descripcionArticulo;
-    @Size(max = 15)
-    @Column(name = "nombre_unidad")
-    private String nombreUnidad;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
+    @Column(name = "cantidad_recibida")
+    private BigDecimal cantidadRecibida;
     @Column(name = "factor_conversion")
     private BigDecimal factorConversion;
     @Column(name = "cantidad_fisica_base")
     private BigDecimal cantidadFisicaBase;
+    @Size(max = 15)
+    @Column(name = "nombre_unidad")
+    private String nombreUnidad;
     @Column(name = "cantidad_pedida")
     private BigDecimal cantidadPedida;
-    @Column(name = "cantidad_recibida")
-    private BigDecimal cantidadRecibida;
     @Column(name = "cantidad_pendiente")
     private BigDecimal cantidadPendiente;
     @Column(name = "precio_compra")
@@ -118,12 +118,12 @@ public class DetalleEntradaInventario implements Serializable {
         this.descripcionArticulo = descripcionArticulo;
     }
 
-    public String getNombreUnidad() {
-        return nombreUnidad;
+    public BigDecimal getCantidadRecibida() {
+        return cantidadRecibida;
     }
 
-    public void setNombreUnidad(String nombreUnidad) {
-        this.nombreUnidad = nombreUnidad;
+    public void setCantidadRecibida(BigDecimal cantidadRecibida) {
+        this.cantidadRecibida = cantidadRecibida;
     }
 
     public BigDecimal getFactorConversion() {
@@ -142,20 +142,20 @@ public class DetalleEntradaInventario implements Serializable {
         this.cantidadFisicaBase = cantidadFisicaBase;
     }
 
+    public String getNombreUnidad() {
+        return nombreUnidad;
+    }
+
+    public void setNombreUnidad(String nombreUnidad) {
+        this.nombreUnidad = nombreUnidad;
+    }
+
     public BigDecimal getCantidadPedida() {
         return cantidadPedida;
     }
 
     public void setCantidadPedida(BigDecimal cantidadPedida) {
         this.cantidadPedida = cantidadPedida;
-    }
-
-    public BigDecimal getCantidadRecibida() {
-        return cantidadRecibida;
-    }
-
-    public void setCantidadRecibida(BigDecimal cantidadRecibida) {
-        this.cantidadRecibida = cantidadRecibida;
     }
 
     public BigDecimal getCantidadPendiente() {

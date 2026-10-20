@@ -67,6 +67,8 @@ public class DetalleTrasladoInventario implements Serializable {
     private BigDecimal itbis;
     @Column(name = "total")
     private BigDecimal total;
+    @Column(name = "existencia_anterior")
+    private BigDecimal existenciaAnterior;
     @JoinColumn(name = "articulo", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Articulo articulo;
@@ -79,10 +81,6 @@ public class DetalleTrasladoInventario implements Serializable {
     @JoinColumn(name = "unidad", referencedColumnName = "codigo")
     @ManyToOne
     private Unidad unidad;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "existencia_anterior")
-    private BigDecimal existenciaAnterior;
 
     public DetalleTrasladoInventario() {
     }
@@ -194,6 +192,14 @@ public class DetalleTrasladoInventario implements Serializable {
         this.total = total;
     }
 
+    public BigDecimal getExistenciaAnterior() {
+        return existenciaAnterior;
+    }
+
+    public void setExistenciaAnterior(BigDecimal existenciaAnterior) {
+        this.existenciaAnterior = existenciaAnterior;
+    }
+
     public Articulo getArticulo() {
         return articulo;
     }
@@ -226,20 +232,6 @@ public class DetalleTrasladoInventario implements Serializable {
         this.unidad = unidad;
     }
 
-    /**
-     * @return the existenciaAnterior
-     */
-    public BigDecimal getExistenciaAnterior() {
-        return existenciaAnterior;
-    }
-
-    /**
-     * @param existenciaAnterior the existenciaAnterior to set
-     */
-    public void setExistenciaAnterior(BigDecimal existenciaAnterior) {
-        this.existenciaAnterior = existenciaAnterior;
-    }
-
     @Override
     public int hashCode() {
         int hash = 0;
@@ -264,5 +256,5 @@ public class DetalleTrasladoInventario implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.DetalleTrasladoInventario[ codigo=" + codigo + " ]";
     }
-
+    
 }

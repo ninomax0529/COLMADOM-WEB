@@ -7,9 +7,11 @@ import com.maxsoft.application.modelo.ArticuloAlmacen;
 import com.maxsoft.application.modelo.ArticuloEmpaque;
 import com.maxsoft.application.modelo.DetalleAjusteInventario;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
+import com.maxsoft.application.modelo.DetalleMerma;
 import com.maxsoft.application.modelo.DetalleSalidaInventario;
 import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
+import com.maxsoft.application.modelo.Merma;
 import com.maxsoft.application.modelo.SalidaInventario;
 import com.maxsoft.application.modelo.TipoDocumento;
 import com.maxsoft.application.modelo.TipoMovimiento;
@@ -62,7 +64,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
         this.tipoDocumentoService = tipoDocumentoService;
         this.tipoMovimientoService = tipoMovimientoService;
         this.articuloAlmacenService = articuloAlmacenService;
-        this.articuloEmpaqueService=articuloEmpaqueService;
+        this.articuloEmpaqueService = articuloEmpaqueService;
 
     }
 
@@ -117,8 +119,8 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                         BigDecimal total = subTotal.add(itbis);
                         BigDecimal cantidadFisicaBase = detalle.getFactorConversion().multiply(cantidadSalida);
 
-                        ArticuloEmpaque artEmpaq=this.articuloEmpaqueService.getEmpaqueBase(articulo.getCodigo()).get();
-                        
+                        ArticuloEmpaque artEmpaq = this.articuloEmpaqueService.getEmpaqueBase(articulo.getCodigo()).get();
+
                         // LLAMADA CORREGIDA: 13 parámetros según la interfaz MovimientoInventarioService
                         movimientoService.registrarMovimiento(
                                 articulo, // 1. Articulo
@@ -166,46 +168,45 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
         if (!listaDEtFactura.isEmpty()) {
 
-            System.out.println("listaDEtFactura "+listaDEtFactura.size());
-            
+            System.out.println("listaDEtFactura " + listaDEtFactura.size());
+
             for (DetalleFacturaDeVenta detFactura : listaDEtFactura) {
 
 //                if (detFactura.getArticulo() != null && Boolean.TRUE.equals(detFactura.getArticulo().getInventariable())) {
+                DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
 
-                    DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
+                detSalida.setSalidaInventario(salida);
+                detSalida.setArticulo(detFactura.getArticulo());
+                detSalida.setDescripcionArticulo(detFactura.getArticulo().getDescripcion());
+                detSalida.setCantidad(detFactura.getCantidad());
+                detSalida.setAlmacen(detFactura.getAlmacen());
+                detSalida.setNombreAlmacen(detFactura.getNombreAlmacen());
+                detSalida.setUnidad(detFactura.getUnidad());
+                detSalida.setFactorConversion(detFactura.getFactorConversion());
+                detSalida.setCantidadFisicaBase(detFactura.getCantidadFisicaBase());
+                detSalida.setArticuloEmpaque(detFactura.getArticuloEmpaque());
+                detSalida.setItbis(detFactura.getTotalItbis());
+                detSalida.setSubTotal(detFactura.getSubTotal());
+                detSalida.setTotal(detFactura.getTotal());
 
-                    detSalida.setSalidaInventario(salida);
-                    detSalida.setArticulo(detFactura.getArticulo());
-                    detSalida.setDescripcionArticulo(detFactura.getArticulo().getDescripcion());
-                    detSalida.setCantidad(detFactura.getCantidad());
-                    detSalida.setAlmacen(detFactura.getAlmacen());
-                    detSalida.setNombreAlmacen(detFactura.getNombreAlmacen());
-                    detSalida.setUnidad(detFactura.getUnidad());
-                    detSalida.setFactorConversion(detFactura.getFactorConversion());
-                    detSalida.setCantidadFisicaBase(detFactura.getCantidadFisicaBase());
-                    detSalida.setArticuloEmpaque(detFactura.getArticuloEmpaque());
-                    detSalida.setItbis(detFactura.getItbis());
-                    detSalida.setSubTotal(detFactura.getSubTotal());
-                    detSalida.setTotal(detFactura.getTotal());
+                BigDecimal stockActual = detFactura.getArticulo().getExistencia() != null
+                        ? detFactura.getArticulo().getExistencia()
+                        : BigDecimal.ZERO;
 
-                    BigDecimal stockActual = detFactura.getArticulo().getExistencia() != null
-                            ? detFactura.getArticulo().getExistencia()
-                            : BigDecimal.ZERO;
-
-                    detSalida.setExistenciaAnterior(stockActual);
-                    detSalida.setExistencia(stockActual);
+                detSalida.setExistenciaAnterior(stockActual);
+                detSalida.setExistencia(stockActual);
 //                    detSalida.setUnidad(detFactura.getArticulo().getUnidadSalida());
-                    detSalida.setCostoUnitario(detFactura.getPrecioCompra());
+                detSalida.setCostoUnitario(detFactura.getPrecioCompra());
 
-                    detSalida.setPrecioCompra(detFactura.getPrecioCompra());
-                    detSalida.setPrecioVenta(detFactura.getPrecioVenta() != null ? detFactura.getPrecioVenta() : BigDecimal.ZERO);
+                detSalida.setPrecioCompra(detFactura.getPrecioCompra());
+                detSalida.setPrecioVenta(detFactura.getPrecioVenta() != null ? detFactura.getPrecioVenta() : BigDecimal.ZERO);
 
-                    detalles.add(detSalida);
+                detalles.add(detSalida);
 //                }
             }
-            
-        }else{
-              throw new IllegalArgumentException("Detalle de la factura vacio '" );
+
+        } else {
+            throw new IllegalArgumentException("Detalle de la factura vacio '");
         }
 
         salida.setDetalleSalidaInventarioCollection(detalles);
@@ -239,34 +240,33 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
             for (DetalleAjusteInventario det : detalles) {
 
 //                if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().compareTo(BigDecimal.ZERO) > 0) {
+                DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
 
-                    DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
+                detSalida.setSalidaInventario(salida);
+                detSalida.setArticulo(det.getArticulo());
+                detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
+                detSalida.setCantidad(det.getCantidad());
+                detSalida.setAlmacen(det.getAlmacen());
 
-                    detSalida.setSalidaInventario(salida);
-                    detSalida.setArticulo(det.getArticulo());
-                    detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
-                    detSalida.setCantidad(det.getCantidad());
-                    detSalida.setAlmacen(det.getAlmacen());
+                BigDecimal stockActual = det.getArticulo().getExistencia() != null
+                        ? det.getArticulo().getExistencia()
+                        : BigDecimal.ZERO;
 
-                    BigDecimal stockActual = det.getArticulo().getExistencia() != null
-                            ? det.getArticulo().getExistencia()
-                            : BigDecimal.ZERO;
+                detSalida.setExistenciaAnterior(stockActual);
+                detSalida.setExistencia(stockActual);
+                detSalida.setUnidad(det.getArticuloEmpaque().getUnidadEmpaque());
+                detSalida.setFactorConversion(det.getFactorConversion());
+                detSalida.setCantidadFisicaBase(det.getFactorConversion().multiply(det.getCantidad()));
+                detSalida.setArticuloEmpaque(det.getArticuloEmpaque());
 
-                    detSalida.setExistenciaAnterior(stockActual);
-                    detSalida.setExistencia(stockActual);
-                    detSalida.setUnidad(det.getArticuloEmpaque().getUnidadEmpaque());
-                    detSalida.setFactorConversion(det.getFactorConversion());
-                    detSalida.setCantidadFisicaBase(det.getFactorConversion().multiply(det.getCantidad()));
-                    detSalida.setArticuloEmpaque(det.getArticuloEmpaque());
+                BigDecimal costo = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
+                BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
 
-                    BigDecimal costo = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
-                    BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
+                detSalida.setCostoUnitario(costo);
+                detSalida.setPrecioCompra(costo);
+                detSalida.setPrecioVenta(precio);
 
-                    detSalida.setCostoUnitario(costo);
-                    detSalida.setPrecioCompra(costo);
-                    detSalida.setPrecioVenta(precio);
-
-                    detallesSalida.add(detSalida);
+                detallesSalida.add(detSalida);
 //                }
             }
         }
@@ -322,69 +322,68 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
             for (DetalleTrasladoInventario det : detalles) {
 
 //                if (det.getArticulo() != null && det.getCantidadEnviada() != null && det.getCantidadEnviada().compareTo(BigDecimal.ZERO) > 0) {
+                DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
 
-                    DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
+                // 1. Obtener el factor de conversión con fallback seguro a BigDecimal.ONE
+                BigDecimal factorConversion = BigDecimal.ONE;
 
-                    // 1. Obtener el factor de conversión con fallback seguro a BigDecimal.ONE
-                    BigDecimal factorConversion = BigDecimal.ONE;
-
-                    if (det.getArticuloEmpaque() != null && det.getArticuloEmpaque().getFactorConversion() != null) {
-                        factorConversion = det.getArticuloEmpaque().getFactorConversion();
-                    } else if (det.getFactorConversion() != null && det.getFactorConversion().compareTo(BigDecimal.ZERO) > 0) {
-                        factorConversion = det.getFactorConversion();
-                    }
+                if (det.getArticuloEmpaque() != null && det.getArticuloEmpaque().getFactorConversion() != null) {
+                    factorConversion = det.getArticuloEmpaque().getFactorConversion();
+                } else if (det.getFactorConversion() != null && det.getFactorConversion().compareTo(BigDecimal.ZERO) > 0) {
+                    factorConversion = det.getFactorConversion();
+                }
 
 // 2. Asignar explícitamente el factor al detalle de salida antes de operar
-                    detSalida.setFactorConversion(factorConversion);
+                detSalida.setFactorConversion(factorConversion);
 
 // 3. Obtener la cantidad enviada de manera segura
-                    BigDecimal cantidad = det.getCantidadEnviada() != null
-                            ? det.getCantidadEnviada()
-                            : BigDecimal.ZERO;
+                BigDecimal cantidad = det.getCantidadEnviada() != null
+                        ? det.getCantidadEnviada()
+                        : BigDecimal.ZERO;
 
-                    detSalida.setCantidad(cantidad);
+                detSalida.setCantidad(cantidad);
 
 // 4. Multiplicación segura evitando NullPointerException
-                    BigDecimal cantidadFisicaBase = cantidad.multiply(factorConversion);
-                    detSalida.setCantidadFisicaBase(cantidadFisicaBase);
+                BigDecimal cantidadFisicaBase = cantidad.multiply(factorConversion);
+                detSalida.setCantidadFisicaBase(cantidadFisicaBase);
 
-                    detSalida.setArticuloEmpaque(det.getArticuloEmpaque());
+                detSalida.setArticuloEmpaque(det.getArticuloEmpaque());
 
-                    detSalida.setSalidaInventario(salida);
-                    detSalida.setArticulo(det.getArticulo());
-                    detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
-                    detSalida.setCantidad(det.getCantidadEnviada());
+                detSalida.setSalidaInventario(salida);
+                detSalida.setArticulo(det.getArticulo());
+                detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
+                detSalida.setCantidad(det.getCantidadEnviada());
 
-                    // Protección Optional al buscar la existencia por almacén
-                    Optional<ArticuloAlmacen> optArtiAlm = (almacenOrigen != null && det.getArticulo().getCodigo() != null)
-                            ? this.articuloAlmacenService.buscarPorArticuloYAlmacen(det.getArticulo().getCodigo(), almacenOrigen.getCodigo())
-                            : Optional.empty();
+                // Protección Optional al buscar la existencia por almacén
+                Optional<ArticuloAlmacen> optArtiAlm = (almacenOrigen != null && det.getArticulo().getCodigo() != null)
+                        ? this.articuloAlmacenService.buscarPorArticuloYAlmacen(det.getArticulo().getCodigo(), almacenOrigen.getCodigo())
+                        : Optional.empty();
 
-                    BigDecimal stockActual = BigDecimal.ZERO;
-                    if (optArtiAlm.isPresent()) {
-                        detSalida.setAlmacen(optArtiAlm.get().getAlmacen());
-                        stockActual = optArtiAlm.get().getExistencia() != null ? optArtiAlm.get().getExistencia() : BigDecimal.ZERO;
-                    } else {
-                        detSalida.setAlmacen(almacenOrigen);
-                    }
+                BigDecimal stockActual = BigDecimal.ZERO;
+                if (optArtiAlm.isPresent()) {
+                    detSalida.setAlmacen(optArtiAlm.get().getAlmacen());
+                    stockActual = optArtiAlm.get().getExistencia() != null ? optArtiAlm.get().getExistencia() : BigDecimal.ZERO;
+                } else {
+                    detSalida.setAlmacen(almacenOrigen);
+                }
 
-                    detSalida.setExistenciaAnterior(stockActual);
-                    detSalida.setExistencia(stockActual);
-                    detSalida.setUnidad(det.getUnidad());
+                detSalida.setExistenciaAnterior(stockActual);
+                detSalida.setExistencia(stockActual);
+                detSalida.setUnidad(det.getUnidad());
 
-                    BigDecimal costo = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
-                    BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
+                BigDecimal costo = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
+                BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
 
-                    detSalida.setCostoUnitario(costo);
-                    detSalida.setPrecioCompra(costo);
-                    detSalida.setPrecioVenta(precio);
+                detSalida.setCostoUnitario(costo);
+                detSalida.setPrecioCompra(costo);
+                detSalida.setPrecioVenta(precio);
 
-                    BigDecimal cantidadFisicaBase1 = detSalida.getCantidad()
-                            .multiply(detSalida.getFactorConversion());
+                BigDecimal cantidadFisicaBase1 = detSalida.getCantidad()
+                        .multiply(detSalida.getFactorConversion());
 
-                    detSalida.setCantidadFisicaBase(cantidadFisicaBase1);
+                detSalida.setCantidadFisicaBase(cantidadFisicaBase1);
 
-                    detallesSalida.add(detSalida);
+                detallesSalida.add(detSalida);
 //                }
             }
         }
@@ -392,5 +391,104 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
         salida.setDetalleSalidaInventarioCollection(detallesSalida);
 
         return guardar(salida, nombreUsuario);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SalidaInventario crearSalidaPorMerma(Merma merma, List<DetalleMerma> detalles) {
+
+        SalidaInventario salida = new SalidaInventario();
+
+        salida.setFechaRegistro(new Date());
+        salida.setFecha(merma.getFecha());
+        salida.setTipoDocumento(this.tipoDocumentoService.getTipoDocumento(2));
+        salida.setNumeroDocumento(merma.getCodigo() != null ? merma.getCodigo().toString() : "");
+        salida.setUsuario(merma.getUsuario());
+
+        String nombreUsuario = (merma.getUsuario() != null && merma.getUsuario().getNombre() != null)
+                ? merma.getUsuario().getNombre() : "SISTEMA";
+
+        salida.setNombreUsuario(nombreUsuario);
+        salida.setObservacion("Salida por Merma de Inventario #" + merma.getCodigo() + ". "
+                + (merma.getObservacion() != null ? merma.getObservacion() : ""));
+
+        List<DetalleSalidaInventario> detallesSalida = new ArrayList<>();
+
+        if (detalles != null) {
+
+            for (DetalleMerma det : detalles) {
+
+//                if (det.getArticulo() != null && det.getCantidadEnviada() != null && det.getCantidadEnviada().compareTo(BigDecimal.ZERO) > 0) {
+                DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
+
+                // 1. Obtener el factor de conversión con fallback seguro a BigDecimal.ONE
+                BigDecimal factorConversion = BigDecimal.ONE;
+
+                if (det.getArticuloEmpaque() != null && det.getArticuloEmpaque().getFactorConversion() != null) {
+                    factorConversion = det.getArticuloEmpaque().getFactorConversion();
+                } else if (det.getFactorConversion() != null && det.getFactorConversion().compareTo(BigDecimal.ZERO) > 0) {
+                    factorConversion = det.getFactorConversion();
+                }
+
+// 2. Asignar explícitamente el factor al detalle de salida antes de operar
+                detSalida.setFactorConversion(factorConversion);
+
+// 3. Obtener la cantidad enviada de manera segura
+                BigDecimal cantidad = det.getCantidad() != null
+                        ? det.getCantidad()
+                        : BigDecimal.ZERO;
+
+                detSalida.setCantidad(cantidad);
+
+// 4. Multiplicación segura evitando NullPointerException
+                BigDecimal cantidadFisicaBase = cantidad.multiply(factorConversion);
+                detSalida.setCantidadFisicaBase(cantidadFisicaBase);
+
+                detSalida.setArticuloEmpaque(det.getArticuloEmpaque());
+
+                detSalida.setSalidaInventario(salida);
+                detSalida.setArticulo(det.getArticulo());
+                detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
+                detSalida.setCantidad(det.getCantidad());
+
+                // Protección Optional al buscar la existencia por almacén
+                Optional<ArticuloAlmacen> optArtiAlm = (merma.getAlmacen() != null && det.getArticulo().getCodigo() != null)
+                        ? this.articuloAlmacenService.buscarPorArticuloYAlmacen(det.getArticulo().getCodigo(), merma.getAlmacen().getCodigo())
+                        : Optional.empty();
+                BigDecimal stockActual = BigDecimal.ZERO;
+//                    
+                if (optArtiAlm.isPresent()) {
+
+                    detSalida.setAlmacen(optArtiAlm.get().getAlmacen());
+                    stockActual = optArtiAlm.get().getExistencia() != null ? optArtiAlm.get().getExistencia() : BigDecimal.ZERO;
+                } else {
+                    detSalida.setAlmacen(merma.getAlmacen());
+                }
+
+                detSalida.setExistenciaAnterior(stockActual);
+                detSalida.setExistencia(stockActual);
+                detSalida.setUnidad(det.getArticuloEmpaque().getUnidadEmpaque());
+
+                BigDecimal costo = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
+                BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
+
+                detSalida.setCostoUnitario(costo);
+                detSalida.setPrecioCompra(costo);
+                detSalida.setPrecioVenta(precio);
+
+                BigDecimal cantidadFisicaBase1 = detSalida.getCantidad()
+                        .multiply(detSalida.getFactorConversion());
+
+                detSalida.setCantidadFisicaBase(cantidadFisicaBase1);
+
+                detallesSalida.add(detSalida);
+//                }
+            }
+        }
+
+        salida.setDetalleSalidaInventarioCollection(detallesSalida);
+
+        return guardar(salida, nombreUsuario);
+
     }
 }

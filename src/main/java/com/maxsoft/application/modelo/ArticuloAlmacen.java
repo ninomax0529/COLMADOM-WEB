@@ -245,7 +245,7 @@ public class ArticuloAlmacen implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.ArticuloAlmacen[ codigo=" + codigo + " ]";
+        return descripcionArticulo;
     }
     
 }

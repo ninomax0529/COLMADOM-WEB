@@ -18,9 +18,12 @@ import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Date;
 
 /**
  *
@@ -46,8 +49,6 @@ public class Proveedor implements Serializable {
     @Column(name = "telefono")
     private String telefono;
     // @Pattern(regexp="[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", message="Invalid email")//if the field contains email address consider using this annotation to enforce field validation
-    // @Pattern(regexp="[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", message="Invalid email")//if the field contains email address consider using this annotation to enforce field validation
-    // @Pattern(regexp="[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", message="Invalid email")//if the field contains email address consider using this annotation to enforce field validation
     @Size(max = 45)
     @Column(name = "email")
     private String email;
@@ -59,8 +60,6 @@ public class Proveedor implements Serializable {
     @Column(name = "celular")
     private String celular;
     // @Pattern(regexp="^\\(?(\\d{3})\\)?[- ]?(\\d{3})[- ]?(\\d{4})$", message="Invalid phone/fax format, should be as xxx-xxx-xxxx")//if the field contains phone or fax number consider using this annotation to enforce field validation
-    // @Pattern(regexp="^\\(?(\\d{3})\\)?[- ]?(\\d{3})[- ]?(\\d{4})$", message="Invalid phone/fax format, should be as xxx-xxx-xxxx")//if the field contains phone or fax number consider using this annotation to enforce field validation
-    // @Pattern(regexp="^\\(?(\\d{3})\\)?[- ]?(\\d{3})[- ]?(\\d{4})$", message="Invalid phone/fax format, should be as xxx-xxx-xxxx")//if the field contains phone or fax number consider using this annotation to enforce field validation
     @Size(max = 45)
     @Column(name = "fax")
     private String fax;
@@ -71,6 +70,9 @@ public class Proveedor implements Serializable {
     @Size(max = 50)
     @Column(name = "web")
     private String web;
+    @Size(max = 80)
+    @Column(name = "creado_por")
+    private String creadoPor;
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -80,6 +82,16 @@ public class Proveedor implements Serializable {
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "limite_credito")
     private Double limiteCredito;
+    @Column(name = "fecha_cracion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaCracion;
+    @Column(name = "fecha_actualizacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaActualizacion;
+    @Column(name = "habilitado")
+    private Boolean habilitado;
+    @OneToMany(mappedBy = "proveedor")
+    private Collection<FacturaDeCompra> facturaDeCompraCollection;
     @OneToMany(mappedBy = "proveedor")
     private Collection<OrdenDeCompra> ordenDeCompraCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "proveedor")
@@ -123,6 +135,46 @@ public class Proveedor implements Serializable {
         this.cuentaContable = cuentaContable;
     }
 
+
+    public Date getFechaCracion() {
+        return fechaCracion;
+    }
+
+    public void setFechaCracion(Date fechaCracion) {
+        this.fechaCracion = fechaCracion;
+    }
+
+    public String getCreadoPor() {
+        return creadoPor;
+    }
+
+    public void setCreadoPor(String creadoPor) {
+        this.creadoPor = creadoPor;
+    }
+
+    public Date getFechaActualizacion() {
+        return fechaActualizacion;
+    }
+
+    public void setFechaActualizacion(Date fechaActualizacion) {
+        this.fechaActualizacion = fechaActualizacion;
+    }
+
+    public Boolean getHabilitado() {
+        return habilitado;
+    }
+
+    public void setHabilitado(Boolean habilitado) {
+        this.habilitado = habilitado;
+    }
+
+    public Collection<FacturaDeCompra> getFacturaDeCompraCollection() {
+        return facturaDeCompraCollection;
+    }
+
+    public void setFacturaDeCompraCollection(Collection<FacturaDeCompra> facturaDeCompraCollection) {
+        this.facturaDeCompraCollection = facturaDeCompraCollection;
+    }
 
     public Collection<OrdenDeCompra> getOrdenDeCompraCollection() {
         return ordenDeCompraCollection;

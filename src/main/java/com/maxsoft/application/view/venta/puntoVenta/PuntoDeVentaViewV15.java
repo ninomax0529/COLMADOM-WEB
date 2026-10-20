@@ -90,7 +90,6 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
 
     // ============================================================
     // CONSTANTES
-    //    agregarNuevoItemConEmpaque
     // ============================================================
     private static final DecimalFormat MONEDA_FORMAT
             = new DecimalFormat("#,##0.00");
@@ -119,6 +118,18 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
 
     private static final int ESCALA_MONETARIA = 2;
 
+    /**
+     * Código del almacén contra el que el POS valida el stock al vender.
+     */
+    private static final int ALMACEN_STOCK_CODIGO = 2;
+
+    /**
+     * Ruta a la que se vuelve si el cajero cierra el diálogo de apertura sin
+     * abrir caja. No puede ser la propia ruta del POS (se reabriría el diálogo
+     * en bucle).
+     */
+    private static final String RUTA_SIN_CAJA = "";
+
     // ============================================================
     // SERVICIOS
     // ============================================================
@@ -142,8 +153,10 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
     private final List<TicketVenta> listaTicketsAbiertos
             = new ArrayList<>();
 
-    private final ComboBox<ArticuloEmpaque> searchBox
-            = new ComboBox<>("Buscar producto o escanear código");
+    // Es el buscador del PanelProductos (se asigna en crearPanelProductos).
+    // Antes era un combo propio que nunca se agregaba a la pantalla, por lo que
+    // enfocarBuscador() no tenía ningún efecto.
+    private ComboBox<ArticuloEmpaque> searchBox;
 
     private final List<Cliente> libretaClientes
             = new ArrayList<>();
@@ -211,7 +224,6 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
         // El atajo Alt+X de anulación se registra en configurarAtajosTeclado()
         // para que se restaure cada vez que la vista se vuelve a adjuntar.
         configurarVista();
-        configurarBuscador();
         configurarEventos();
         configurarAtajoCliente();
 
@@ -231,29 +243,18 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
         leftPanel.setHeightFull();
 
         VerticalLayout rightPanel = crearPanelCarritos();
-        rightPanel.setWidthFull();
+        rightPanel.setWidth("45%");
+        rightPanel.setHeightFull();
 
-        // Columna derecha: barra de acciones (Anular) + panel de carritos
-        VerticalLayout columnaDerecha
-                = new VerticalLayout(
-                        crearBarraAcciones(),
-                        rightPanel
-                );
-
-        columnaDerecha.setWidth("45%");
-        columnaDerecha.setHeightFull();
-        columnaDerecha.setPadding(false);
-        columnaDerecha.setSpacing(false);
-        columnaDerecha.expand(rightPanel);
-
-        add(leftPanel, columnaDerecha);
+        add(leftPanel, rightPanel);
     }
 
     /**
-     * Barra superior de la columna derecha con el botón de anulación. Abre el
-     * mismo diálogo que el atajo Alt+X.
+     * Botón de anulación. Abre el mismo diálogo que el atajo Alt+X y se coloca
+     * en el encabezado del panel de ventas (junto a "Cambiar Nombre" y "Nueva
+     * Venta").
      */
-    private HorizontalLayout crearBarraAcciones() {
+    private Button crearBotonAnular() {
 
         Button btnAnular
                 = new Button(
@@ -264,27 +265,17 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
 
         btnAnular.addThemeVariants(
                 ButtonVariant.LUMO_ERROR,
+                ButtonVariant.LUMO_TERTIARY,
                 ButtonVariant.LUMO_SMALL
         );
+
+        btnAnular.setTooltipText("Anular una factura emitida");
 
         // Fuera del orden de tabulación: evita activarlo por accidente con el
         // lector de códigos o con Enter mientras se vende.
         btnAnular.setTabIndex(-1);
 
-        HorizontalLayout barra = new HorizontalLayout(btnAnular);
-
-        barra.setWidthFull();
-        barra.setPadding(false);
-        barra.setJustifyContentMode(
-                HorizontalLayout.JustifyContentMode.END
-        );
-
-        return barra;
-    }
-
-    private void configurarBuscador() {
-
-        searchBox.setItemLabelGenerator(ArticuloEmpaque::getNombreArticulo);
+        return btnAnular;
     }
 
     private void configurarEventos() {
@@ -392,7 +383,7 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
             if (!event.isOpened() && !cajaAbierta) {
 
                 getUI().ifPresent(ui
-                        -> ui.navigate("puntoDeVentav14")
+                        -> ui.navigate(RUTA_SIN_CAJA)
                 );
             }
         });
@@ -539,7 +530,7 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
     // ============================================================
     private VerticalLayout crearPanelProductos() {
 
-        return new PanelProductos(
+        PanelProductos panel = new PanelProductos(
                 articuloEmpaqueService,
                 this::agregarAlTicketActivo,
                 this::agregarAlTicketActivo,
@@ -549,11 +540,17 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
                 this::abrirDialogoMovimientoPos,
                 factService
         );
+
+        // El foco del POS (después de cada venta, cada diálogo, cada cambio de
+        // pestaña) debe volver al buscador/lector de códigos del panel.
+        this.searchBox = panel.getSearchBox();
+
+        return panel;
     }
 
-    private VerticalLayout crearPanelCarritos() {
+    private PanelCarritos crearPanelCarritos() {
 
-        return new PanelCarritos(
+        PanelCarritos panel = new PanelCarritos(
                 ticketTabSheet,
                 listaTicketsAbiertos,
                 () -> crearNuevoTicket(null),
@@ -568,6 +565,10 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
                     enfocarBuscador();
                 }
         );
+
+        panel.agregarAccion(crearBotonAnular());
+
+        return panel;
     }
 
     // ============================================================
@@ -575,9 +576,17 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
     // ============================================================
     private void agregarAlTicketActivo(ArticuloEmpaque articulo) {
 
-        agregarAlTicketActivo(articulo, BigDecimal.ZERO);
+        // Elegir un producto (buscador o toque en la tarjeta) agrega 1 unidad.
+        // Antes se enviaba 0 y la validación siempre rechazaba la operación.
+        agregarAlTicketActivo(articulo, BigDecimal.ONE);
     }
 
+    /**
+     * Cada tarjeta / resultado del buscador ya ES una presentación concreta
+     * (ArticuloEmpaque), por lo que no se pregunta de nuevo por el empaque.
+     * Cantidad positiva: agrega. Cantidad negativa: descuenta de la línea
+     * existente de esa presentación.
+     */
     private void agregarAlTicketActivo(
             ArticuloEmpaque articulo,
             BigDecimal cantidad) {
@@ -586,9 +595,8 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
             return;
         }
 
-        // Validación original de cantidad (se mantiene tal cual)
         if (cantidad == null
-                || cantidad.doubleValue() <= 0) {
+                || cantidad.signum() == 0) {
 
             ClaseUtil.mostrarNotificacion(
                     "La cantidad debe ser mayor que cero.",
@@ -597,120 +605,71 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
             return;
         }
 
-        // El diálogo de empaque es asíncrono: se fija el ticket de destino
-        // ahora, para que un cambio de pestaña no desvíe la línea a otro ticket.
+        // Se fija el ticket de destino al momento de la acción.
         final TicketVenta ticket = ticketActivo;
 
-        List<ArticuloEmpaque> empaques
-                = articuloEmpaqueService.getPorArticulo(
-                        articulo.getCodigo()
-                );
-
-        if (empaques != null && empaques.size() > 1) {
-
-            mostrarDialogoSeleccionEmpaque(
-                    ticket,
-                    articulo,
-                    cantidad,
-                    empaques
-            );
-
+        if (cantidad.signum() < 0) {
+            quitarDelTicket(ticket, articulo, cantidad);
             return;
         }
-
-        ArticuloEmpaque empaqueUnico
-                = (empaques != null && !empaques.isEmpty())
-                ? empaques.get(0)
-                : null;
 
         procesarInsercionConEmpaque(
                 ticket,
                 articulo,
-                empaqueUnico,
+                articulo,
                 cantidad
         );
     }
 
-    private void mostrarDialogoSeleccionEmpaque(
+    /**
+     * Botón "−" de la tarjeta: resta de la línea de esa presentación. Si la
+     * cantidad queda en 0 se pide confirmar la eliminación de la línea.
+     */
+    private void quitarDelTicket(
             TicketVenta ticket,
             ArticuloEmpaque articulo,
-            BigDecimal cantidad,
-            List<ArticuloEmpaque> empaques) {
+            BigDecimal cantidad) {
 
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Seleccione Empaque / Presentación");
-        dialog.setCloseOnOutsideClick(false);
+        Optional<DetalleFacturaDeVenta> existente
+                = buscarLinea(ticket, articulo);
 
-        ComboBox<ArticuloEmpaque> cbEmpaque
-                = new ComboBox<>("Empaque disponible");
+        if (existente.isEmpty()) {
 
-        cbEmpaque.setItems(empaques);
-
-        cbEmpaque.setItemLabelGenerator(ae -> {
-
-            String nombre = ae.getUnidadEmpaque() != null
-                    ? ae.getUnidadEmpaque().getDescripcion()
-                    : "Empaque " + ae.getCodigo();
-
-            return nombre
-                    + " (x"
-                    + obtenerFactorConversion(ae)
-                            .stripTrailingZeros()
-                            .toPlainString()
-                    + ") - "
-                    + moneda(calcularPrecioEmpaque(articulo, ae));
-        });
-
-        cbEmpaque.setWidthFull();
-        cbEmpaque.setAllowCustomValue(false);
-        cbEmpaque.setValue(empaques.get(0));
-
-        Button btnAceptar = new Button("Agregar", e -> {
-
-            ArticuloEmpaque seleccionado = cbEmpaque.getValue();
-
-            if (seleccionado == null) {
-                Notification.show(
-                        "Seleccione un empaque válido",
-                        2500,
-                        Notification.Position.MIDDLE
-                );
-                return;
-            }
-
-            dialog.close();
-
-            procesarInsercionConEmpaque(
-                    ticket,
-                    articulo,
-                    seleccionado,
-                    cantidad
+            ClaseUtil.mostrarNotificacion(
+                    "Ese producto no está en la venta.",
+                    NotificationVariant.LUMO_WARNING
             );
-        });
 
-        btnAceptar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        btnAceptar.addClickShortcut(Key.ENTER);
+            enfocarBuscador();
 
-        Button btnCancelar = new Button("Cancelar", e -> dialog.close());
+            return;
+        }
 
-        dialog.addOpenedChangeListener(ev -> {
+        actualizarCantidadItem(
+                ticket,
+                existente.get(),
+                cantidad
+        );
 
-            if (ev.isOpened()) {
-                cbEmpaque.focus();
-            } else {
-                // Devuelve el foco al buscador/lector de códigos
-                enfocarBuscador();
-            }
-        });
+        ticket.updateUI();
 
-        dialog.add(new VerticalLayout(
-                new Span("Artículo: " + articulo.getNombreArticulo()),
-                cbEmpaque
-        ));
+        actualizarTitulosPestanas();
 
-        dialog.getFooter().add(btnCancelar, btnAceptar);
+        enfocarBuscador();
+    }
 
-        dialog.open();
+    private Optional<DetalleFacturaDeVenta> buscarLinea(
+            TicketVenta ticket,
+            ArticuloEmpaque articulo) {
+
+        return ticket.getItems()
+                .stream()
+                .filter(item
+                        -> item.getArticuloEmpaque() != null
+                && Objects.equals(
+                        item.getArticuloEmpaque().getCodigo(),
+                        articulo.getCodigo()))
+                .findFirst();
     }
 
     /**
@@ -745,22 +704,34 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
             return empaque.getPrecioVenta();
         }
 
-        return aDecimal(articulo.getPrecioVenta())
-                .multiply(obtenerFactorConversion(empaque));
+        ArticuloEmpaque base = empaque != null ? empaque : articulo;
+
+        Number precioBase = (base.getArticulo() != null
+                && base.getArticulo().getPrecioVenta() != null)
+                ? base.getArticulo().getPrecioVenta()
+                : null;
+
+        return aDecimal(precioBase)
+                .multiply(obtenerFactorConversion(base));
     }
 
     /**
-     * Cantidad total del artículo dentro del ticket, expresada en unidad base
-     * (suma todas las presentaciones del mismo artículo).
+     * Cantidad total del ARTÍCULO dentro del ticket, expresada en unidad base.
+     * Suma todas las presentaciones del mismo artículo (unidad, caja, etc.),
+     * porque el stock es único por artículo.
      */
     private BigDecimal cantidadBaseEnTicket(
             TicketVenta ticket,
-            ArticuloEmpaque articulo) {
+            ArticuloEmpaque articuloEmpaque) {
+
+        Integer codigoArticulo = articuloEmpaque.getArticulo() != null
+                ? articuloEmpaque.getArticulo().getCodigo()
+                : null;
 
         return ticket.getItems()
                 .stream()
-                .filter(i -> i.getArticuloEmpaque() != null
-                && i.getArticuloEmpaque().equals(articulo))
+                .filter(i -> i.getArticulo() != null
+                && Objects.equals(i.getArticulo().getCodigo(), codigoArticulo))
                 .map(i -> valorSeguro(i.getCantidad())
                 .multiply(obtenerFactorConversion(i.getArticuloEmpaque())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -781,14 +752,22 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
         }
 
         // Advertencia discreta si el producto se venderá sin stock en sistema.
-        // Considera lo que ya hay en el ticket y el factor del empaque.
-        if (Boolean.TRUE.equals(articuloEmpaque.getArticulo().getInventariable())) {
+        // Considera lo que ya hay en el ticket (todas las presentaciones del
+        // artículo) y el factor del empaque.
+        Articulo base = articuloEmpaque.getArticulo();
 
-            Integer codArt = articuloEmpaque.getArticulo().getCodigo();
+        if (base != null && Boolean.TRUE.equals(base.getInventariable())) {
 
-            BigDecimal stock = this.articuloAlmacenService.buscarPorArticuloYAlmacen(codArt, 2).get().getExistencia();
+            // Sin registro de existencia en el almacén se considera stock 0
+            BigDecimal stock
+                    = this.articuloAlmacenService
+                            .buscarPorArticuloYAlmacen(
+                                    base.getCodigo(),
+                                    ALMACEN_STOCK_CODIGO
+                            )
+                            .map(a -> a.getExistencia())
+                            .orElse(BigDecimal.ZERO);
 
-//            BigDecimal stock  = aDecimal(articuloEmpaque.getArticulo().getExistencia());
             BigDecimal requerido
                     = cantidadBaseEnTicket(ticket, articuloEmpaque)
                             .add(cantidad.multiply(
@@ -810,16 +789,7 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
         }
 
         Optional<DetalleFacturaDeVenta> existente
-                = ticket.getItems()
-                        .stream()
-                        .filter(item
-                                -> item.getArticuloEmpaque() != null
-                        && item.getArticuloEmpaque().getCodigo().equals(articuloEmpaque.getCodigo())
-                        && Objects.equals(
-                                item.getArticuloEmpaque().getCodigo(),
-                                articuloEmpaque.getCodigo()
-                        ))
-                        .findFirst();
+                = buscarLinea(ticket, articuloEmpaque);
 
         if (existente.isPresent()) {
 
@@ -840,6 +810,8 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
         }
 
         ticket.updateUI();
+
+        actualizarTitulosPestanas();
 
         enfocarBuscador();
     }
@@ -876,7 +848,6 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
             ArticuloEmpaque empaque,
             BigDecimal cantidad) {
 
-        System.out.println("empaque " + articulo.getUnidadEmpaque().getDescripcion());
         DetalleFacturaDeVenta nuevoDetalle
                 = new DetalleFacturaDeVenta();
 
@@ -888,37 +859,63 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
 
         nuevoDetalle.setCantidad(cantidad);
 
-        // null cuando el artículo no maneja empaques (comportamiento original)
+        // Presentación vendida
         nuevoDetalle.setArticuloEmpaque(articulo);
-        nuevoDetalle.setFactorConversion(articulo.getFactorConversion());
-        nuevoDetalle.setUnidad(articulo.getUnidadEmpaque());
-        nuevoDetalle.setNombreUnidad(articulo.getUnidadEmpaque().getDescripcion());
-        nuevoDetalle.setCantidadFisicaBase(articulo.getFactorConversion().multiply(cantidad));
+
+        BigDecimal factor = obtenerFactorConversion(articulo);
+
+        nuevoDetalle.setFactorConversion(factor);
+
+        nuevoDetalle.setCantidadFisicaBase(
+                cantidad.multiply(factor)
+        );
+
+        if (articulo.getUnidadEmpaque() != null) {
+
+            nuevoDetalle.setUnidad(
+                    articulo.getUnidadEmpaque()
+            );
+
+            nuevoDetalle.setNombreUnidad(
+                    articulo.getUnidadEmpaque().getDescripcion()
+            );
+
+        } else {
+
+            nuevoDetalle.setNombreUnidad(
+                    UNIDAD_POR_DEFECTO
+            );
+        }
 
         nuevoDetalle.setNumeroDeLinea(
                 contadorLineas++
         );
 
-//        nuevoDetalle.setDescripcionArticulo(articulo.getNombreEmpaque());
+        String nombre = articulo.getNombreArticulo() != null
+                ? articulo.getNombreArticulo()
+                : "";
+
+        String descripcionEmpaque = articulo.getDescripcionEmpaque();
 
         nuevoDetalle.setDescripcionArticulo(
-                articulo.getNombreArticulo().concat(" ")
-                .concat(articulo.getDescripcionEmpaque())
-        );
-        nuevoDetalle.setExistenciaActual(
-                articulo.getArticulo().getExistencia()
+                nombre
+                + (descripcionEmpaque != null && !descripcionEmpaque.isBlank()
+                ? " " + descripcionEmpaque
+                : "")
         );
 
-        if (empaque != null) {
-            nuevoDetalle.setPrecioVenta(
-                    calcularPrecioEmpaque(articulo, empaque)
-            );
-        } else {
-            // Sin empaque: precio del artículo, exactamente como antes
-            nuevoDetalle.setPrecioVenta(
-                    articulo.getPrecioVenta()
+        if (articulo.getArticulo() != null) {
+            nuevoDetalle.setExistenciaActual(
+                    articulo.getArticulo().getExistencia()
             );
         }
+
+        nuevoDetalle.setPrecioVenta(
+                calcularPrecioEmpaque(
+                        articulo,
+                        empaque != null ? empaque : articulo
+                )
+        );
 
         nuevoDetalle.setPorcientoDescuento(
                 DESCUENTO_POR_DEFECTO
@@ -931,16 +928,6 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
         nuevoDetalle.setNombreAlmacen(
                 ALMACEN_POR_DEFECTO
         );
-
-        if (articulo != null && articulo.getUnidadEmpaque() != null) {
-            nuevoDetalle.setNombreUnidad(
-                    articulo.getUnidadEmpaque().getDescripcion()
-            );
-        } else {
-            nuevoDetalle.setNombreUnidad(
-                    UNIDAD_POR_DEFECTO
-            );
-        }
 
         recalcularTotalesItem(nuevoDetalle);
 
@@ -1006,12 +993,19 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
                 dinero(totalDescuento)
         );
 
-        item.setItbis(
+        item.setTotalItbis(
                 dinero(totalItbis)
         );
 
         item.setTotal(
                 dinero(total)
+        );
+
+        // MULTI-EMPAQUE: la cantidad en unidad base siempre sigue a la cantidad
+        item.setCantidadFisicaBase(
+                cantidad.multiply(
+                        obtenerFactorConversion(item.getArticuloEmpaque())
+                )
         );
     }
 
@@ -1288,11 +1282,14 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
             TicketVenta ticket
                     = listaTicketsAbiertos.get(i);
 
+            int lineas = ticket.getItems().size();
+
             ticketTabSheet
                     .getTabAt(i)
                     .setLabel(
                             "[Alt+" + (i + 1) + "] "
                             + ticket.getId()
+                            + (lineas > 0 ? " (" + lineas + ")" : "")
                     );
         }
     }
@@ -1590,7 +1587,6 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
 
         dialogo.open();
     }
-
     private void abrirDialogoMovimientoPos() {
 
         new DialogoMovimientoPos(
@@ -1626,6 +1622,8 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
             ticket.getItems().clear();
 
             ticket.updateUI();
+
+            actualizarTitulosPestanas();
 
             ClaseUtil.mostrarNotificacion(
                     "Ticket limpiado.",
@@ -1733,32 +1731,43 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
     // ============================================================
     // CANTIDADES
     // ============================================================
+    /**
+     * Botón "$" de la tarjeta: el cajero escribe un monto en dinero y se agrega
+     * la cantidad equivalente (monto / precio de la presentación).
+     */
     private void abrirDialogoVentaPorMonto(
-            String producto,
-            BigDecimal precioUnitario) {
+            ArticuloEmpaque articulo) {
+
+        if (articulo == null) {
+            return;
+        }
+
+        BigDecimal precioUnitario
+                = calcularPrecioEmpaque(articulo, articulo);
 
         new DialogoVentaPorMonto(
-                producto,
+                articulo.getNombreArticulo(),
                 precioUnitario,
                 (monto, cantidadCalculada) -> {
 
-                    if (ticketActivo == null) {
+                    if (ticketActivo == null
+                            || cantidadCalculada == null) {
                         return;
                     }
 
-                    /*
-                     * Se mantiene la misma integración existente.
-                     *
-                     * La implementación concreta de cómo se agrega
-                     * la cantidad calculada continúa delegada al
-                     * componente actual.
-                     */
-                    if (cantidadCalculada != null
-                    && cantidadCalculada > 0) {
+                    BigDecimal cantidad
+                            = BigDecimal.valueOf(cantidadCalculada.doubleValue())
+                                    .setScale(
+                                            ESCALA_CALCULO,
+                                            RoundingMode.HALF_UP
+                                    );
 
-                        // Aquí se puede integrar directamente
-                        // agregarAlTicketActivo() cuando el
-                        // componente retorne el Articulo.
+                    if (cantidad.signum() > 0) {
+
+                        agregarAlTicketActivo(
+                                articulo,
+                                cantidad
+                        );
                     }
                 }
         ).open();
@@ -1797,7 +1806,10 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
         new DialogoConfirmarEliminarItem(
                 ticket,
                 item,
-                this::enfocarBuscador
+                () -> {
+                    actualizarTitulosPestanas();
+                    enfocarBuscador();
+                }
         ).open();
     }
 
@@ -2058,7 +2070,7 @@ public class PuntoDeVentaViewV15 extends HorizontalLayout
     }
 
     private void enfocarBuscador() {
-        if (!searchBox.isAttached() || !searchBox.isVisible() || !searchBox.isEnabled()) {
+        if (searchBox == null || !searchBox.isAttached() || !searchBox.isVisible() || !searchBox.isEnabled()) {
             return;
         }
 

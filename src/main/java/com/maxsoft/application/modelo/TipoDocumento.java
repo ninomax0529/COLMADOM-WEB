@@ -161,7 +161,7 @@ public class TipoDocumento implements Serializable {
 
     @Override
     public String toString() {
-        return nombre;
+        return "com.maxsoft.application.modelo.TipoDocumento[ codigo=" + codigo + " ]";
     }
 
     public String getNombre() {

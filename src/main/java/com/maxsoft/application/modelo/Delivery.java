@@ -186,7 +186,7 @@ public class Delivery implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Delivery[ codigo=" + codigo + " ]";
+        return nombre;
     }
     
 }

@@ -227,7 +227,7 @@ public class Cliente implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Cliente[ codigo=" + codigo + " ]";
+        return nombre;
     }
     
 }

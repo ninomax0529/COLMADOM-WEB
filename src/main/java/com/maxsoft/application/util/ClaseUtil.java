@@ -394,6 +394,52 @@ public class ClaseUtil {
 //        notification.addThemeVariants(variante);
     }
 
+    public static void mostrarNotificacion(String mensaje, NotificationVariant variante, Integer duracion) {
+
+        // 1. Crear la instancia de la notificación
+        Notification notification = new Notification();
+
+// 2. Configurar la duración (4000 ms) y la posición
+        notification.setDuration(duracion);
+        notification.setPosition(Notification.Position.TOP_CENTER);
+
+// 3. Añadir la variante de tema (ej. NotificationVariant.LUMO_SUCCESS)
+        notification.addThemeVariants(variante);
+// 1. Crear el contenedor con las dimensiones deseadas
+        Div content = new Div();
+        content.setText(mensaje);
+        content.setWidth("500px");   // Mantiene el ancho fijo que definiste
+        content.setHeight("150px");  // Mantiene la altura fija que definiste
+
+// 2. Aplicar estilos de tamaño, fuente y centrado absoluto (Flexbox)
+        content.getStyle().set("font-size", "34px");
+        content.getStyle().set("font-weight", "bold");
+
+// Activa Flexbox para centrar en ambos ejes (horizontal y vertical)
+        content.getStyle().set("display", "flex");
+        content.getStyle().set("align-items", "center");     // Centrado vertical
+        content.getStyle().set("justify-content", "center"); // Centrado horizontal
+
+// Aquí puedes añadir más componentes al contenedor:
+// content.add(new Button("Cerrar", e -> notification.close()));
+        notification.add(content);
+
+        // 2. Ejecutar JS para reproducir un sonido web estándar (beep) al abrir
+        notification.addOpenedChangeListener(event -> {
+            if (event.isOpened()) {
+                UI.getCurrent().getPage().executeJs(
+                        "new Audio('https://google.com').play();"
+                );
+            }
+        });
+
+// 5. Mostrar la notificación
+        notification.open();
+
+//        Notification notification = Notification.show(mensaje, 4000, Notification.Position.TOP_CENTER);
+//        notification.addThemeVariants(variante);
+    }
+
     public static void main(String[] args) {
 
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();

@@ -89,7 +89,7 @@ public class Modulo implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Modulo[ codigo=" + codigo + " ]";
+        return nombre;
     }
     
 }

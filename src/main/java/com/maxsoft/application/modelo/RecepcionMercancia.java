@@ -49,8 +49,8 @@ public class RecepcionMercancia implements Serializable {
     private String numeroDocumento;
     @Basic(optional = false)
     @NotNull
-    @Size(min = 1, max =50)
-    @Column( name="nombre_documento")
+    @Size(min = 1, max = 50)
+//    @Column(Tempora"nombre_documento")
     private String nombreDocumento;
     @Size(max = 150)
     @Column(name = "nombre_proveedor")
@@ -88,15 +88,14 @@ public class RecepcionMercancia implements Serializable {
     @Size(max = 20)
     @Column(name = "numero_oc")
     private String numeroOc;
-    @JoinColumn(name = "orden_compra", referencedColumnName = "codigo")
-    @ManyToOne
-    private OrdenDeCompra ordenCompra;
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
+    @OneToMany(mappedBy = "recepcionMercancia")
+    private Collection<FacturaDeCompra> facturaDeCompraCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "recepcionMercancia")
     private Collection<DetalleRecepcionMercancia> detalleRecepcionMercanciaCollection;
     @JoinColumn(name = "almacen", referencedColumnName = "codigo")
@@ -105,6 +104,9 @@ public class RecepcionMercancia implements Serializable {
     @JoinColumn(name = "estado_documento", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private EstadoDocumento estadoDocumento;
+    @JoinColumn(name = "orden_compra", referencedColumnName = "codigo")
+    @ManyToOne
+    private OrdenDeCompra ordenCompra;
     @JoinColumn(name = "proveedor", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Proveedor proveedor;
@@ -194,6 +196,22 @@ public class RecepcionMercancia implements Serializable {
         this.nombreUsuario = nombreUsuario;
     }
 
+    public String getNumeroOc() {
+        return numeroOc;
+    }
+
+    public void setNumeroOc(String numeroOc) {
+        this.numeroOc = numeroOc;
+    }
+
+    public Collection<FacturaDeCompra> getFacturaDeCompraCollection() {
+        return facturaDeCompraCollection;
+    }
+
+    public void setFacturaDeCompraCollection(Collection<FacturaDeCompra> facturaDeCompraCollection) {
+        this.facturaDeCompraCollection = facturaDeCompraCollection;
+    }
+
     public Collection<DetalleRecepcionMercancia> getDetalleRecepcionMercanciaCollection() {
         return detalleRecepcionMercanciaCollection;
     }
@@ -216,6 +234,14 @@ public class RecepcionMercancia implements Serializable {
 
     public void setEstadoDocumento(EstadoDocumento estadoDocumento) {
         this.estadoDocumento = estadoDocumento;
+    }
+
+    public OrdenDeCompra getOrdenCompra() {
+        return ordenCompra;
+    }
+
+    public void setOrdenCompra(OrdenDeCompra ordenCompra) {
+        this.ordenCompra = ordenCompra;
     }
 
     public Proveedor getProveedor() {
@@ -275,6 +301,7 @@ public class RecepcionMercancia implements Serializable {
         this.fecha = fecha;
     }
 
+
     public String getComentario() {
         return comentario;
     }
@@ -291,6 +318,7 @@ public class RecepcionMercancia implements Serializable {
         this.subtotal = subtotal;
     }
 
+
     public BigDecimal getTotal() {
         return total;
     }
@@ -299,20 +327,5 @@ public class RecepcionMercancia implements Serializable {
         this.total = total;
     }
 
-    public String getNumeroOc() {
-        return numeroOc;
-    }
-
-    public void setNumeroOc(String numeroOc) {
-        this.numeroOc = numeroOc;
-    }
-
-    public OrdenDeCompra getOrdenCompra() {
-        return ordenCompra;
-    }
-
-    public void setOrdenCompra(OrdenDeCompra ordenCompra) {
-        this.ordenCompra = ordenCompra;
-    }
     
 }

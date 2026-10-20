@@ -665,9 +665,9 @@ public class ConsultaTrasladoInventarioView extends VerticalLayout {
         listDet = new ArrayList<>();
         gridDetalle.setItems(listDet);
         tabs.getTabAt(1).setLabel("Detalle");
+        actualizarTotalesDetalle();
         tabs.setSelectedIndex(0);
 
-        actualizarTotalesDetalle();
     }
 
     private void actualizarTotalesDetalle() {

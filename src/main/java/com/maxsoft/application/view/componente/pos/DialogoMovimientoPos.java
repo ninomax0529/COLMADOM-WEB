@@ -77,6 +77,7 @@ public class DialogoMovimientoPos extends Dialog {
         saveBtn.addClickShortcut(Key.ENTER);
 
         saveBtn.addClickListener(e -> {
+            
             BigDecimal monto = montoField.getValue();
             String tipoOperacion = tipoPosCombo.getValue();
             String descripcion = descripcionField.getValue();

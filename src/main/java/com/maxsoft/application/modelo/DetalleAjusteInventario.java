@@ -30,7 +30,6 @@ import java.math.BigDecimal;
     @NamedQuery(name = "DetalleAjusteInventario.findAll", query = "SELECT d FROM DetalleAjusteInventario d")})
 public class DetalleAjusteInventario implements Serializable {
 
-
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,6 +64,16 @@ public class DetalleAjusteInventario implements Serializable {
     private BigDecimal factorConversion;
     @Column(name = "cantidad_fisica_base")
     private BigDecimal cantidadFisicaBase;
+    @Column(name = "precio_compra")
+    private BigDecimal precioCompra;
+    @Column(name = "costo_unitario")
+    private BigDecimal costoUnitario;
+    @Column(name = "sub_total")
+    private BigDecimal subTotal;
+    @Column(name = "itbis")
+    private BigDecimal itbis;
+    @Column(name = "total")
+    private BigDecimal total;
     @JoinColumn(name = "ajuste_inventario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private AjusteInventario ajusteInventario;
@@ -80,22 +89,6 @@ public class DetalleAjusteInventario implements Serializable {
     @JoinColumn(name = "unidad", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Unidad unidad;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "sub_total")
-    private BigDecimal subTotal;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "itbis")
-    private BigDecimal itbis;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "total")
-    private BigDecimal total;
-    @Column(name = "precio_compra")
-    private BigDecimal precioCompra;
-    @Column(name = "costo_unitario")
-    private BigDecimal costoUnitario;
 
     public DetalleAjusteInventario() {
     }
@@ -184,6 +177,46 @@ public class DetalleAjusteInventario implements Serializable {
         this.cantidadFisicaBase = cantidadFisicaBase;
     }
 
+    public BigDecimal getPrecioCompra() {
+        return precioCompra;
+    }
+
+    public void setPrecioCompra(BigDecimal precioCompra) {
+        this.precioCompra = precioCompra;
+    }
+
+    public BigDecimal getCostoUnitario() {
+        return costoUnitario;
+    }
+
+    public void setCostoUnitario(BigDecimal costoUnitario) {
+        this.costoUnitario = costoUnitario;
+    }
+
+    public BigDecimal getSubTotal() {
+        return subTotal;
+    }
+
+    public void setSubTotal(BigDecimal subTotal) {
+        this.subTotal = subTotal;
+    }
+
+    public BigDecimal getItbis() {
+        return itbis;
+    }
+
+    public void setItbis(BigDecimal itbis) {
+        this.itbis = itbis;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
     public AjusteInventario getAjusteInventario() {
         return ajusteInventario;
     }
@@ -224,58 +257,6 @@ public class DetalleAjusteInventario implements Serializable {
         this.unidad = unidad;
     }
 
-    public BigDecimal getSubTotal() {
-        return subTotal;
-    }
-
-    public void setSubTotal(BigDecimal subTotal) {
-        this.subTotal = subTotal;
-    }
-
-    public BigDecimal getItbis() {
-        return itbis;
-    }
-
-    public void setItbis(BigDecimal itbis) {
-        this.itbis = itbis;
-    }
-
-    public BigDecimal getTotal() {
-        return total;
-    }
-
-    public void setTotal(BigDecimal total) {
-        this.total = total;
-    }
-    
-        /**
-     * @return the precioCompra
-     */
-    public BigDecimal getPrecioCompra() {
-        return precioCompra;
-    }
-
-    /**
-     * @param precioCompra the precioCompra to set
-     */
-    public void setPrecioCompra(BigDecimal precioCompra) {
-        this.precioCompra = precioCompra;
-    }
-
-    /**
-     * @return the costoUnitario
-     */
-    public BigDecimal getCostoUnitario() {
-        return costoUnitario;
-    }
-
-    /**
-     * @param costoUnitario the costoUnitario to set
-     */
-    public void setCostoUnitario(BigDecimal costoUnitario) {
-        this.costoUnitario = costoUnitario;
-    }
-
     @Override
     public int hashCode() {
         int hash = 0;
@@ -300,5 +281,5 @@ public class DetalleAjusteInventario implements Serializable {
     public String toString() {
         return "com.maxsoft.application.modelo.DetalleAjusteInventario[ codigo=" + codigo + " ]";
     }
-
+    
 }

@@ -49,10 +49,6 @@ public class DetalleFacturaDeVenta implements Serializable {
     private BigDecimal factorConversion;
     @Column(name = "cantidad_fisica_base")
     private BigDecimal cantidadFisicaBase;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "cantidad")
-    private BigDecimal cantidad;
     @Column(name = "precio_compra")
     private BigDecimal precioCompra;
     @Column(name = "existencia_actual")
@@ -66,20 +62,24 @@ public class DetalleFacturaDeVenta implements Serializable {
     private BigDecimal precioVenta;
     @Basic(optional = false)
     @NotNull
+    @Column(name = "cantidad")
+    private BigDecimal cantidad;
+    @Basic(optional = false)
+    @NotNull
     @Column(name = "sub_total")
     private BigDecimal subTotal;
     @Basic(optional = false)
     @NotNull
-    @Column(name = "itbis")
-    private BigDecimal itbis;
+    @Column(name = "total_descuento")
+    private BigDecimal totalDescuento;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "total_itbis")
+    private BigDecimal totalItbis;
     @Basic(optional = false)
     @NotNull
     @Column(name = "total")
     private BigDecimal total;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "total_descuento")
-    private BigDecimal totalDescuento;
     @Basic(optional = false)
     @NotNull
     @Column(name = "porciento_descuento")
@@ -117,14 +117,14 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.codigo = codigo;
     }
 
-    public DetalleFacturaDeVenta(Integer codigo, String descripcionArticulo, BigDecimal cantidad, BigDecimal subTotal, BigDecimal itbis, BigDecimal total, BigDecimal totalDescuento, BigDecimal porcientoDescuento, BigDecimal porcientoItbis, int numeroDeLinea) {
+    public DetalleFacturaDeVenta(Integer codigo, String descripcionArticulo, BigDecimal cantidad, BigDecimal subTotal, BigDecimal totalDescuento, BigDecimal totalItbis, BigDecimal total, BigDecimal porcientoDescuento, BigDecimal porcientoItbis, int numeroDeLinea) {
         this.codigo = codigo;
         this.descripcionArticulo = descripcionArticulo;
         this.cantidad = cantidad;
         this.subTotal = subTotal;
-        this.itbis = itbis;
-        this.total = total;
         this.totalDescuento = totalDescuento;
+        this.totalItbis = totalItbis;
+        this.total = total;
         this.porcientoDescuento = porcientoDescuento;
         this.porcientoItbis = porcientoItbis;
         this.numeroDeLinea = numeroDeLinea;
@@ -170,14 +170,6 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.cantidadFisicaBase = cantidadFisicaBase;
     }
 
-    public BigDecimal getCantidad() {
-        return cantidad;
-    }
-
-    public void setCantidad(BigDecimal cantidad) {
-        this.cantidad = cantidad;
-    }
-
     public BigDecimal getPrecioCompra() {
         return precioCompra;
     }
@@ -218,6 +210,14 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.precioVenta = precioVenta;
     }
 
+    public BigDecimal getCantidad() {
+        return cantidad;
+    }
+
+    public void setCantidad(BigDecimal cantidad) {
+        this.cantidad = cantidad;
+    }
+
     public BigDecimal getSubTotal() {
         return subTotal;
     }
@@ -226,12 +226,20 @@ public class DetalleFacturaDeVenta implements Serializable {
         this.subTotal = subTotal;
     }
 
-    public BigDecimal getItbis() {
-        return itbis;
+    public BigDecimal getTotalDescuento() {
+        return totalDescuento;
     }
 
-    public void setItbis(BigDecimal itbis) {
-        this.itbis = itbis;
+    public void setTotalDescuento(BigDecimal totalDescuento) {
+        this.totalDescuento = totalDescuento;
+    }
+
+    public BigDecimal getTotalItbis() {
+        return totalItbis;
+    }
+
+    public void setTotalItbis(BigDecimal totalItbis) {
+        this.totalItbis = totalItbis;
     }
 
     public BigDecimal getTotal() {
@@ -240,14 +248,6 @@ public class DetalleFacturaDeVenta implements Serializable {
 
     public void setTotal(BigDecimal total) {
         this.total = total;
-    }
-
-    public BigDecimal getTotalDescuento() {
-        return totalDescuento;
-    }
-
-    public void setTotalDescuento(BigDecimal totalDescuento) {
-        this.totalDescuento = totalDescuento;
     }
 
     public BigDecimal getPorcientoDescuento() {

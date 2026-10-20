@@ -77,6 +77,8 @@ public class SalidaInventario implements Serializable {
     @Size(max = 45)
     @Column(name = "nombre_usuario")
     private String nombreUsuario;
+    @OneToMany(mappedBy = "salidaInventario")
+    private Collection<Merma> mermaCollection;
     @JoinColumn(name = "secuencia_documento", referencedColumnName = "codigo")
     @ManyToOne
     private SecuenciaDocumento secuenciaDocumento;
@@ -211,6 +213,14 @@ public class SalidaInventario implements Serializable {
 
     public void setNombreUsuario(String nombreUsuario) {
         this.nombreUsuario = nombreUsuario;
+    }
+
+    public Collection<Merma> getMermaCollection() {
+        return mermaCollection;
+    }
+
+    public void setMermaCollection(Collection<Merma> mermaCollection) {
+        this.mermaCollection = mermaCollection;
     }
 
     public SecuenciaDocumento getSecuenciaDocumento() {

@@ -12,6 +12,7 @@ import com.maxsoft.application.modelo.RecepcionMercancia;
 import com.maxsoft.application.repo.RecepcionMercanciaRepo;
 import com.maxsoft.application.servicio.interfaces.compra.OrdenDeCompraService;
 import com.maxsoft.application.servicio.interfaces.compra.RecepcionMercanciaService;
+import com.maxsoft.application.servicio.interfaces.cxp.FacturaDeCompraService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
 import java.math.BigDecimal;
@@ -28,16 +29,20 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
     private final ArticuloService articuloService;
     private final OrdenDeCompraService ordenCompraService;
     private EntradaDeInventarioService entradaInventarioService;
+    FacturaDeCompraService facturaDeCompraService;
 
     public RecepcionMercanciaServiceImpl(RecepcionMercanciaRepo recepcionRepo,
             ArticuloService articuloService,
             OrdenDeCompraService ordenCompraService,
-            EntradaDeInventarioService entradaInventarioService
+            EntradaDeInventarioService entradaInventarioService,
+            FacturaDeCompraService facturaDeCompraService
     ) {
         this.recepcionRepo = recepcionRepo;
         this.articuloService = articuloService;
         this.ordenCompraService = ordenCompraService;
         this.entradaInventarioService = entradaInventarioService;
+        this.facturaDeCompraService = facturaDeCompraService;
+
     }
 
     @Override
@@ -46,6 +51,7 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
 
         // 1. Asignar la relación bidireccional en el detalle
         if (recepcion.getDetalleRecepcionMercanciaCollection() != null) {
+
             recepcion.getDetalleRecepcionMercanciaCollection().forEach(o -> {
 
                 o.setCodigo(null); // Asegurar que sea una inserción nueva
@@ -60,7 +66,17 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
 
         List<DetalleRecepcionMercancia> detalle = this.recepcionRepo.getDetalle(recepcionDB.getCodigo());
 
-        EntradaInventario entradaCreada = entradaInventarioService.crearEntradaPorRecepcion(recepcionDB, detalle);
+        if (recepcionDB.getProveedor().getTipoSuplidor().getCodigo() == 2) {//Proveedor informal
+
+            this.facturaDeCompraService.procesarFacturaInformal(recepcion, detalle);
+
+        } else {
+            
+            this.facturaDeCompraService.procesarFactura(recepcion, detalle);
+
+        }
+
+        this.entradaInventarioService.crearEntradaPorRecepcion(recepcionDB, detalle);
 
         actualizarOrdenDeCompra(recepcionDB);
 
@@ -68,8 +84,8 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
     }
 
     private void actualizarOrdenDeCompra1(RecepcionMercancia rec) {
-        
-        if (rec.getOrdenCompra()== null) {
+
+        if (rec.getOrdenCompra() == null) {
             return; // recepción sin orden: nada que actualizar
         }
 
@@ -83,7 +99,7 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
         }
 
         for (DetalleRecepcionMercancia det : rec.getDetalleRecepcionMercanciaCollection()) {
-            
+
             DetalleOrdendeDeCompra linea = buscarLineaOrden(orden, det);
 
             BigDecimal recibida = det.getCantidadRecibida() != null ? det.getCantidadRecibida() : BigDecimal.ZERO;
@@ -112,56 +128,55 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
 
         this.ordenCompraService.guardar(orden);
     }
-    
-    
+
     private void actualizarOrdenDeCompra(RecepcionMercancia rec) {
-        
-    if (rec.getOrdenCompra()== null) {
-        return; // recepción sin orden: nada que actualizar
-    }
 
-    // Recargar la orden dentro de la transacción (la de la vista está desconectada)
-    OrdenDeCompra orden = this.ordenCompraService.buscarPorCodigo(rec.getOrdenCompra().getCodigo())
-            .orElseThrow(() -> new IllegalStateException("La orden de compra ya no existe."));
-
-    for (DetalleRecepcionMercancia det : rec.getDetalleRecepcionMercanciaCollection()) {
-        // Mismo artículo + mismo empaque identifica la línea (la vista de órdenes no permite duplicarlos)
-        DetalleOrdendeDeCompra linea = orden.getDetalleOrdendeDeCompraCollection().stream()
-                .filter(l -> l.getArticulo().getCodigo().equals(det.getArticulo().getCodigo())
-                        && l.getArticuloEmpaque() != null && det.getArticuloEmpaque() != null
-                        && l.getArticuloEmpaque().getCodigo().equals(det.getArticuloEmpaque().getCodigo()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "El artículo " + det.getDescripcionArticulo() + " no pertenece a la orden."));
-
-        BigDecimal pendiente = linea.getPendiente() != null ? linea.getPendiente() : linea.getCantidad();
-        BigDecimal recibida = det.getCantidadRecibida();
-
-        if (recibida.compareTo(pendiente) > 0) {
-            throw new IllegalStateException("Se intenta recibir más de lo pendiente de "
-                    + det.getDescripcionArticulo() + ".");
+        if (rec.getOrdenCompra() == null) {
+            return; // recepción sin orden: nada que actualizar
         }
 
-        BigDecimal recibidaAntes = linea.getCantidadRecibida() != null ? linea.getCantidadRecibida() : BigDecimal.ZERO;
-        linea.setCantidadRecibida(recibidaAntes.add(recibida));
-        linea.setPendiente(pendiente.subtract(recibida));
+        // Recargar la orden dentro de la transacción (la de la vista está desconectada)
+        OrdenDeCompra orden = this.ordenCompraService.buscarPorCodigo(rec.getOrdenCompra().getCodigo())
+                .orElseThrow(() -> new IllegalStateException("La orden de compra ya no existe."));
+
+        for (DetalleRecepcionMercancia det : rec.getDetalleRecepcionMercanciaCollection()) {
+            // Mismo artículo + mismo empaque identifica la línea (la vista de órdenes no permite duplicarlos)
+            DetalleOrdendeDeCompra linea = orden.getDetalleOrdendeDeCompraCollection().stream()
+                    .filter(l -> l.getArticulo().getCodigo().equals(det.getArticulo().getCodigo())
+                    && l.getArticuloEmpaque() != null && det.getArticuloEmpaque() != null
+                    && l.getArticuloEmpaque().getCodigo().equals(det.getArticuloEmpaque().getCodigo()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException(
+                    "El artículo " + det.getDescripcionArticulo() + " no pertenece a la orden."));
+
+            BigDecimal pendiente = linea.getPendiente() != null ? linea.getPendiente() : linea.getCantidad();
+            BigDecimal recibida = det.getCantidadRecibida();
+
+            if (recibida.compareTo(pendiente) > 0) {
+                throw new IllegalStateException("Se intenta recibir más de lo pendiente de "
+                        + det.getDescripcionArticulo() + ".");
+            }
+
+            BigDecimal recibidaAntes = linea.getCantidadRecibida() != null ? linea.getCantidadRecibida() : BigDecimal.ZERO;
+            linea.setCantidadRecibida(recibidaAntes.add(recibida));
+            linea.setPendiente(pendiente.subtract(recibida));
+        }
+
+        // Estado: COMPLETADA si no queda nada pendiente en ninguna línea; si no, PARCIAL
+        boolean completa = orden.getDetalleOrdendeDeCompraCollection().stream()
+                .allMatch(l -> {
+                    BigDecimal p = l.getPendiente() != null ? l.getPendiente() : l.getCantidad();
+                    return p.compareTo(BigDecimal.ZERO) <= 0;
+                });
+
+        orden.setEstado(completa ? "COMPLETADA" : "PARCIAL");
+        orden.setCompletada(completa ? "SI" : "NO");
+
+        this.ordenCompraService.guardar(orden);
     }
 
-    // Estado: COMPLETADA si no queda nada pendiente en ninguna línea; si no, PARCIAL
-    boolean completa = orden.getDetalleOrdendeDeCompraCollection().stream()
-            .allMatch(l -> {
-                BigDecimal p = l.getPendiente() != null ? l.getPendiente() : l.getCantidad();
-                return p.compareTo(BigDecimal.ZERO) <= 0;
-            });
-
-    orden.setEstado(completa ? "COMPLETADA" : "PARCIAL");
-    orden.setCompletada(completa ? "SI" : "NO");
-
-    this.ordenCompraService.guardar(orden);
-}
-
     private DetalleOrdendeDeCompra buscarLineaOrden(OrdenDeCompra orden, DetalleRecepcionMercancia det) {
-        
+
         List<DetalleOrdendeDeCompra> delArticulo = orden.getDetalleOrdendeDeCompraCollection().stream()
                 .filter(l -> l.getArticulo() != null && det.getArticulo() != null
                 && mismoId(l.getArticulo().getCodigo(), det.getArticulo().getCodigo()))
@@ -169,10 +184,9 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
 
         // 1) Mismo artículo + mismo empaque
         for (DetalleOrdendeDeCompra l : delArticulo) {
-            
+
             if (l.getArticuloEmpaque() != null && det.getArticuloEmpaque() != null
-                    && mismoId(l.getArticuloEmpaque().getCodigo(), det.getArticuloEmpaque().getCodigo())
-                    ) {
+                    && mismoId(l.getArticuloEmpaque().getCodigo(), det.getArticuloEmpaque().getCodigo())) {
                 return l;
             }
         }
