@@ -4,9 +4,7 @@
  */
 package com.maxsoft.application.repo;
 
-import com.maxsoft.application.modelo.CondicionPago;
 import com.maxsoft.application.modelo.DetalleFacturaDeCompra;
-import com.maxsoft.application.modelo.EstadoFactura;
 import com.maxsoft.application.modelo.FacturaDeCompra;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;

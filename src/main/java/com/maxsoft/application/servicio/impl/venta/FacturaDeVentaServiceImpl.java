@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.maxsoft.application.servicio.impl.cxc;
+package com.maxsoft.application.servicio.impl.venta;
 
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
 import com.maxsoft.application.evento.VentaDevueltaEvent;
@@ -13,7 +13,7 @@ import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.ReciboDeIngreso;
-import com.maxsoft.application.modelo.Usuario;
+import com.maxsoft.application.repo.FacturaDeVentaRepo;
 import com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
@@ -33,7 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.maxsoft.application.repo.FacturaDeVentaRepo;
+
 
 @Service
 public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
@@ -41,7 +41,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
     private static final Logger log = LoggerFactory.getLogger(FacturaDeVentaServiceImpl.class);
 
     @Autowired
-    private FacturaDeVentaRepo repo;
+    private FacturaDeVentaRepo facttRepo;
 
     @Autowired
     private CajaService cajaService;
@@ -166,10 +166,10 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         factura.setDetalleFacturaDeVentaCollection(ticketVenta.getItems());
 
         // 4. Persistencia de la factura
-        FacturaDeVenta facturaGuardada = repo.saveAndFlush(factura);
+        FacturaDeVenta facturaGuardada = facttRepo.saveAndFlush(factura);
 
         // 5. Generar la Salida de Inventario (Nombre de variable en minúscula)
-        List<DetalleFacturaDeVenta> listaDet = this.repo.getDetalle(factura.getCodigo());
+        List<DetalleFacturaDeVenta> listaDet = this.facttRepo.getDetalle(factura.getCodigo());
 
         this.salidaInventarioService.crearSalidaPorVenta(facturaGuardada, listaDet);
 
@@ -207,7 +207,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
     public FacturaDeVenta anularVenta(Integer idFactura, String motivoAnulacion, String nombreUsuario) {
 
         // 1. Validar existencia y estado de la factura
-        FacturaDeVenta factura = repo.findById(idFactura)
+        FacturaDeVenta factura = facttRepo.findById(idFactura)
                 .orElseThrow(() -> new IllegalArgumentException("La factura ID " + idFactura + " no existe."));
 
         if (Boolean.TRUE.equals(factura.getAnulada())) {
@@ -223,8 +223,8 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         factura.setFechaActualizacion(new Date());
         factura.setFechaAnulada(new Date());
 
-        FacturaDeVenta facturaAnulada = repo.save(factura);
-        List<DetalleFacturaDeVenta> listaDetFactura = repo.getDetalle(facturaAnulada.getCodigo());
+        FacturaDeVenta facturaAnulada = facttRepo.save(factura);
+        List<DetalleFacturaDeVenta> listaDetFactura = facttRepo.getDetalle(facturaAnulada.getCodigo());
 
         // 5. Mapear ítems inventariables para el evento de devolución
 //        List<DetalleFacturaDeVenta> itemsDto = listaDetFactura
@@ -255,7 +255,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         try {
 
             // 1. Buscar la factura
-            FacturaDeVenta factura = repo.findById(solicitud.getIdFactura())
+            FacturaDeVenta factura = facttRepo.findById(solicitud.getIdFactura())
                     .orElseThrow(() -> new IllegalArgumentException("La factura ID " + solicitud.getIdFactura() + " no existe."));
 
             if (Boolean.TRUE.equals(factura.getAnulada())) {
@@ -269,7 +269,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             BigDecimal montoTotalReembolso = BigDecimal.ZERO;
             List<VentaDevueltaEvent.ItemAnulacionDto> itemsParaKardex = new ArrayList<>();
 
-            List<DetalleFacturaDeVenta> listaDetFactura = repo.getDetalle(factura.getCodigo());
+            List<DetalleFacturaDeVenta> listaDetFactura = facttRepo.getDetalle(factura.getCodigo());
             // 3. Validar y procesar cada ítem enviado
             for (SolicitudDevolucionDto.ItemDevolucionDto itemDev : solicitud.getItems()) {
 
@@ -333,7 +333,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             }
 
             factura.setFechaActualizacion(new Date());
-            facturaGuardada = repo.save(factura);
+            facturaGuardada = facttRepo.save(factura);
 
             // -----------------------------------------------------------------------------------
             // NUEVO PASO 4.1: Crear formalmente la EntradaInventario en la Base de Datos
@@ -376,29 +376,30 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
 
     @Override
     public FacturaDeVenta guardar(FacturaDeVenta obj) {
-        return repo.save(obj);
+        return facttRepo.save(obj);
     }
 
     @Override
     public List<FacturaDeVenta> getLista() {
-        return repo.findAll();
+        return facttRepo.findAll();
     }
 
     @Override
     public List<DetalleFacturaDeVenta> getDetalle(int obj) {
-        return repo.getDetalle(obj);
+        return facttRepo.getDetalle(obj);
     }
 
     @Override
     public FacturaDeVenta getFactura(int codigo) {
 
-        return repo.getFactura(codigo);
+        return facttRepo.getFactura(codigo);
 
     }
 
     @Override
     public List<FacturaDeVenta> getListaFactPendiente(int cliente) {
-      return repo.getListaFactPendiente(cliente);
+
+        return facttRepo.getListaFactPendiente(cliente);
     }
 
 }
