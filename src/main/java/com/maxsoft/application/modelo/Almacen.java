@@ -16,7 +16,6 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
@@ -42,7 +41,7 @@ public class Almacen implements Serializable {
     @Basic(optional = false)
     @NotNull
     @Column(name = "fecha_creacion")
-    @Temporal(TemporalType.TIMESTAMP)
+//    @Temporal(TemporalTypeTemporalType.TIMESTAMP)
     private Date fechaCreacion;
     @Basic(optional = false)
     @NotNull

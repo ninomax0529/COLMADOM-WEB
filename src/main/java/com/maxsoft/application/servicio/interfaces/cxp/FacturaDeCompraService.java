@@ -29,6 +29,7 @@ public interface FacturaDeCompraService {
     List<DetalleFacturaDeCompra> getDetalle(int obj);
 
     FacturaDeCompra anularFactura(Integer idFactura, String motivoAnulacion);
-//    List<FacturaDeCompra> filtrarFacturas(EstadoFactura estado, CondicionPago condicion);
+
+    List<FacturaDeCompra> getListaFactPendiente(int codPro);
 
 }

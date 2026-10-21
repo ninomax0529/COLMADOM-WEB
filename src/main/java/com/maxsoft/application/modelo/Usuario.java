@@ -52,6 +52,10 @@ public class Usuario implements Serializable {
     @NotNull
     @Column(name = "habilitado")
     private boolean habilitado;
+    @OneToMany(mappedBy = "usuario")
+    private Collection<ReciboDeEgreso> reciboDeEgresoCollection;
+    @OneToMany(mappedBy = "usuario")
+    private Collection<ReciboDeIngreso> reciboDeIngresoCollection;
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -286,6 +290,22 @@ public class Usuario implements Serializable {
 
     public void setHabilitado(boolean habilitado) {
         this.habilitado = habilitado;
+    }
+
+    public Collection<ReciboDeEgreso> getReciboDeEgresoCollection() {
+        return reciboDeEgresoCollection;
+    }
+
+    public void setReciboDeEgresoCollection(Collection<ReciboDeEgreso> reciboDeEgresoCollection) {
+        this.reciboDeEgresoCollection = reciboDeEgresoCollection;
+    }
+
+    public Collection<ReciboDeIngreso> getReciboDeIngresoCollection() {
+        return reciboDeIngresoCollection;
+    }
+
+    public void setReciboDeIngresoCollection(Collection<ReciboDeIngreso> reciboDeIngresoCollection) {
+        this.reciboDeIngresoCollection = reciboDeIngresoCollection;
     }
     
 }

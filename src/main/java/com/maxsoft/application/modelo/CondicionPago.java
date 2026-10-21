@@ -90,13 +90,6 @@ public class CondicionPago implements Serializable {
         return "com.maxsoft.application.modelo.CondicionPago[ codigo=" + codigo + " ]";
     }
 
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
 
     public Collection<FacturaDeCompra> getFacturaDeCompraCollection() {
         return facturaDeCompraCollection;
@@ -104,6 +97,14 @@ public class CondicionPago implements Serializable {
 
     public void setFacturaDeCompraCollection(Collection<FacturaDeCompra> facturaDeCompraCollection) {
         this.facturaDeCompraCollection = facturaDeCompraCollection;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
     }
     
 }

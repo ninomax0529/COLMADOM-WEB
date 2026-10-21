@@ -9,6 +9,7 @@ import com.maxsoft.application.view.compra.orden.ConsultaOrdenesDeCompraView;
 import com.maxsoft.application.view.compra.proveedor.ProveedorView;
 import com.maxsoft.application.view.compra.recepcion.ConsultaRecepcionMercanciaView;
 import com.maxsoft.application.view.cxp.factura.FacturaDeCompraView;
+import com.maxsoft.application.view.cxp.reciboEgreso.ReciboDeEgresoView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.html.H3;
@@ -46,15 +47,15 @@ public class ModuloCuentaPorPagar extends AppLayout {
 
 //        RouterLink linkOrdenDeCompraView = createLink(VaadinIcon.DASHBOARD, "Orden Compra", OrdenDeCompraView.class);
         RouterLink linkFacturaDeCompraView = createLink(VaadinIcon.DASHBOARD, "Factura", FacturaDeCompraView.class);
-//        RouterLink linkProveedorView = createLink(VaadinIcon.DASHBOARD, "Proveedor", ProveedorView.class);
+        RouterLink linkReciboDeEgresoView = createLink(VaadinIcon.DASHBOARD, "Recibo de Egreso", ReciboDeEgresoView.class);
 //        RouterLink linkConsultaRecepcionMercanciaView = createLink(VaadinIcon.DASHBOARD, "Recepcion Mercancia", ConsultaRecepcionMercanciaView.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
         ////
 //        // Layout vertical que contiene los enlaces del menú
-        VerticalLayout menuLayout = new VerticalLayout(      
+        VerticalLayout menuLayout = new VerticalLayout(
                 linkFacturaDeCompraView,
-//                linkConsultaRecepcionMercanciaView,              
+                linkReciboDeEgresoView,
                 linkModulo);
 
         menuLayout.setPadding(false);
@@ -85,7 +86,7 @@ public class ModuloCuentaPorPagar extends AppLayout {
         menuIcon.addClickListener(e -> toggleDrawer());
 
         // Título o logo de la aplicación
-        H3 logo = new H3("Compra");
+        H3 logo = new H3("CxP");
         logo.getStyle().set("margin", "1");
 
         // Espaciador flexible para empujar elementos a los extremos

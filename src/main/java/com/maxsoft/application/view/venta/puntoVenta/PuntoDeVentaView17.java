@@ -15,7 +15,7 @@ import com.maxsoft.application.servicio.interfaces.venta.CajaService;
 import com.maxsoft.application.servicio.interfaces.venta.ClienteService;
 import com.maxsoft.application.servicio.interfaces.venta.DeliveryService;
 import com.maxsoft.application.servicio.interfaces.venta.EstadoFacturaService;
-import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
+import com.maxsoft.application.servicio.interfaces.cxc.FacturaDeVentaService;
 import com.maxsoft.application.servicio.interfaces.reporte.ReporteService;
 import com.maxsoft.application.servicio.interfaces.venta.TipoVentaService;
 import com.maxsoft.application.util.ClaseUtil;

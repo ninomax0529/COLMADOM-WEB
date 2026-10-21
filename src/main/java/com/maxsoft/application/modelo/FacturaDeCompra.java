@@ -67,6 +67,8 @@ public class FacturaDeCompra implements Serializable {
     @Size(max = 10)
     @Column(name = "nombre_estado")
     private String nombreEstado;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura")
+    private Collection<DetalleReciboDeEgreso> detalleReciboDeEgresoCollection;
     @JoinColumn(name = "condicion_pago", referencedColumnName = "codigo")
     @ManyToOne
     private CondicionPago condicionPago;
@@ -381,7 +383,7 @@ public class FacturaDeCompra implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.FacturaDeCompra[ codigo=" + codigo + " ]";
+        return codigo.toString();
     }
 
     public String getNcf() {
@@ -400,12 +402,21 @@ public class FacturaDeCompra implements Serializable {
         this.concepto = concepto;
     }
 
+
     public String getNumero() {
         return numero;
     }
 
     public void setNumero(String numero) {
         this.numero = numero;
+    }
+
+    public Collection<DetalleReciboDeEgreso> getDetalleReciboDeEgresoCollection() {
+        return detalleReciboDeEgresoCollection;
+    }
+
+    public void setDetalleReciboDeEgresoCollection(Collection<DetalleReciboDeEgreso> detalleReciboDeEgresoCollection) {
+        this.detalleReciboDeEgresoCollection = detalleReciboDeEgresoCollection;
     }
 
 }

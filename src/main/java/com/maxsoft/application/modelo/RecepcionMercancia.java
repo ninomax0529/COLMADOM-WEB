@@ -40,7 +40,7 @@ public class RecepcionMercancia implements Serializable {
     @Basic(optional = false)
     @NotNull
     @Column(name = "fecha")
-    @Temporal(TemporalType.TIMESTAMP)
+//    @Temporal(TemporalTypeTemporalType.TIMESTAMP)
     private Date fecha;
     @Basic(optional = false)
     @NotNull()
@@ -51,6 +51,7 @@ public class RecepcionMercancia implements Serializable {
     @NotNull
     @Size(min = 1, max = 50)
 //    @Column(Tempora"nombre_documento")
+    @Column(name = "nombre_documento")
     private String nombreDocumento;
     @Size(max = 150)
     @Column(name = "nombre_proveedor")
@@ -61,6 +62,7 @@ public class RecepcionMercancia implements Serializable {
     @Size(min = 1, max = 65535)
     @Column(name = "comentario")
     private String comentario;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
     @NotNull()
@@ -145,7 +147,6 @@ public class RecepcionMercancia implements Serializable {
         this.codigo = codigo;
     }
 
-
     public String getNumeroDocumento() {
         return numeroDocumento;
     }
@@ -170,7 +171,6 @@ public class RecepcionMercancia implements Serializable {
         this.nombreProveedor = nombreProveedor;
     }
 
-
     public BigDecimal getTotalItbis() {
         return totalItbis;
     }
@@ -178,7 +178,6 @@ public class RecepcionMercancia implements Serializable {
     public void setTotalItbis(BigDecimal totalItbis) {
         this.totalItbis = totalItbis;
     }
-
 
     public String getNombreEstado() {
         return nombreEstado;
@@ -301,7 +300,6 @@ public class RecepcionMercancia implements Serializable {
         this.fecha = fecha;
     }
 
-
     public String getComentario() {
         return comentario;
     }
@@ -318,7 +316,6 @@ public class RecepcionMercancia implements Serializable {
         this.subtotal = subtotal;
     }
 
-
     public BigDecimal getTotal() {
         return total;
     }
@@ -327,5 +324,4 @@ public class RecepcionMercancia implements Serializable {
         this.total = total;
     }
 
-    
 }

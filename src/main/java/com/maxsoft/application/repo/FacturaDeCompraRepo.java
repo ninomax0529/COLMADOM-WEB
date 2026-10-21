@@ -32,6 +32,18 @@ public interface FacturaDeCompraRepo extends JpaRepository<FacturaDeCompra, Inte
     @Query(value = strFac, nativeQuery = true)
     public FacturaDeCompra getFactura(@Param("codigo") int op);
     
+    
+    String strPend = """
+                       SELECT * FROM  factura_de_compra 
+                       where  anulada=false
+                        and  proveedor=:codPro
+                        and  total_pendiente>0
+                     
+                        """;
+    @Query(value = strPend, nativeQuery = true)
+    public List<FacturaDeCompra> getListaFactPendiente(@Param("codPro") int codPro);
+
+    
     // Query JPQL que maneja filtros opcionales automáticamente
 //    @Query("SELECT f FROM FacturaCompra f WHERE " +
 //           "(:estado IS NULL OR f.estado = :estado) AND " +

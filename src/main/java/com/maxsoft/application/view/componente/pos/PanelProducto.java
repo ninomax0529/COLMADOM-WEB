@@ -7,7 +7,7 @@ package com.maxsoft.application.view.componente.pos;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
-import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
+import com.maxsoft.application.servicio.interfaces.cxc.FacturaDeVentaService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;

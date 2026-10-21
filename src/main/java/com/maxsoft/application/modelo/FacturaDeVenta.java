@@ -36,6 +36,31 @@ import java.util.Date;
     @NamedQuery(name = "FacturaDeVenta.findAll", query = "SELECT f FROM FacturaDeVenta f")})
 public class FacturaDeVenta implements Serializable {
 
+    @Size(max = 25)
+    @Column(name = "ncf")
+    private String ncf;
+    @Size(max = 200)
+    @Column(name = "nombre_cliente")
+    private String nombreCliente;
+    @Size(max = 60)
+    @Column(name = "nombre_delivery")
+    private String nombreDelivery;
+    @Lob
+    @Size(max = 65535)
+    @Column(name = "comentario")
+    private String comentario;
+    @Size(max = 80)
+    @Column(name = "nombre_usuario")
+    private String nombreUsuario;
+    @Size(max = 80)
+    @Column(name = "anulada_por")
+    private String anuladaPor;
+    @Size(max = 45)
+    @Column(name = "direccion")
+    private String direccion;
+    @OneToMany(mappedBy = "factura")
+    private Collection<DetalleReciboDeIngreso> detalleReciboDeIngresoCollection;
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,15 +75,6 @@ public class FacturaDeVenta implements Serializable {
     private Integer secuenciaDocumento;
     @Column(name = "tipo_ncf")
     private Integer tipoNcf;
-    @Size(max = 25)
-    @Column(name = "ncf")
-    private String ncf;
-    @Size(max = 200)
-    @Column(name = "nombre_cliente")
-    private String nombreCliente;
-    @Size(max = 60)
-    @Column(name = "nombre_delivery")
-    private String nombreDelivery;
     @Column(name = "fecha")
     @Temporal(TemporalType.DATE)
     private Date fecha;
@@ -68,10 +84,6 @@ public class FacturaDeVenta implements Serializable {
     @Column(name = "fecha_actualizacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaActualizacion;
-    @Lob
-    @Size(max = 65535)
-    @Column(name = "comentario")
-    private String comentario;
     @Column(name = "anulada")
     private Boolean anulada;
     @Column(name = "fecha_anulada")
@@ -79,12 +91,6 @@ public class FacturaDeVenta implements Serializable {
     private Date fechaAnulada;
     @Column(name = "usuario")
     private Integer usuario;
-    @Size(max = 80)
-    @Column(name = "nombre_usuario")
-    private String nombreUsuario;
-    @Size(max = 80)
-    @Column(name = "anulada_por")
-    private String anuladaPor;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "sub_total")
     private BigDecimal subTotal;
@@ -102,9 +108,6 @@ public class FacturaDeVenta implements Serializable {
     private BigDecimal totalPagado;
     @Column(name = "total_pendiente")
     private BigDecimal totalPendiente;
-    @Size(max = 45)
-    @Column(name = "direccion")
-    private String direccion;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @JoinColumn(name = "cliente", referencedColumnName = "codigo")
@@ -167,13 +170,6 @@ public class FacturaDeVenta implements Serializable {
         this.tipoNcf = tipoNcf;
     }
 
-    public String getNcf() {
-        return ncf;
-    }
-
-    public void setNcf(String ncf) {
-        this.ncf = ncf;
-    }
 
     public String getNombreCliente() {
         return nombreCliente;
@@ -215,13 +211,6 @@ public class FacturaDeVenta implements Serializable {
         this.fechaActualizacion = fechaActualizacion;
     }
 
-    public String getComentario() {
-        return comentario;
-    }
-
-    public void setComentario(String comentario) {
-        this.comentario = comentario;
-    }
 
     public Boolean getAnulada() {
         return anulada;
@@ -327,13 +316,6 @@ public class FacturaDeVenta implements Serializable {
         this.totalPendiente = totalPendiente;
     }
 
-    public String getDireccion() {
-        return direccion;
-    }
-
-    public void setDireccion(String direccion) {
-        this.direccion = direccion;
-    }
 
     public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
         return detalleFacturaDeVentaCollection;
@@ -397,7 +379,39 @@ public class FacturaDeVenta implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.FacturaDeVenta[ codigo=" + codigo + " ]";
+        return codigo.toString();
+    }
+
+    public String getNcf() {
+        return ncf;
+    }
+
+    public void setNcf(String ncf) {
+        this.ncf = ncf;
+    }
+
+    public String getComentario() {
+        return comentario;
+    }
+
+    public void setComentario(String comentario) {
+        this.comentario = comentario;
+    }
+
+    public String getDireccion() {
+        return direccion;
+    }
+
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
+    }
+
+    public Collection<DetalleReciboDeIngreso> getDetalleReciboDeIngresoCollection() {
+        return detalleReciboDeIngresoCollection;
+    }
+
+    public void setDetalleReciboDeIngresoCollection(Collection<DetalleReciboDeIngreso> detalleReciboDeIngresoCollection) {
+        this.detalleReciboDeIngresoCollection = detalleReciboDeIngresoCollection;
     }
     
 }

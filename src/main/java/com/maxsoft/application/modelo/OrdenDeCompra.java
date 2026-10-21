@@ -476,5 +476,6 @@ public class OrdenDeCompra implements Serializable {
     public void setFacturada(boolean facturada) {
         this.facturada = facturada;
     }
+
     
 }

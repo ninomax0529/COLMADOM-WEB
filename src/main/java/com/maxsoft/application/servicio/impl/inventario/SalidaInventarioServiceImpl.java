@@ -25,7 +25,6 @@ import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventar
 import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoMovimientoService;
-import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

@@ -240,4 +240,9 @@ public class FacturaDeCompraServiceImpl implements FacturaDeCompraService {
         return factDb;
 
     }
+
+    @Override
+    public List<FacturaDeCompra> getListaFactPendiente(int codPro) {
+       return repo.getListaFactPendiente(codPro);
+    }
 }

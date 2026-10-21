@@ -4,7 +4,7 @@
  */
 package com.maxsoft.application.view.componente.pos;
 
-import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
+import com.maxsoft.application.servicio.interfaces.cxc.FacturaDeVentaService;
 
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
 import com.maxsoft.application.modelo.FacturaDeVenta;

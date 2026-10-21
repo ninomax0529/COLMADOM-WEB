@@ -10,7 +10,7 @@ package com.maxsoft.application.view.venta.factura;
  */
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
-import com.maxsoft.application.servicio.interfaces.venta.FacturaDeVentaService;
+import com.maxsoft.application.servicio.interfaces.cxc.FacturaDeVentaService;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;

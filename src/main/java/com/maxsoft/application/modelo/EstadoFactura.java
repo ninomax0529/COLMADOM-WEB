@@ -28,15 +28,18 @@ import java.util.Collection;
     @NamedQuery(name = "EstadoFactura.findAll", query = "SELECT e FROM EstadoFactura e")})
 public class EstadoFactura implements Serializable {
 
+    @Size(max = 10)
+    @Column(name = "nombre")
+    private String nombre;
+    @OneToMany(mappedBy = "estado")
+    private Collection<FacturaDeCompra> facturaDeCompraCollection;
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @Size(max = 10)
-    @Column(name = "nombre")
-    private String nombre;
     @OneToMany(mappedBy = "estadoFactura")
     private Collection<FacturaDeVenta> facturaDeVentaCollection;
 
@@ -55,13 +58,6 @@ public class EstadoFactura implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
 
     public Collection<FacturaDeVenta> getFacturaDeVentaCollection() {
         return facturaDeVentaCollection;
@@ -94,6 +90,22 @@ public class EstadoFactura implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.EstadoFactura[ codigo=" + codigo + " ]";
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public Collection<FacturaDeCompra> getFacturaDeCompraCollection() {
+        return facturaDeCompraCollection;
+    }
+
+    public void setFacturaDeCompraCollection(Collection<FacturaDeCompra> facturaDeCompraCollection) {
+        this.facturaDeCompraCollection = facturaDeCompraCollection;
     }
     
 }
