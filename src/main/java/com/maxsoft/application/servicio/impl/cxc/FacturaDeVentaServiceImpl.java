@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.maxsoft.application.servicio.impl.venta;
+package com.maxsoft.application.servicio.impl.cxc;
 
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
 import com.maxsoft.application.evento.VentaDevueltaEvent;
