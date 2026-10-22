@@ -13,7 +13,7 @@ import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.ReciboDeIngreso;
-import com.maxsoft.application.repo.FacturaDeVentaRepo;
+import com.maxsoft.application.repo.FacturaDeventaRepo;
 import com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
@@ -41,7 +41,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
     private static final Logger log = LoggerFactory.getLogger(FacturaDeVentaServiceImpl.class);
 
     @Autowired
-    private FacturaDeVentaRepo facttRepo;
+    private FacturaDeventaRepo facttRepo;
 
     @Autowired
     private CajaService cajaService;

@@ -29,6 +29,16 @@ public interface FacturaDeventaRepo extends JpaRepository<FacturaDeVenta, Intege
 
     @Query(value = strFac, nativeQuery = true)
     public FacturaDeVenta getFactura(@Param("codigo") int op);
+    
+        String strPend = """
+                       SELECT * FROM  factura_de_venta 
+                       where  anulada=false
+                        and  cliente=:cliente
+                        and  total_pendiente>0
+                     
+                        """;
+    @Query(value = strPend, nativeQuery = true)
+    public List<FacturaDeVenta> getListaFactPendiente(@Param("cliente") int codPro);
 
     
 }
