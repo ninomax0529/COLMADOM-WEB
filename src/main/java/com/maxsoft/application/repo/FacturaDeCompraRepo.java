@@ -17,8 +17,7 @@ import org.springframework.data.repository.query.Param;
  */
 public interface FacturaDeCompraRepo extends JpaRepository<FacturaDeCompra, Integer>{
     
-    
-    
+        
     String strDet = "  select * from  detalle_factura_de_compra o where factura_de_compra=:obj ";
 
     @Query(value = strDet, nativeQuery = true)
