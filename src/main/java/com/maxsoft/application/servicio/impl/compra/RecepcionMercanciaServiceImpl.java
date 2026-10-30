@@ -7,12 +7,16 @@ package com.maxsoft.application.servicio.impl.compra;
 import com.maxsoft.application.modelo.DetalleOrdendeDeCompra;
 import com.maxsoft.application.modelo.DetalleRecepcionMercancia;
 import com.maxsoft.application.modelo.EntradaInventario;
+import com.maxsoft.application.modelo.FacturaDeCompra;
 import com.maxsoft.application.modelo.OrdenDeCompra;
 import com.maxsoft.application.modelo.RecepcionMercancia;
+import com.maxsoft.application.modelo.ReciboDeEgreso;
+import com.maxsoft.application.modelo.ReciboDeIngreso;
 import com.maxsoft.application.repo.RecepcionMercanciaRepo;
 import com.maxsoft.application.servicio.interfaces.compra.OrdenDeCompraService;
 import com.maxsoft.application.servicio.interfaces.compra.RecepcionMercanciaService;
 import com.maxsoft.application.servicio.interfaces.cxp.FacturaDeCompraService;
+import com.maxsoft.application.servicio.interfaces.cxp.ReciboDeEgresoService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
 import java.math.BigDecimal;
@@ -30,18 +34,21 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
     private final OrdenDeCompraService ordenCompraService;
     private EntradaDeInventarioService entradaInventarioService;
     FacturaDeCompraService facturaDeCompraService;
+    ReciboDeEgresoService reciboDeEgresoService;
 
     public RecepcionMercanciaServiceImpl(RecepcionMercanciaRepo recepcionRepo,
             ArticuloService articuloService,
             OrdenDeCompraService ordenCompraService,
             EntradaDeInventarioService entradaInventarioService,
-            FacturaDeCompraService facturaDeCompraService
+            FacturaDeCompraService facturaDeCompraService,
+            ReciboDeEgresoService reciboDeEgresoService
     ) {
         this.recepcionRepo = recepcionRepo;
         this.articuloService = articuloService;
         this.ordenCompraService = ordenCompraService;
         this.entradaInventarioService = entradaInventarioService;
         this.facturaDeCompraService = facturaDeCompraService;
+        this.reciboDeEgresoService=reciboDeEgresoService;
 
     }
 
@@ -59,6 +66,8 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
             });
         }
 
+        FacturaDeCompra facturaDeCompra;
+        ReciboDeEgreso reciboEgresa;
         // 2. Cambiar estado de la recepción a PROCESADO (si usas Enum o String)
 //    recepcion.setEstado(EstadoDocumento.PROCESADO); // o recepcion.setEstado("PROCESADO");
         // 3. Guardar la Recepción de Mercancía
@@ -68,15 +77,21 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
 
         if (recepcionDB.getProveedor().getTipoSuplidor().getCodigo() == 2) {//Proveedor informal
 
-            this.facturaDeCompraService.procesarFacturaInformal(recepcion, detalle);
+            facturaDeCompra = this.facturaDeCompraService.procesarFacturaInformal(recepcion, detalle);
 
         } else {
-            
-            this.facturaDeCompraService.procesarFactura(recepcion, detalle);
+
+            facturaDeCompra = this.facturaDeCompraService.procesarFactura(recepcion, detalle);
 
         }
 
-        this.entradaInventarioService.crearEntradaPorRecepcion(recepcionDB, detalle);
+        if (facturaDeCompra.getCondicionPago().getCodigo() == 1) {//De contado
+
+            System.out.println("facturaDeCompra " + facturaDeCompra);
+            reciboEgresa = this.reciboDeEgresoService.procesarReciboDeEgreso(facturaDeCompra);
+        }
+
+        EntradaInventario entradaInv = this.entradaInventarioService.crearEntradaPorRecepcion(recepcionDB, detalle);
 
         actualizarOrdenDeCompra(recepcionDB);
 

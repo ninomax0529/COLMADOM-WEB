@@ -39,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @PermitAll
 @PageTitle("Asignación de Artículos por Almacén")
@@ -75,26 +76,53 @@ public class ArticuloAlmacenView extends VerticalLayout {
         hlFiltros.setAlignItems(Alignment.BASELINE);
 
         add(
-       new H2("Articulo Almacen"),
-         hlFiltros, grid);
+                new H2("Articulo Almacen"),
+                hlFiltros, grid);
         actualizarGrid();
         aplicarFiltroTexto();
+        configurarFiltros();
     }
 
     private void configurarControlesSuperiores() {
-        txtBuscar.setPlaceholder("Buscar por artículo o código...");
-        txtBuscar.setWidth("40%");
-        txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
-        txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
-        txtBuscar.addValueChangeListener(e -> aplicarFiltros());
 
         cbFiltroAlmacen.setItems(almacenService.getLista());
         cbFiltroAlmacen.setItemLabelGenerator(Almacen::getNombre);
-        cbFiltroAlmacen.setClearButtonVisible(true);
-        cbFiltroAlmacen.addValueChangeListener(e -> aplicarFiltros());
 
         btnNuevo.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btnNuevo.addClickListener(e -> abrirFormularioModal(new ArticuloAlmacen()));
+
+    }
+
+    private void configurarFiltros() {
+
+        dataView = grid.setItems(listaArticulosAlmacen);
+        txtBuscar.setPlaceholder("Buscar por artículo o código...");
+        txtBuscar.setWidth("40%");
+        txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+
+        cbFiltroAlmacen.setClearButtonVisible(true);
+        cbFiltroAlmacen.addValueChangeListener(e -> aplicarFiltros());
+        txtBuscar.addValueChangeListener(e -> aplicarFiltros());
+
+        txtBuscar.setClearButtonVisible(true);
+        txtBuscar.setValueChangeMode(ValueChangeMode.LAZY);
+
+        dataView.addFilter(art -> {
+
+            String searchTerm = txtBuscar.getValue().trim();
+
+            if (searchTerm.isEmpty()) {
+                return true;
+            }
+
+            boolean descrip = matchesTerm(art.getDescripcionArticulo(),
+                    searchTerm);
+
+            boolean codigo = matchesTerm(art.getCodigo().toString(), searchTerm);
+
+            return descrip || codigo;
+        });
+
     }
 
     private void configurarGrid() {
@@ -122,6 +150,7 @@ public class ArticuloAlmacenView extends VerticalLayout {
 //                ConfirmDialog dialog = new ConfirmDialog(
 //                        "¿Desea eliminar la configuración de '" + item.getDescripcionArticulo() + "' en '" + item.getNombreAlmacen() + "'?",
 //                        () -> {
+
     
 
     ////                            articuloAlmacenService.el(item.getCodigo());
@@ -148,6 +177,7 @@ public class ArticuloAlmacenView extends VerticalLayout {
     }
 
     private void aplicarFiltros() {
+
         if (dataView == null) {
             return;
         }
@@ -156,6 +186,7 @@ public class ArticuloAlmacenView extends VerticalLayout {
         Almacen almacenSel = cbFiltroAlmacen.getValue();
 
         dataView.addFilter(item -> {
+
             boolean matchTexto = term.isEmpty()
                     || (item.getDescripcionArticulo() != null && item.getDescripcionArticulo().toLowerCase().contains(term))
                     || (item.getCodigo() != null && item.getCodigo().toString().contains(term));
@@ -165,6 +196,8 @@ public class ArticuloAlmacenView extends VerticalLayout {
 
             return matchTexto && matchAlmacen;
         });
+        
+    
     }
 
     private void abrirFormularioModal(ArticuloAlmacen entidad) {
@@ -260,16 +293,30 @@ public class ArticuloAlmacenView extends VerticalLayout {
 
         String term = txtBuscar.getValue() == null ? "" : txtBuscar.getValue().trim().toLowerCase();
 
-        dataView.setFilter(e -> {
-            if (term.isEmpty()) {
-                return true;
-            }
-            boolean matchCod = e.getCodigo() != null && e.getCodigo().toString().contains(term);
-            boolean matchCom = e.getDescripcionArticulo()!= null && e.getDescripcionArticulo().toLowerCase().contains(term);
-            boolean matchUsr = e.getNombreAlmacen()!= null && e.getNombreAlmacen().toLowerCase().contains(term);
-            return matchCod || matchCom || matchUsr;
-        });
+//        dataView.setFilter(e -> {
+//            if (term.isEmpty()) {
+//                return true;
+//            }
+//            boolean matchCod = e.getCodigo() != null && e.getCodigo().toString().contains(term);
+//            boolean matchCom = e.getDescripcionArticulo() != null && e.getDescripcionArticulo().toLowerCase().contains(term);
+//            boolean matchUsr = e.getNombreAlmacen() != null && e.getNombreAlmacen().toLowerCase().contains(term);
+//            return matchCod || matchCom || matchUsr;
+//        });
+//        
+        String nombreFiltro = txtBuscar.getValue().trim().toLowerCase();
+
+        List<ArticuloAlmacen> filtrados = listaArticulosAlmacen.stream()
+                .filter(art
+                        -> (nombreFiltro.isEmpty() || art.getDescripcionArticulo().toLowerCase().contains(nombreFiltro))
+                )
+                .collect(Collectors.toList());
+
+        grid.setItems(filtrados);
 
 //        colCodigo.setFooter("TOTAL ENTRADAS: " + dataViewEntradas.getItemCount());
+    }
+
+    private boolean matchesTerm(String value, String searchTerm) {
+        return value.toLowerCase().contains(searchTerm.toLowerCase());
     }
 }

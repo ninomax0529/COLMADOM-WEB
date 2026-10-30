@@ -4,11 +4,14 @@ import com.maxsoft.application.modelo.DetalleReciboDeEgreso;
 import com.maxsoft.application.modelo.FacturaDeCompra;
 import com.maxsoft.application.modelo.Proveedor;
 import com.maxsoft.application.modelo.ReciboDeEgreso;
+import com.maxsoft.application.modelo.Usuario;
 import com.maxsoft.application.servicio.interfaces.compra.ProveedorService;
 import com.maxsoft.application.servicio.interfaces.cxp.FacturaDeCompraService;
 import com.maxsoft.application.servicio.interfaces.cxp.ReciboDeEgresoService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
+import com.maxsoft.application.view.dialogo.ConfirmDialog;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -90,12 +93,12 @@ public class RegistroReciboDeEgresoView extends VerticalLayout {
     @Autowired
     public RegistroReciboDeEgresoView(ReciboDeEgresoService reciboService,
             ProveedorService proveedorService,
-              FacturaDeCompraService facturaDeCompraService
+            FacturaDeCompraService facturaDeCompraService
     ) {
 
         this.reciboService = reciboService;
         this.proveedorService = proveedorService;
-        this.facturaDeCompraService=facturaDeCompraService;
+        this.facturaDeCompraService = facturaDeCompraService;
 
         setSizeFull();
         configurarBotonera();
@@ -118,7 +121,25 @@ public class RegistroReciboDeEgresoView extends VerticalLayout {
     // CABECERA
     // ============================================================
     private void configurarBotonera() {
-        botonera.getGuardar().addClickListener(e -> procesarGuardado());
+        botonera.getGuardar().addClickListener(e -> {
+
+            ConfirmDialog dialog = new ConfirmDialog(
+                    "¿Seguro que quiere aplicar este pago-> ",
+                    () -> {
+                        procesarGuardado();
+
+                        limpiarDespuesDeGuardar();
+
+//                        UI.getCurrent().navigate(ImplementacionView.class);
+                    },
+                    () -> {
+
+                    }
+            );
+
+            dialog.open();
+
+        });
         botonera.getCancelar().addClickListener(e -> getUI().ifPresent(ui -> ui.getPage().getHistory().back()));
     }
 
@@ -412,26 +433,32 @@ public class RegistroReciboDeEgresoView extends VerticalLayout {
     private void procesarGuardado() {
 
         if (cbProveedor.getValue() == null) {
-            Notification.show("Debe seleccionar el suplidor", 3000, Position.TOP_CENTER);
+            ClaseUtil.mostrarNotificacion("Debe seleccionar el suplidor", NotificationVariant.LUMO_WARNING, 3000);
+
             cbProveedor.focus();
             return;
         }
 
         if (dpFecha.getValue() == null) {
-            Notification.show("Debe indicar la fecha del recibo", 3000, Position.TOP_CENTER);
+
+            ClaseUtil.mostrarNotificacion("Debe indicar la fecha del recibo", NotificationVariant.LUMO_WARNING, 3000);
+
             dpFecha.focus();
             return;
         }
 
         if (cbFormaPago.getValue() == null) {
-            Notification.show("Debe seleccionar la forma de pago", 3000, Position.TOP_CENTER);
+
+            ClaseUtil.mostrarNotificacion("Debe seleccionar la forma de pago", NotificationVariant.LUMO_WARNING, 3000);
+
             cbFormaPago.focus();
             return;
         }
 
         if (!FORMA_EFECTIVO.equals(cbFormaPago.getValue())
                 && (txtReferencia.getValue() == null || txtReferencia.getValue().isBlank())) {
-            Notification.show("Indique el número de cheque o la referencia del pago", 3500, Position.TOP_CENTER);
+            ClaseUtil.mostrarNotificacion("Indique el número de cheque o la referencia del pago", NotificationVariant.LUMO_WARNING, 3000);
+
             txtReferencia.focus();
             return;
         }
@@ -441,20 +468,24 @@ public class RegistroReciboDeEgresoView extends VerticalLayout {
                 .collect(Collectors.toList());
 
         if (aPagar.isEmpty()) {
-            Notification.show("Seleccione al menos una factura a pagar", 3000, Position.TOP_CENTER);
+
+            ClaseUtil.mostrarNotificacion("Seleccione al menos una factura a pagar", NotificationVariant.LUMO_WARNING, 3000);
+
             return;
         }
 
         for (LineaPago l : aPagar) {
             if (l.monto.compareTo(l.balance) > 0) {
-                Notification.show("El pago de la factura " + l.factura.getNumeroFactura()
-                        + " supera su balance pendiente.", 4000, Position.TOP_CENTER);
+
+                ClaseUtil.mostrarNotificacion(" El pago de la factura " + l.factura.getNumeroFactura()
+                        + " supera su balance pendiente.", NotificationVariant.LUMO_WARNING, 3000);
+
                 return;
             }
         }
 
         try {
-            
+
             ReciboDeEgreso recibo = new ReciboDeEgreso();
             recibo.setProveedor(cbProveedor.getValue());
             recibo.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
@@ -462,10 +493,15 @@ public class RegistroReciboDeEgresoView extends VerticalLayout {
 //            recibo.setReferencia(txtReferencia.getValue() != null ? txtReferencia.getValue().trim() : null);
             recibo.setConcepto(txtObservacion.getValue());
             recibo.setTotalPagado(totalAPagar());
+            recibo.setFechaCreacion(new Date());
+            recibo.setUsuario(new Usuario(1));
+            recibo.setNombreUsuario("admin");
+            recibo.setAnulado(false);
 
             List<DetalleReciboDeEgreso> detalles = new ArrayList<>();
 
             for (LineaPago l : aPagar) {
+
                 DetalleReciboDeEgreso d = new DetalleReciboDeEgreso();
                 d.setCodigo(null);
                 d.setReciboEgreso(recibo);
@@ -478,21 +514,17 @@ public class RegistroReciboDeEgresoView extends VerticalLayout {
 
             recibo.setDetalleReciboDeEgresoCollection(detalles);
 
-            ReciboDeEgreso guardado = this.reciboService.guardar(recibo);
+            ReciboDeEgreso guardado = this.reciboService.procesarReciboDeEgreso(recibo, detalles);
 
-            Notification.show("Recibo de egreso #" + guardado.getCodigo() + " registrado por "
-                    + moneda(guardado.getTotalPagado()) + ".", 4000, Position.TOP_CENTER)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-
-            limpiarDespuesDeGuardar();
+            ClaseUtil.mostrarNotificacion("Recibo de egreso #" + guardado.getCodigo() + " guradado exitosamente", NotificationVariant.LUMO_SUCCESS, 3000);
 
         } catch (IllegalStateException | IllegalArgumentException ex) {
             Notification.show(ex.getMessage(), 5000, Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_WARNING);
         } catch (Exception e) {
             e.printStackTrace();
-            Notification.show("Error al guardar el recibo de egreso: " + e.getMessage(), 4000, Position.TOP_CENTER)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            ClaseUtil.mostrarNotificacion("Error al guardar el recibo de egreso:", NotificationVariant.LUMO_ERROR, 3000);
+
         }
     }
 
@@ -502,11 +534,13 @@ public class RegistroReciboDeEgresoView extends VerticalLayout {
      */
     private void limpiarDespuesDeGuardar() {
 
+        lineas.clear();
         txtReferencia.clear();
         txtObservacion.clear();
         dpFecha.setValue(LocalDate.now());
         cbFormaPago.setValue(FORMA_EFECTIVO);
         cargarPendientes();
+        
     }
 
     // ============================================================

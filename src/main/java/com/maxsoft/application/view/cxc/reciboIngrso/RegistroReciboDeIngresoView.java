@@ -9,6 +9,7 @@ import com.maxsoft.application.servicio.interfaces.venta.ClienteService;
 import com.maxsoft.application.servicio.interfaces.cxc.FacturaDeVentaService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
+import com.maxsoft.application.view.dialogo.ConfirmDialog;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -118,7 +119,27 @@ public class RegistroReciboDeIngresoView extends VerticalLayout {
     // CABECERA
     // ============================================================
     private void configurarBotonera() {
-        botonera.getGuardar().addClickListener(e -> procesarGuardado());
+        botonera.getGuardar().addClickListener(e -> {
+                        
+            ConfirmDialog dialog = new ConfirmDialog(
+                    "¿Seguro que quiere aplicar este pago-> ",
+                    () -> {
+                        procesarGuardado();
+
+//                        limpiarDespuesDeGuardar();
+
+//                        UI.getCurrent().navigate(ImplementacionView.class);
+                    },
+                    () -> {
+
+                    }
+            );
+
+            dialog.open();
+          
+        
+        });
+        
         botonera.getCancelar().addClickListener(e -> getUI().ifPresent(ui -> ui.getPage().getHistory().back()));
     }
 
@@ -195,7 +216,7 @@ public class RegistroReciboDeIngresoView extends VerticalLayout {
                         .collect(Collectors.toList()));
 
                 if (lineas.isEmpty()) {
-                    Notification.show("El suplidor no tiene facturas pendientes de pago.", 3000, Position.MIDDLE);
+                    Notification.show("El Cliente no tiene facturas pendientes de pago.", 3000, Position.MIDDLE);
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -259,7 +280,7 @@ public class RegistroReciboDeIngresoView extends VerticalLayout {
                 .setAutoWidth(true)
                 .setSortable(false);
 
-        colNumero = grid.addColumn(l -> l.factura.getNumeroDocumento())
+        colNumero = grid.addColumn(l -> l.factura.getCodigo())
                 .setHeader("N° Factura")
                 .setKey("numero")
                 .setAutoWidth(true)
@@ -456,16 +477,21 @@ public class RegistroReciboDeIngresoView extends VerticalLayout {
         try {
             
             ReciboDeIngreso recibo = new ReciboDeIngreso();
+            recibo.setAnulado(false);
             recibo.setCliente(cbProveedor.getValue());
             recibo.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
+            recibo.setFechaCreacion(new Date());
 //            recibo.setFormaPago(cbFormaPago.getValue());
 //            recibo.setReferencia(txtReferencia.getValue() != null ? txtReferencia.getValue().trim() : null);
-            recibo.setConcepto(txtObservacion.getValue());
+            recibo.setConcepto(txtObservacion.getValue()==null ? "Pago factura cliente " :
+              txtObservacion.getValue()
+            );
             recibo.setTotalPagado(totalAPagar());
 
             List<DetalleReciboDeIngreso> detalles = new ArrayList<>();
 
             for (LineaPago l : aPagar) {
+                
                 DetalleReciboDeIngreso d = new DetalleReciboDeIngreso();
                 d.setCodigo(null);
                 d.setReciboIngreso(recibo);
@@ -476,13 +502,15 @@ public class RegistroReciboDeIngresoView extends VerticalLayout {
                 detalles.add(d);
             }
 
-            recibo.setDetalleReciboDeIngresoCollection(detalles);
+//            recibo.setDetalleReciboDeIngresoCollection(detalles);
+            
+              ReciboDeIngreso guardado =this.reciboService.procesarReciboDeIngreso(recibo, detalles);
 
-            ReciboDeIngreso guardado = this.reciboService.guardar(recibo);
+//            ReciboDeIngreso guardado = this.reciboService.guardar(recibo);
 
-            Notification.show("Recibo de egreso #" + guardado.getCodigo() + " registrado por "
-                    + moneda(guardado.getTotalPagado()) + ".", 4000, Position.TOP_CENTER)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                 ClaseUtil.mostrarNotificacion("Recibo de ingreso #" + guardado.getCodigo() + " registrado por "
+                    + moneda(guardado.getTotalPagado()) + ".", NotificationVariant.LUMO_SUCCESS, 3000);
+            
 
             limpiarDespuesDeGuardar();
 

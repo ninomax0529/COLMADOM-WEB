@@ -32,9 +32,9 @@ public interface FacturaDeCompraRepo extends JpaRepository<FacturaDeCompra, Inte
     
     String strPend = """
                        SELECT * FROM  factura_de_compra 
-                       where  anulada=false
+                        where  anulada=false
                         and  proveedor=:codPro
-                        and  total_pendiente>0
+                        and   BALANCE_PENDIENTE_FACT_COMPRA(codigo)>0
                      
                         """;
     @Query(value = strPend, nativeQuery = true)

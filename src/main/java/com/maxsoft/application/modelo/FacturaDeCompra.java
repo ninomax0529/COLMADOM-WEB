@@ -24,6 +24,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Date;
 
@@ -36,6 +37,20 @@ import java.util.Date;
 @NamedQueries({
     @NamedQuery(name = "FacturaDeCompra.findAll", query = "SELECT f FROM FacturaDeCompra f")})
 public class FacturaDeCompra implements Serializable {
+
+    /**
+     * @return the fechaActualizacion
+     */
+    public LocalDateTime getFechaActualizacion() {
+        return fechaActualizacion;
+    }
+
+    /**
+     * @param fechaActualizacion the fechaActualizacion to set
+     */
+    public void setFechaActualizacion(LocalDateTime fechaActualizacion) {
+        this.fechaActualizacion = fechaActualizacion;
+    }
 
     @Size(max = 25)
     @Column(name = "ncf")
@@ -106,6 +121,9 @@ public class FacturaDeCompra implements Serializable {
     @Column(name = "fecha_anulada")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaAnulada;
+    @Column(name = "fecha_actualizacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private LocalDateTime fechaActualizacion;
     @Column(name = "secuencia_documento")
     private Integer secuenciaDocumento;
     @JoinColumn(name = "estado", referencedColumnName = "codigo")
@@ -401,7 +419,6 @@ public class FacturaDeCompra implements Serializable {
     public void setConcepto(String concepto) {
         this.concepto = concepto;
     }
-
 
     public String getNumero() {
         return numero;

@@ -17,12 +17,15 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Date;
 
@@ -45,7 +48,10 @@ public class FacturaDeVenta implements Serializable {
     @Size(max = 60)
     @Column(name = "nombre_delivery")
     private String nombreDelivery;
-    @Lob
+    @Column(name = "fecha_actualizacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaActualizacion;
+    @Lob()
     @Size(max = 65535)
     @Column(name = "comentario")
     private String comentario;
@@ -58,6 +64,8 @@ public class FacturaDeVenta implements Serializable {
     @Size(max = 45)
     @Column(name = "direccion")
     private String direccion;
+    @OneToOne(cascade = CascadeType.ALL, mappedBy = "factura")
+    private DetalleLiquidacionDelivery detalleLiquidacionDelivery;
     @OneToMany(mappedBy = "factura")
     private Collection<DetalleReciboDeIngreso> detalleReciboDeIngresoCollection;
 
@@ -81,9 +89,6 @@ public class FacturaDeVenta implements Serializable {
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
-    @Column(name = "fecha_actualizacion")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaActualizacion;
     @Column(name = "anulada")
     private Boolean anulada;
     @Column(name = "fecha_anulada")
@@ -202,15 +207,6 @@ public class FacturaDeVenta implements Serializable {
     public void setFechaCreacion(Date fechaCreacion) {
         this.fechaCreacion = fechaCreacion;
     }
-
-    public Date getFechaActualizacion() {
-        return fechaActualizacion;
-    }
-
-    public void setFechaActualizacion(Date fechaActualizacion) {
-        this.fechaActualizacion = fechaActualizacion;
-    }
-
 
     public Boolean getAnulada() {
         return anulada;
@@ -382,12 +378,29 @@ public class FacturaDeVenta implements Serializable {
         return codigo.toString();
     }
 
+
+    public Collection<DetalleReciboDeIngreso> getDetalleReciboDeIngresoCollection() {
+        return detalleReciboDeIngresoCollection;
+    }
+
+    public void setDetalleReciboDeIngresoCollection(Collection<DetalleReciboDeIngreso> detalleReciboDeIngresoCollection) {
+        this.detalleReciboDeIngresoCollection = detalleReciboDeIngresoCollection;
+    }
+
     public String getNcf() {
         return ncf;
     }
 
     public void setNcf(String ncf) {
         this.ncf = ncf;
+    }
+
+    public Date getFechaActualizacion() {
+        return fechaActualizacion;
+    }
+
+    public void setFechaActualizacion(Date fechaActualizacion) {
+        this.fechaActualizacion = fechaActualizacion;
     }
 
     public String getComentario() {
@@ -406,12 +419,12 @@ public class FacturaDeVenta implements Serializable {
         this.direccion = direccion;
     }
 
-    public Collection<DetalleReciboDeIngreso> getDetalleReciboDeIngresoCollection() {
-        return detalleReciboDeIngresoCollection;
+    public DetalleLiquidacionDelivery getDetalleLiquidacionDelivery() {
+        return detalleLiquidacionDelivery;
     }
 
-    public void setDetalleReciboDeIngresoCollection(Collection<DetalleReciboDeIngreso> detalleReciboDeIngresoCollection) {
-        this.detalleReciboDeIngresoCollection = detalleReciboDeIngresoCollection;
+    public void setDetalleLiquidacionDelivery(DetalleLiquidacionDelivery detalleLiquidacionDelivery) {
+        this.detalleLiquidacionDelivery = detalleLiquidacionDelivery;
     }
     
 }

@@ -4,11 +4,13 @@
  */
 package com.maxsoft.application.view.cxc.reciboIngrso;
 
+import com.maxsoft.application.modelo.Cliente;
 import com.maxsoft.application.modelo.DetalleReciboDeIngreso;
 import com.maxsoft.application.modelo.Proveedor;
 import com.maxsoft.application.modelo.ReciboDeIngreso;
 import com.maxsoft.application.servicio.interfaces.compra.ProveedorService;
 import com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService;
+import com.maxsoft.application.servicio.interfaces.venta.ClienteService;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
 
 import com.vaadin.flow.component.Key;
@@ -50,7 +52,7 @@ import java.util.List;
 public class ReciboDeIngresoView extends VerticalLayout {
 
     private final ReciboDeIngresoService reciboDeIngresoService;
-    private final ProveedorService proveedorService;
+    private final ClienteService clienteService;
 
     private final Grid<ReciboDeIngreso> grid = new Grid<>(ReciboDeIngreso.class, false);
     private final Grid<DetalleReciboDeIngreso> gridDetalle = new Grid<>(DetalleReciboDeIngreso.class, false);
@@ -58,7 +60,7 @@ public class ReciboDeIngresoView extends VerticalLayout {
 
     // Componentes de Filtro
     private final TextField txtBuscar = new TextField();
-    private final ComboBox<Proveedor> cbSuplidor = new ComboBox<>("CLiente");
+    private final ComboBox<Cliente> cbCliente = new ComboBox<>("CLiente");
     private final ComboBox<String> cbEstado = new ComboBox<>("Estado");
     private final DatePicker dtDesde = new DatePicker("Fecha Desde");
     private final DatePicker dtHasta = new DatePicker("Fecha Hasta");
@@ -87,9 +89,9 @@ public class ReciboDeIngresoView extends VerticalLayout {
     private Grid.Column<DetalleReciboDeIngreso> colDetTotal;
 
     public ReciboDeIngresoView(ReciboDeIngresoService reciboDeIngresoService,
-            ProveedorService proveedorService) {
+           ClienteService clienteService ) {
         this.reciboDeIngresoService = reciboDeIngresoService;
-        this.proveedorService = proveedorService;
+        this.clienteService = clienteService;
 
         setSizeFull();
         setSpacing(false);
@@ -142,10 +144,11 @@ public class ReciboDeIngresoView extends VerticalLayout {
         txtBuscar.setValueChangeMode(ValueChangeMode.LAZY);
         txtBuscar.addValueChangeListener(e -> aplicarFiltroTexto());
 
-        cbSuplidor.setItems(proveedorService.getLista());
-        cbSuplidor.setItemLabelGenerator(s -> s.getRnc() != null ? s.getNombre() + " (" + s.getRnc() + ")" : s.getNombre());
-        cbSuplidor.setPlaceholder("Todos los suplidores");
-        cbSuplidor.setClearButtonVisible(true);
+        cbCliente.setItems(clienteService.getLista());
+        cbCliente.setItemLabelGenerator(s -> s.getCedula()!= null 
+                ? s.getNombre() + " (" + s.getCedula() + ")" : s.getNombre());
+        cbCliente.setPlaceholder("Todos los cliente");
+        cbCliente.setClearButtonVisible(true);
 
         cbEstado.setItems("TODOS", "PENDIENTE", "COMPLETADA", "ANULADA");
         cbEstado.setValue("TODOS");
@@ -167,7 +170,7 @@ public class ReciboDeIngresoView extends VerticalLayout {
     private HorizontalLayout crearBarraFiltros() {
 
         HorizontalLayout barra = new HorizontalLayout(
-                dtDesde, dtHasta, cbSuplidor, cbEstado, txtBuscar, btnFiltrar, btnLimpiar);
+                dtDesde, dtHasta, cbCliente, cbEstado, txtBuscar, btnFiltrar, btnLimpiar);
         barra.setAlignItems(Alignment.BASELINE);
         barra.setWidthFull();
         // Permite que los filtros pasen a otra línea en pantallas angostas
@@ -178,7 +181,7 @@ public class ReciboDeIngresoView extends VerticalLayout {
     private void limpiarFiltros() {
 
         txtBuscar.clear();
-        cbSuplidor.clear();
+        cbCliente.clear();
         cbEstado.setValue("TODOS");
         dtDesde.setValue(LocalDate.now().withDayOfMonth(1));
         dtHasta.setValue(LocalDate.now());
@@ -198,16 +201,16 @@ public class ReciboDeIngresoView extends VerticalLayout {
 
         try {
 
-            Proveedor suplidorSel = cbSuplidor.getValue();
+            Cliente cliente = cbCliente.getValue();
             String estadoSel = cbEstado.getValue();
 
             // Filtrado en memoria sobre el listado del servicio
             List<ReciboDeIngreso> resultado = reciboDeIngresoService.getLista().stream().filter(reciboIngreso -> {
 
                 // Filtro Suplidor
-                boolean coincideSuplidor = suplidorSel == null
+                boolean coincideSuplidor = cliente == null
                         || (reciboIngreso.getCliente()!= null
-                        && reciboIngreso.getCliente().getCodigo().equals(suplidorSel.getCodigo()));
+                        && reciboIngreso.getCliente().getCodigo().equals(cliente.getCodigo()));
 
                 // Filtro Estado
                 boolean anulada = reciboIngreso.getAnulado() != null && reciboIngreso.getAnulado();

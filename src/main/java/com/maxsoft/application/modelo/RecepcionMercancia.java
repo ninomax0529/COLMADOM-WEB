@@ -118,6 +118,9 @@ public class RecepcionMercancia implements Serializable {
     @JoinColumn(name = "usuario", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private Usuario usuario;
+    @JoinColumn(name = "condicion_pago", referencedColumnName = "codigo")
+    @ManyToOne
+    private CondicionPago condicionPago;
 
     public RecepcionMercancia() {
     }
@@ -324,4 +327,20 @@ public class RecepcionMercancia implements Serializable {
         this.total = total;
     }
 
+    
+    /**
+     * @return the condicionPago
+     */
+    public CondicionPago getCondicionPago() {
+        return condicionPago;
+    }
+
+    /**
+     * @param condicionPago the condicionPago to set
+     */
+    public void setCondicionPago(CondicionPago condicionPago) {
+        this.condicionPago = condicionPago;
+    }
+    
+    
 }

@@ -118,6 +118,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
     private void configurarBotonera() {
         botonera.getGuardar().addClickListener(e -> {
             try {
+
                 procesarGuardado();
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -275,7 +276,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
                 }
             });
         } else {
-            
+
             DetalleAjusteInventario det = new DetalleAjusteInventario();
             det.setCodigo(articulo.getCodigo());
             det.setArticulo(articulo);
@@ -519,27 +520,32 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
     }
 
     private void procesarGuardado() {
+
         if (cbAlmacen.getValue() == null) {
-            Notification.show("Debe seleccionar un Almacén", 3000, Position.TOP_CENTER);
+            ClaseUtil.mostrarNotificacion("Debe seleccionar un Almacén", NotificationVariant.LUMO_WARNING,3000);
+
             cbAlmacen.focus();
             return;
         }
 
         if (cbTipoAjuste.getValue() == null) {
-            Notification.show("Debe seleccionar un Tipo de Ajuste", 3000, Position.TOP_CENTER);
+             ClaseUtil.mostrarNotificacion("Debe seleccionar un Tipo de Ajuste", NotificationVariant.LUMO_WARNING,3000);
+ 
             cbTipoAjuste.focus();
             return;
         }
 
         if (listDet.isEmpty()) {
-            Notification.show("El ajuste no tiene artículos registrados", 3000, Position.TOP_CENTER);
+             ClaseUtil.mostrarNotificacion("No hay articulo agregado en el detalle", NotificationVariant.LUMO_WARNING,3000);
             return;
         }
 
         try {
             String usuarioActual = "ADMIN";
 
+            System.out.println("txtObservacion.getValue()" + txtObservacion.getValue());
             AjusteInventario ajuste = new AjusteInventario();
+
             ajuste.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
             ajuste.setAlmacen(cbAlmacen.getValue());
             ajuste.setNombreAlmacen(cbAlmacen.getValue().getNombre());
@@ -551,7 +557,8 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
 
             AjusteInventario guardado = ajusteService.procesarAjusteTransaccional(ajuste, listDet, usuarioActual);
 
-            Notification.show("Ajuste #" + guardado.getCodigo() + " guardado con éxito", 3000, Position.TOP_CENTER);
+            ClaseUtil.mostrarNotificacion("Ajuste #" + guardado.getCodigo() + " guardado con éxito", NotificationVariant.LUMO_PRIMARY);
+//            Notification.show("Ajuste #" + guardado.getCodigo() + " guardado con éxito", 3000, Position.TOP_CENTER);
 
             listDet.clear();
             txtObservacion.clear();

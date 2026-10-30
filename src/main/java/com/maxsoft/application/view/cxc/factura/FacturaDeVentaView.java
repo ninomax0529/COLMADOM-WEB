@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.maxsoft.application.view.venta.factura;
+package com.maxsoft.application.view.cxc.factura;
 
 /**
  *
@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @PageTitle("Factura de Venta")
-@Route(value = "venta/FacturaVenta")
+@Route(value = "cxc/FacturaVenta")
 
 public class FacturaDeVentaView extends VerticalLayout {
 
@@ -85,6 +85,7 @@ public class FacturaDeVentaView extends VerticalLayout {
     private Grid.Column<DetalleFacturaDeVenta> colSubTotal;
     private Grid.Column<DetalleFacturaDeVenta> colItbis;
     private Grid.Column<DetalleFacturaDeVenta> colTotal;
+    private Grid.Column<FacturaDeVenta> colTotalPendienteFactura;
 
     @Autowired
     public FacturaDeVentaView(FacturaDeVentaService entradaServiceArg) {
@@ -234,7 +235,7 @@ public class FacturaDeVentaView extends VerticalLayout {
         BigDecimal total = visibles.stream()
                 .map(f -> f.getTotal() != null ? f.getTotal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-
+  
         colCodigo.setFooter("TOTAL FACTURAS: " + visibles.size());
         colTotalFactura.setFooter(moneda(total));
     }
@@ -272,7 +273,7 @@ public class FacturaDeVentaView extends VerticalLayout {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal itbis = listDet.stream()
-                .map(d -> d.getTotalItbis()!= null ? d.getTotalItbis() : BigDecimal.ZERO)
+                .map(d -> d.getTotalItbis() != null ? d.getTotalItbis() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal total = listDet.stream()

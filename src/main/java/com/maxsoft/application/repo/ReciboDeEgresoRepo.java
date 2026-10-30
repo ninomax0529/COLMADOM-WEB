@@ -20,4 +20,8 @@ public interface ReciboDeEgresoRepo extends JpaRepository<ReciboDeEgreso, Intege
 
     @Query(value = strDet, nativeQuery = true)
     public List<DetalleReciboDeEgreso> getDetalle(@Param("obj") int op);
+    
+    
+    @Query(value = "SELECT PAGO_FACT_COMPRA(:fact)", nativeQuery = true)
+    Double getPagoFacturaCompra(@Param("fact") int fact);
 }

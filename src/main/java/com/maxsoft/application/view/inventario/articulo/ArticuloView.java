@@ -60,7 +60,7 @@ public class ArticuloView extends VerticalLayout {
 
             String key = NavigationContext.store(new Articulo());
 
-            UI.getCurrent().navigate(RegistrarArticuloViewV2.class, key);
+            UI.getCurrent().navigate(RegistrarArticuloViewV4.class, key);
 
         });
 
@@ -88,7 +88,7 @@ public class ArticuloView extends VerticalLayout {
 
                 String key = NavigationContext.store(articulo);
 
-                UI.getCurrent().navigate(RegistrarArticuloViewV2.class, key);
+                UI.getCurrent().navigate(RegistrarArticuloViewV4.class, key);
 
             });
 
@@ -109,9 +109,11 @@ public class ArticuloView extends VerticalLayout {
         txtFiltroArt.setWidth("100%");
         txtFiltroArt.setPlaceholder("Buscar");
         txtFiltroArt.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
-        txtFiltroArt.setValueChangeMode(ValueChangeMode.EAGER);
-        txtFiltroArt.addValueChangeListener(e -> dataView.refreshAll());
-//        txtFiltroArt.addValueChangeListener(e -> aplicarFiltros());
+
+        txtFiltroArt.addValueChangeListener(e -> aplicarFiltros());      
+
+        txtFiltroArt.setClearButtonVisible(true);
+        txtFiltroArt.setValueChangeMode(ValueChangeMode.LAZY);
 
         dataView.addFilter(art -> {
 

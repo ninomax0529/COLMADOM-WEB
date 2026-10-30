@@ -9,12 +9,12 @@ import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.inventario.ajuste.ConsultaAjusteInventarioView;
 import com.maxsoft.application.view.inventario.articulo.ArticuloAlmacenView;
 import com.maxsoft.application.view.inventario.articulo.GestionEtiquetasView;
+import com.maxsoft.application.view.inventario.articulo.ImpresionCodigoBarraView;
 import com.maxsoft.application.view.inventario.entrada.EntradaDeIventarioView;
 import com.maxsoft.application.view.inventario.merma.MermaView;
 import com.maxsoft.application.view.inventario.movimiento.MovimientosInventarioView;
 import com.maxsoft.application.view.inventario.salida.SalidaDeIventarioView;
 import com.maxsoft.application.view.inventario.traslado.ConsultaTrasladoInventarioView;
-import com.maxsoft.application.view.inventario.traslado.TrasladoInventarioView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.html.H3;
@@ -52,6 +52,7 @@ public class ModuloInventario extends AppLayout {
     private void createDrawer() {
 
         RouterLink linkArticulo = createLink(VaadinIcon.DASHBOARD, "Articulo", ArticuloView.class);
+ 
         RouterLink linkEntrada = createLink(VaadinIcon.FILE_TABLE, "Entrada ", EntradaDeIventarioView.class);
         RouterLink linkSalida = createLink(VaadinIcon.FILE_TABLE, "Salida ", SalidaDeIventarioView.class);
 //        RouterLink linkAjuste = createLink(VaadinIcon.FILE_TABLE, "Ajuste", RegistroAjusteDeInventarioView.class);
@@ -61,14 +62,14 @@ public class ModuloInventario extends AppLayout {
         RouterLink linkGestionEtiquetasView = createLink(VaadinIcon.FILE_TABLE, "Gestion de Etiqueta", GestionEtiquetasView.class);
         RouterLink linkConsultaAjusteInventarioView = createLink(VaadinIcon.FILE_TABLE, "Ajuste", ConsultaAjusteInventarioView.class);
         RouterLink linkMermaView = createLink(VaadinIcon.FILE_TABLE, "Merma", MermaView.class);
-//        RouterLink linkConsultaEntradaInventarioView = createLink(VaadinIcon.FILE_TABLE, "Consulta Entrada Inv.", ConsultaEntradaInventarioView.class);
+        RouterLink linkImpresionCodigoBarraView = createLink(VaadinIcon.FILE_TABLE, "Etiqueta", ImpresionCodigoBarraView.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
         ////
 //        // Layout vertical que contiene los enlaces del menú
         VerticalLayout menuLayout = new VerticalLayout(
                 linkArticulo,
-                //                linkRegistrarArticuloViewV1,
+
                 linkEntrada,
                 //                linkConsultaEntradaInventarioView,
                 linkSalida,
@@ -80,6 +81,7 @@ public class ModuloInventario extends AppLayout {
                 linkMovimiento,
                 linkTrasladoArticalmacen,
                 linkGestionEtiquetasView,
+                linkImpresionCodigoBarraView,
                 linkModulo
         );
 

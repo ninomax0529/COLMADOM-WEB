@@ -5,12 +5,14 @@
 package com.maxsoft.application.modelo;
 
 import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.OneToMany;
@@ -39,11 +41,6 @@ public class Delivery implements Serializable {
     @Column(name = "nombre")
     private String nombre;
     @Basic(optional = false)
-    @NotNull()
-    @Size(min = 1, max = 50)
-    @Column(name = "apellido")
-    private String apellido;
-    @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 15)
     @Column(name = "celular")
@@ -56,24 +53,27 @@ public class Delivery implements Serializable {
     @Basic(optional = false)
     @NotNull
     @Column(name = "fecha")
-    @Temporal(TemporalType.DATE)
+//    @Temporal(TemporalTypeTemporalType.DATE)
     private Date fecha;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 10)
-    @Column(name = "estado")
-    private String estado;
-    @Lob()
-    @Column(name = "foto")
-    private byte[] foto;
+    @Size(max = 15)
+    @Column(name = "cedula")
+    private String cedula;
+    @JoinColumn(name = "vehiculo", referencedColumnName = "codigo")
+    @ManyToOne
+    private Vehiculo vehiculo;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "delivery")
+    private Collection<LiquidacionDelivery> liquidacionDeliveryCollection;
+    @OneToMany(mappedBy = "delivery")
+    private Collection<FacturaDeVenta> facturaDeVentaCollection;
+
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
     @Column(name = "codigo")
     private Integer codigo;
-    @OneToMany(mappedBy = "delivery")
-    private Collection<FacturaDeVenta> facturaDeVentaCollection;
+    @Column(name = "habilitado")
+    private Boolean habilitado;
 
     public Delivery() {
     }
@@ -82,14 +82,12 @@ public class Delivery implements Serializable {
         this.codigo = codigo;
     }
 
-    public Delivery(Integer codigo, String nombre, String apellido, String celular, String direccion, Date fecha, String estado) {
+    public Delivery(Integer codigo, String nombre, String celular, String direccion, Date fecha) {
         this.codigo = codigo;
         this.nombre = nombre;
-        this.apellido = apellido;
         this.celular = celular;
         this.direccion = direccion;
         this.fecha = fecha;
-        this.estado = estado;
     }
 
     public Integer getCodigo() {
@@ -101,12 +99,12 @@ public class Delivery implements Serializable {
     }
 
 
-    public Collection<FacturaDeVenta> getFacturaDeVentaCollection() {
-        return facturaDeVentaCollection;
+    public Boolean getHabilitado() {
+        return habilitado;
     }
 
-    public void setFacturaDeVentaCollection(Collection<FacturaDeVenta> facturaDeVentaCollection) {
-        this.facturaDeVentaCollection = facturaDeVentaCollection;
+    public void setHabilitado(Boolean habilitado) {
+        this.habilitado = habilitado;
     }
 
     @Override
@@ -131,7 +129,24 @@ public class Delivery implements Serializable {
 
     @Override
     public String toString() {
-        return nombre;
+        return "com.maxsoft.application.modelo.Delivery[ codigo=" + codigo + " ]";
+    }
+
+
+    public Collection<LiquidacionDelivery> getLiquidacionDeliveryCollection() {
+        return liquidacionDeliveryCollection;
+    }
+
+    public void setLiquidacionDeliveryCollection(Collection<LiquidacionDelivery> liquidacionDeliveryCollection) {
+        this.liquidacionDeliveryCollection = liquidacionDeliveryCollection;
+    }
+
+    public Collection<FacturaDeVenta> getFacturaDeVentaCollection() {
+        return facturaDeVentaCollection;
+    }
+
+    public void setFacturaDeVentaCollection(Collection<FacturaDeVenta> facturaDeVentaCollection) {
+        this.facturaDeVentaCollection = facturaDeVentaCollection;
     }
 
     public String getNombre() {
@@ -140,14 +155,6 @@ public class Delivery implements Serializable {
 
     public void setNombre(String nombre) {
         this.nombre = nombre;
-    }
-
-    public String getApellido() {
-        return apellido;
-    }
-
-    public void setApellido(String apellido) {
-        this.apellido = apellido;
     }
 
     public String getCelular() {
@@ -174,20 +181,20 @@ public class Delivery implements Serializable {
         this.fecha = fecha;
     }
 
-    public String getEstado() {
-        return estado;
+    public String getCedula() {
+        return cedula;
     }
 
-    public void setEstado(String estado) {
-        this.estado = estado;
+    public void setCedula(String cedula) {
+        this.cedula = cedula;
     }
 
-    public byte[] getFoto() {
-        return foto;
+    public Vehiculo getVehiculo() {
+        return vehiculo;
     }
 
-    public void setFoto(byte[] foto) {
-        this.foto = foto;
+    public void setVehiculo(Vehiculo vehiculo) {
+        this.vehiculo = vehiculo;
     }
     
 }

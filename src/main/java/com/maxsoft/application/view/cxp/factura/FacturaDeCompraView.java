@@ -1,5 +1,3 @@
-
-
 package com.maxsoft.application.view.cxp.factura;
 
 import com.maxsoft.application.modelo.DetalleFacturaDeCompra;
@@ -84,6 +82,9 @@ public class FacturaDeCompraView extends VerticalLayout {
     private Grid.Column<FacturaDeCompra> colSubTotalFactura;
     private Grid.Column<FacturaDeCompra> colItbisFactura;
     private Grid.Column<FacturaDeCompra> colTotalFactura;
+    private Grid.Column<FacturaDeCompra> colTotalPendienteFactura;
+
+    private Grid.Column<FacturaDeCompra> colTotalPagadoFactura;
 
     private Grid.Column<DetalleFacturaDeCompra> colDescripcion;
     private Grid.Column<DetalleFacturaDeCompra> colEntradaBase;
@@ -244,9 +245,9 @@ public class FacturaDeCompraView extends VerticalLayout {
                 return true;
             }
             boolean matchCod = f.getCodigo() != null && f.getCodigo().toString().contains(term);
-            boolean matchNum = f.getNumeroFactura()!= null && f.getNumeroFactura().toLowerCase().contains(term);
+            boolean matchNum = f.getNumeroFactura() != null && f.getNumeroFactura().toLowerCase().contains(term);
             boolean matchNcf = f.getNcf() != null && f.getNcf().toLowerCase().contains(term);
-            boolean matchUsr = f.getNombreUsaurio()!= null && f.getNombreUsaurio().toLowerCase().contains(term);
+            boolean matchUsr = f.getNombreUsaurio() != null && f.getNombreUsaurio().toLowerCase().contains(term);
             return matchCod || matchNum || matchNcf || matchUsr;
         });
 
@@ -265,8 +266,15 @@ public class FacturaDeCompraView extends VerticalLayout {
                 .map(f -> valor(f.getSubTotal())).reduce(BigDecimal.ZERO, BigDecimal::add)));
         colItbisFactura.setFooter(moneda(visibles.stream()
                 .map(f -> valor(f.getTotalItbis())).reduce(BigDecimal.ZERO, BigDecimal::add)));
+
         colTotalFactura.setFooter(moneda(visibles.stream()
                 .map(f -> valor(f.getTotal())).reduce(BigDecimal.ZERO, BigDecimal::add)));
+
+        colTotalPendienteFactura.setFooter(moneda(visibles.stream()
+                .map(f -> valor(f.getTotal())).reduce(BigDecimal.ZERO, BigDecimal::add)));
+                
+        colTotalPagadoFactura.setFooter(moneda(visibles.stream()
+                .map(f -> valor(f.getTotalPagado())).reduce(BigDecimal.ZERO, BigDecimal::add)));
     }
 
     private void cargarDetalle(FacturaDeCompra factura) {
@@ -341,7 +349,7 @@ public class FacturaDeCompraView extends VerticalLayout {
                         (FacturaDeCompra f) -> f.getFecha(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        grid.addColumn(f -> f.getFecha()!= null
+        grid.addColumn(f -> f.getFecha() != null
                 ? new Date(f.getFecha().getTime()).toInstant()
                         .atZone(ZoneId.systemDefault()).toLocalDateTime().format(FORMATO_FECHA_HORA)
                 : "")
@@ -374,6 +382,20 @@ public class FacturaDeCompraView extends VerticalLayout {
                 .setKey("total")
                 .setComparator(Comparator.comparing(
                         (FacturaDeCompra f) -> f.getTotal(),
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+
+        colTotalPendienteFactura = grid.addColumn(f -> moneda(f.getTotalPendiente()))
+                .setHeader("Balance Pendiente")
+                .setKey("balpendiente")
+                .setComparator(Comparator.comparing(
+                        (FacturaDeCompra f) -> f.getTotalPendiente(),
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+
+        colTotalPagadoFactura = grid.addColumn(f -> moneda(f.getTotalAPagar()))
+                .setHeader("Total Pagado")
+                .setKey("totalpagado")
+                .setComparator(Comparator.comparing(
+                        (FacturaDeCompra f) -> f.getTotalAPagar(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
         grid.getColumns().forEach(col -> {

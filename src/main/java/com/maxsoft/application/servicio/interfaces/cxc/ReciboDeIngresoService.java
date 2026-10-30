@@ -21,11 +21,15 @@ public interface ReciboDeIngresoService {
     ReciboDeIngreso getReciboDeIngreso(int codigo);
 
     ReciboDeIngreso procesarReciboDeIngresoPos(FacturaDeVenta obj);
-    
+
+    ReciboDeIngreso procesarReciboDeIngreso(ReciboDeIngreso obj, List<DetalleReciboDeIngreso> listaDet);
+
     List<ReciboDeIngreso> getLista();
 
     List<DetalleReciboDeIngreso> getDetalle(int obj);
 
     ReciboDeEgreso anularReciboDeIngreso(Integer id);
+
+    Double getPagoFacturaVenta(int fact);
 
 }

@@ -4,7 +4,6 @@
  */
 package com.maxsoft.application.repo;
 
-
 import com.maxsoft.application.modelo.DetalleReciboDeIngreso;
 import com.maxsoft.application.modelo.ReciboDeIngreso;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,9 +16,11 @@ import org.springframework.data.repository.query.Param;
 @Repository
 public interface ReciboDeIngresoRepo extends JpaRepository<ReciboDeIngreso, Integer> {
 
-    
     String strDet = "  select * from  detalle_recibo_de_ingreso o where recibo_ingreso=:obj ";
 
     @Query(value = strDet, nativeQuery = true)
     public List<DetalleReciboDeIngreso> getDetalle(@Param("obj") int op);
+
+    @Query(value = "SELECT PAGO_FACT_VENTA(:fact)", nativeQuery = true)
+    Double getPagoFacturaVenta(@Param("fact") int fact);
 }

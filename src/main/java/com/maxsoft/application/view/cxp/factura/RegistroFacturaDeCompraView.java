@@ -607,19 +607,19 @@ public class RegistroFacturaDeCompraView extends VerticalLayout {
         }
 
         try {
-            
+
             FacturaDeCompra factura = new FacturaDeCompra();
-            
+
             factura.setProveedor(cbProveedor.getValue());
             factura.setTipoCompra(new TipoCompra(1));
             factura.setNombreProveedor(cbProveedor.getValue().getNombre());
-            factura.setAnulada(false);            
+            factura.setAnulada(false);
             factura.setNombreEstado("PENDIENTE");
             factura.setUsuario(new Usuario(1));
-            factura.setNombreUsaurio("Admin");          
-            factura.setTotalIsr(BigDecimal.ZERO);        
+            factura.setNombreUsaurio("Admin");
+            factura.setTotalIsr(BigDecimal.ZERO);
             factura.setTotalPagado(BigDecimal.ZERO);
-          
+
             factura.setNumeroFactura(txtNumeroFactura.getValue().trim());
             factura.setNcf(txtNcf.getValue() != null ? txtNcf.getValue().trim() : null);
             factura.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
@@ -636,7 +636,7 @@ public class RegistroFacturaDeCompraView extends VerticalLayout {
                     d -> valor(d.getTotalItbis())).reduce(BigDecimal.ZERO, BigDecimal::add));
 
             factura.setTotal(listDet.stream().map(d -> valor(d.getTotal())).reduce(BigDecimal.ZERO, BigDecimal::add));
-              factura.setTotalPendiente(listDet.stream().map(d -> valor(d.getTotal())).reduce(BigDecimal.ZERO, BigDecimal::add));
+            factura.setTotalPendiente(listDet.stream().map(d -> valor(d.getTotal())).reduce(BigDecimal.ZERO, BigDecimal::add));
 
             listDet.forEach(d -> {
                 d.setFacturaDeCompra(factura);

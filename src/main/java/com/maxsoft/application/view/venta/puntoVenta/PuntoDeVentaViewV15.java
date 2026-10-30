@@ -13,7 +13,7 @@ import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueSer
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.venta.CajaService;
 import com.maxsoft.application.servicio.interfaces.venta.ClienteService;
-import com.maxsoft.application.servicio.interfaces.venta.DeliveryService;
+import com.maxsoft.application.servicio.interfaces.delivery.DeliveryService;
 import com.maxsoft.application.servicio.interfaces.venta.EstadoFacturaService;
 import com.maxsoft.application.servicio.interfaces.cxc.FacturaDeVentaService;
 import com.maxsoft.application.servicio.interfaces.reporte.ReporteService;

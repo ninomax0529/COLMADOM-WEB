@@ -207,7 +207,7 @@ public class TrasladoInventarioView extends VerticalLayout {
     private void abrirDialogoSeleccionArticulo() {
 
         if (cbAlmacenOrigen.getValue() == null) {
-            mostrarNotificacion("Debe seleccionar un Almacén de Origen primero", NotificationVariant.LUMO_WARNING);
+            ClaseUtil.mostrarNotificacion("Debe seleccionar un Almacén de Origen primero", NotificationVariant.LUMO_WARNING, 3000);
             cbAlmacenOrigen.focus();
             return;
         }
@@ -565,12 +565,16 @@ public class TrasladoInventarioView extends VerticalLayout {
     private void procesarTraslado() {
 
         if (cbAlmacenOrigen.getValue() == null || cbAlmacenDestino.getValue() == null) {
-            mostrarNotificacion("Debe seleccionar origen y destino.", NotificationVariant.LUMO_ERROR);
+
+            ClaseUtil.mostrarNotificacion("Debe seleccionar origen y destino.", NotificationVariant.LUMO_ERROR, 3000);
+   
             return;
         }
 
         if (listaDetalles.isEmpty()) {
-            mostrarNotificacion("Debe agregar al menos un ítem al traslado.", NotificationVariant.LUMO_ERROR);
+            
+             ClaseUtil.mostrarNotificacion("Debe agregar al menos un articulo al traslado.", NotificationVariant.LUMO_ERROR, 3000);
+
             return;
         }
 
@@ -604,7 +608,8 @@ public class TrasladoInventarioView extends VerticalLayout {
 
             trasladoService.procesarTraslado(traslado);
 
-            mostrarNotificacion("¡Traslado procesado exitosamente!", NotificationVariant.LUMO_SUCCESS);
+            ClaseUtil.mostrarNotificacion("Traslado procesado exitosamente", NotificationVariant.LUMO_SUCCESS, 3000);
+
             limpiarFormulario();
 
         } catch (Exception ex) {

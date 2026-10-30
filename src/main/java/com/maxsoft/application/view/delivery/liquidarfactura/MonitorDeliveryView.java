@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package com.maxsoft.application.view.venta.delivery;
+package com.maxsoft.application.view.delivery.liquidarfactura;
 
 
 import com.vaadin.flow.component.button.Button;
@@ -14,20 +14,17 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.Menu;
-import org.vaadin.lineawesome.LineAwesomeIconUrl;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 @PageTitle("Monitor de Deliveries")
-@Route(value = "monitorDelivery")
-@Menu(order = 6, icon = LineAwesomeIconUrl.MAP_MARKED_ALT_SOLID)
+@Route(value = "delivery/monitorDelivery")
+//@Menu(order = 6, icon = LineAwesomeIconUrl.MAP_MARKED_ALT_SOLID)
 public class MonitorDeliveryView extends VerticalLayout {
 
     private static final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");

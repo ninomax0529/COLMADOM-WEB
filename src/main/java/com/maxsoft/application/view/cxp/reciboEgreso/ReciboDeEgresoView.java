@@ -4,7 +4,6 @@
  */
 package com.maxsoft.application.view.cxp.reciboEgreso;
 
-import com.maxsoft.application.view.compra.orden.*;
 import com.maxsoft.application.modelo.DetalleReciboDeEgreso;
 import com.maxsoft.application.modelo.Proveedor;
 import com.maxsoft.application.modelo.ReciboDeEgreso;
@@ -303,7 +302,7 @@ public class ReciboDeEgresoView extends VerticalLayout {
         listDet = detalles != null ? new ArrayList<>(detalles) : new ArrayList<>();
         gridDetalle.setItems(listDet);
 
-        tabs.getTabAt(1).setLabel("Detalle( Orden -> " + recibo.getCodigo() + " )");
+        tabs.getTabAt(1).setLabel("Detalle( Recibo -> " + recibo.getCodigo() + " )");
 
         actualizarTotalesDetalle();
     }
@@ -409,12 +408,12 @@ public class ReciboDeEgresoView extends VerticalLayout {
                 getUI().ifPresent(ui -> ui.navigate("ordenes-compra/detalle/" + orden.getCodigo()));
             });
             btnEditar.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-            btnEditar.setTooltipText("Ver detalle u Orden");
+            btnEditar.setTooltipText("Ver detalle u Recibo");
 
             // Anular
             Button btnAnular = new Button(VaadinIcon.BAN.create(), e -> confirmarAnulacion(orden));
             btnAnular.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
-            btnAnular.setTooltipText("Anular Orden");
+            btnAnular.setTooltipText("Anular Recibo");
             btnAnular.setEnabled(orden.getAnulado() == null || !orden.getAnulado());
 
             acciones.add(btnEditar, btnAnular);
@@ -487,7 +486,7 @@ public class ReciboDeEgresoView extends VerticalLayout {
     private void confirmarAnulacion(ReciboDeEgreso recibo) {
         ConfirmDialog dialog = new ConfirmDialog();
         dialog.setHeader("Anular Orden de Compra");
-        dialog.setText("¿Está seguro de que desea anular la orden de compra N° " + recibo.getNumero() + "? Esta acción no se puede deshacer.");
+        dialog.setText("¿Está seguro de que desea anular el Recibo de egreso N° " + recibo.getNumero() + "? Esta acción no se puede deshacer.");
 
         dialog.setCancelable(true);
         dialog.setCancelText("Cancelar");
@@ -506,7 +505,7 @@ public class ReciboDeEgresoView extends VerticalLayout {
 
                 aplicarFiltros();
             } catch (Exception ex) {
-                Notification.show("Error al anular la orden: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
+                Notification.show("Error al anular El Recibo: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });

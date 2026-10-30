@@ -37,12 +37,6 @@ import java.util.Date;
     @NamedQuery(name = "Articulo.findAll", query = "SELECT a FROM Articulo a")})
 public class Articulo implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Column(name = "numero")
@@ -54,6 +48,71 @@ public class Articulo implements Serializable {
     @Size(max = 80)
     @Column(name = "codigo_de_barra")
     private String codigoDeBarra;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "exento_itbis")
+    private boolean exentoItbis;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "inventariable")
+    private boolean inventariable;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "permitir_venta_sin_existencia")
+    private boolean permitirVentaSinExistencia;
+    @Size(max = 25)
+    @Column(name = "modelo")
+    private String modelo;
+    @Size(max = 80)
+    @Column(name = "marca")
+    private String marca;
+    @Size(max = 80)
+    @Column(name = "nombre_linea")
+    private String nombreLinea;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "para_venta")
+    private boolean paraVenta;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "para_consumo")
+    private boolean paraConsumo;
+    @Size(max = 80)
+    @Column(name = "ruta_img")
+    private String rutaImg;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "compuesto")
+    private boolean compuesto;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "venta_agranel")
+    private boolean ventaAgranel;
+    @Size(max = 50)
+    @Column(name = "creado_por")
+    private String creadoPor;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "perecedero")
+    private boolean perecedero;
+    @Basic(optional = false)
+    @NotNull
+    @Column(name = "habilitado")
+    private boolean habilitado;
+    @Size(max = 20)
+    @Column(name = "nombre_unidad_base")
+    private String nombreUnidadBase;
+    @Column(name = "metodo_de_costeo")
+    private Integer metodoDeCosteo;
+    @Column(name = "dias_vencimiento")
+    private Integer diasVencimiento;
+
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Column(name = "categoria")
     private Integer categoria;
     @Column(name = "sub_categoria")
@@ -73,78 +132,24 @@ public class Articulo implements Serializable {
     private Double precioVentaConItbis;
     @Column(name = "precio_venta_anterior")
     private Double precioVentaAnterior;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "exento_itbis")
-    private boolean exentoItbis;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "inventariable")
-    private boolean inventariable;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "permitir_venta_sin_existencia")
-    private boolean permitirVentaSinExistencia;
     @Column(name = "tipo_articulo")
     private Integer tipoArticulo;
     @Column(name = "margen_beneficio")
     private Double margenBeneficio;
     @Column(name = "porciento_utilidad")
     private Double porcientoUtilidad;
-    @Size(max = 25)
-    @Column(name = "modelo")
-    private String modelo;
-    @Size(max = 80)
-    @Column(name = "marca")
-    private String marca;
     @Column(name = "linea_articulo")
     private Integer lineaArticulo;
-    @Size(max = 80)
-    @Column(name = "nombre_linea")
-    private String nombreLinea;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "para_venta")
-    private boolean paraVenta;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "para_consumo")
-    private boolean paraConsumo;
-    @Size(max = 80)
-    @Column(name = "ruta_img")
-    private String rutaImg;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "compuesto")
-    private boolean compuesto;
     @Column(name = "secuencia_documento")
     private Integer secuenciaDocumento;
     @Column(name = "itbis_gravado")
     private Double itbisGravado;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "venta_agranel")
-    private boolean ventaAgranel;
-    @Size(max = 50)
-    @Column(name = "creado_por")
-    private String creadoPor;
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "perecedero")
-    private boolean perecedero;
     @Column(name = "fecha_vencimiento")
     @Temporal(TemporalType.DATE)
     private Date fechaVencimiento;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "habilitado")
-    private boolean habilitado;
-    @Size(max = 20)
-    @Column(name = "nombre_unidad_base")
-    private String nombreUnidadBase;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
     private Collection<DetalleEntradaInventario> detalleEntradaInventarioCollection;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articulo")
@@ -205,21 +210,6 @@ public class Articulo implements Serializable {
         this.codigo = codigo;
     }
 
-    public int getNumero() {
-        return numero;
-    }
-
-    public void setNumero(int numero) {
-        this.numero = numero;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
 
     public String getCodigoDeBarra() {
         return codigoDeBarra;
@@ -309,13 +299,6 @@ public class Articulo implements Serializable {
         this.exentoItbis = exentoItbis;
     }
 
-    public boolean getInventariable() {
-        return inventariable;
-    }
-
-    public void setInventariable(boolean inventariable) {
-        this.inventariable = inventariable;
-    }
 
     public boolean getPermitirVentaSinExistencia() {
         return permitirVentaSinExistencia;
@@ -349,21 +332,6 @@ public class Articulo implements Serializable {
         this.porcientoUtilidad = porcientoUtilidad;
     }
 
-    public String getModelo() {
-        return modelo;
-    }
-
-    public void setModelo(String modelo) {
-        this.modelo = modelo;
-    }
-
-    public String getMarca() {
-        return marca;
-    }
-
-    public void setMarca(String marca) {
-        this.marca = marca;
-    }
 
     public Integer getLineaArticulo() {
         return lineaArticulo;
@@ -405,13 +373,6 @@ public class Articulo implements Serializable {
         this.rutaImg = rutaImg;
     }
 
-    public boolean getCompuesto() {
-        return compuesto;
-    }
-
-    public void setCompuesto(boolean compuesto) {
-        this.compuesto = compuesto;
-    }
 
     public Integer getSecuenciaDocumento() {
         return secuenciaDocumento;
@@ -453,13 +414,6 @@ public class Articulo implements Serializable {
         this.fechaCreacion = fechaCreacion;
     }
 
-    public boolean getPerecedero() {
-        return perecedero;
-    }
-
-    public void setPerecedero(boolean perecedero) {
-        this.perecedero = perecedero;
-    }
 
     public Date getFechaVencimiento() {
         return fechaVencimiento;
@@ -469,13 +423,6 @@ public class Articulo implements Serializable {
         this.fechaVencimiento = fechaVencimiento;
     }
 
-    public boolean getHabilitado() {
-        return habilitado;
-    }
-
-    public void setHabilitado(boolean habilitado) {
-        this.habilitado = habilitado;
-    }
 
     public String getNombreUnidadBase() {
         return nombreUnidadBase;
@@ -620,6 +567,87 @@ public class Articulo implements Serializable {
     @Override
     public String toString() {
         return descripcion;
+    }
+
+    public int getNumero() {
+        return numero;
+    }
+
+    public void setNumero(int numero) {
+        this.numero = numero;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+
+    public boolean getInventariable() {
+        return inventariable;
+    }
+
+    public void setInventariable(boolean inventariable) {
+        this.inventariable = inventariable;
+    }
+
+    public String getModelo() {
+        return modelo;
+    }
+
+    public void setModelo(String modelo) {
+        this.modelo = modelo;
+    }
+
+    public String getMarca() {
+        return marca;
+    }
+
+    public void setMarca(String marca) {
+        this.marca = marca;
+    }
+
+    public boolean getCompuesto() {
+        return compuesto;
+    }
+
+    public void setCompuesto(boolean compuesto) {
+        this.compuesto = compuesto;
+    }
+
+    public boolean getPerecedero() {
+        return perecedero;
+    }
+
+    public void setPerecedero(boolean perecedero) {
+        this.perecedero = perecedero;
+    }
+
+    public boolean getHabilitado() {
+        return habilitado;
+    }
+
+    public void setHabilitado(boolean habilitado) {
+        this.habilitado = habilitado;
+    }
+
+    public Integer getMetodoDeCosteo() {
+        return metodoDeCosteo;
+    }
+
+    public void setMetodoDeCosteo(Integer metodoDeCosteo) {
+        this.metodoDeCosteo = metodoDeCosteo;
+    }
+
+    public Integer getDiasVencimiento() {
+        return diasVencimiento;
+    }
+
+    public void setDiasVencimiento(Integer diasVencimiento) {
+        this.diasVencimiento = diasVencimiento;
     }
     
 }

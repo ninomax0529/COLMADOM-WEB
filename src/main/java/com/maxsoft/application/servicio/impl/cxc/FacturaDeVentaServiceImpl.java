@@ -13,7 +13,6 @@ import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.EntradaInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.ReciboDeIngreso;
-import com.maxsoft.application.repo.FacturaDeventaRepo;
 import com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
@@ -33,7 +32,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.maxsoft.application.repo.FacturaDeventaRepo;
+import java.time.LocalDateTime;
 
 @Service
 public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
@@ -119,10 +119,9 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             factura.setNombreDelivery("N/A");
         }
 
-        Date ahora = new Date();
-        factura.setFecha(ahora);
-        factura.setFechaCreacion(ahora);
-        factura.setFechaActualizacion(ahora);
+        factura.setFecha(new Date());
+        factura.setFechaCreacion(new Date());
+        factura.setFechaActualizacion(new Date());
         factura.setNombreUsuario(nombreUsuario);
 
         factura.setSubTotal(ticketVenta.getTotalAmount());

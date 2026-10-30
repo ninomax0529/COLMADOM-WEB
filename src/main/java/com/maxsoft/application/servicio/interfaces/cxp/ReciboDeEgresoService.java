@@ -4,7 +4,6 @@
  */
 package com.maxsoft.application.servicio.interfaces.cxp;
 
-import com.maxsoft.application.modelo.DetalleFacturaDeCompra;
 import com.maxsoft.application.modelo.DetalleReciboDeEgreso;
 import com.maxsoft.application.modelo.FacturaDeCompra;
 import com.maxsoft.application.modelo.ReciboDeEgreso;
@@ -20,13 +19,16 @@ public interface ReciboDeEgresoService {
 
     ReciboDeEgreso getReciboDeEgreso(int codigo);
 
-    ReciboDeEgreso procesarReciboDeEgreso(FacturaDeCompra obj, List<DetalleFacturaDeCompra> listaDet);
+    ReciboDeEgreso procesarReciboDeEgreso(ReciboDeEgreso obj, List<DetalleReciboDeEgreso> listaDet);
+
+    ReciboDeEgreso procesarReciboDeEgreso(FacturaDeCompra obj);
 
     List<ReciboDeEgreso> getLista();
 
     List<DetalleReciboDeEgreso> getDetalle(int obj);
 
     ReciboDeEgreso anularReciboDeEgreso(Integer id);
-//    List<FacturaDeCompra> filtrarFacturas(EstadoFactura estado, CondicionPago condicion);
+
+    Double getPagoFacturaCompra(int fact);
 
 }

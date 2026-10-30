@@ -59,14 +59,14 @@ public class FacturaDeCompraServiceImpl implements FacturaDeCompraService {
         factura.setProveedor(recepcionGuardada.getProveedor());
         factura.setNumeroFactura(recepcionGuardada.getNumeroDocumento());
         factura.setNcf(recepcionGuardada.getNumeroDocumento());
-        factura.setCondicionPago(new CondicionPago(2));
+        factura.setCondicionPago(recepcionGuardada.getCondicionPago());
         factura.setFecha(new Date());
 
         Proveedor proveedor = recepcionGuardada.getProveedor();
         int diasCredito = proveedor.getPlazo().getDias();
         Date fechaVenci = ClaseUtil.asDate(LocalDate.now().plusDays(diasCredito));
         // Asignación de estados según condición de pago
-        if (2 == 2) {
+        if (recepcionGuardada.getCondicionPago().getCodigo() == 2) {//Credito
             factura.setFechaVencimiento(fechaVenci);
             factura.setEstado(new EstadoFactura(2));
         } else {
@@ -103,7 +103,8 @@ public class FacturaDeCompraServiceImpl implements FacturaDeCompraService {
             detallesFact.add(detFact);
         }
 
-        factura.setTipoCompra(new TipoCompra(1));
+        
+        factura.setTipoCompra(new TipoCompra(proveedor.getTipoSuplidor().getCodigo()));
         factura.setNombreProveedor(proveedor.getNombre());
         factura.setAnulada(false);
         factura.setConcepto("Factura por recepcion de inv no." + recepcionGuardada.getCodigo());
@@ -232,8 +233,7 @@ public class FacturaDeCompraServiceImpl implements FacturaDeCompraService {
                 turnoActual.getId().intValue(),
                 "SALIDA DE DINERO",
                 montoTotal,
-                    "Pago a proveedor informal: " + proveedor.getNombre() + " - " + codigoInformal,
-            
+                "Pago a proveedor informal: " + proveedor.getNombre() + " - " + codigoInformal,
                 factDb.getNombreUsaurio()
         );
 
@@ -243,6 +243,6 @@ public class FacturaDeCompraServiceImpl implements FacturaDeCompraService {
 
     @Override
     public List<FacturaDeCompra> getListaFactPendiente(int codPro) {
-       return repo.getListaFactPendiente(codPro);
+        return repo.getListaFactPendiente(codPro);
     }
 }

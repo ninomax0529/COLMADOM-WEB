@@ -7,7 +7,6 @@ package com.maxsoft.application.view.componente.pos;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.view.venta.puntoVenta.TicketVenta;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Span;

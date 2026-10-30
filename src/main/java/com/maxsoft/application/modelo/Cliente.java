@@ -186,6 +186,12 @@ public class Cliente implements Serializable {
     public String toString() {
         return nombre;
     }
+    public Collection<ReciboDeIngreso> getReciboDeIngresoCollection() {
+        return reciboDeIngresoCollection;
+    }
+    public void setReciboDeIngresoCollection(Collection<ReciboDeIngreso> reciboDeIngresoCollection) {
+        this.reciboDeIngresoCollection = reciboDeIngresoCollection;
+    }
 
     public String getNombre() {
         return nombre;
@@ -233,14 +239,6 @@ public class Cliente implements Serializable {
 
     public void setApodo(String apodo) {
         this.apodo = apodo;
-    }
-
-    public Collection<ReciboDeIngreso> getReciboDeIngresoCollection() {
-        return reciboDeIngresoCollection;
-    }
-
-    public void setReciboDeIngresoCollection(Collection<ReciboDeIngreso> reciboDeIngresoCollection) {
-        this.reciboDeIngresoCollection = reciboDeIngresoCollection;
     }
     
 }

@@ -6,7 +6,7 @@ package com.maxsoft.application.view.cxc;
 
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.cxc.reciboIngrso.ReciboDeIngresoView;
-import com.maxsoft.application.view.venta.factura.FacturaDeVentaView;
+import com.maxsoft.application.view.cxc.factura.FacturaDeVentaView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.html.H3;

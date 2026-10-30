@@ -1,7 +1,11 @@
+
+
 package com.maxsoft.application.view.compra.recepcion;
 
 import com.maxsoft.application.modelo.*;
+
 import com.maxsoft.application.servicio.interfaces.EstadoDocumentoService;
+import com.maxsoft.application.servicio.interfaces.cxp.CondicionPagoService;
 import com.maxsoft.application.servicio.interfaces.compra.OrdenDeCompraService;
 import com.maxsoft.application.servicio.interfaces.compra.ProveedorService;
 import com.maxsoft.application.servicio.interfaces.compra.RecepcionMercanciaService;
@@ -13,6 +17,7 @@ import com.maxsoft.application.servicio.interfaces.venta.UnidadDeVentaService;
 import com.maxsoft.application.util.ClaseUtil;
 
 import com.vaadin.flow.component.Key;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -61,6 +66,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
     private final TipoDocumentoService tipoDocumentoService;
     private final EstadoDocumentoService essDocumentoService;
     private final UnidadDeVentaService unidadDeVentaService;
+    private final CondicionPagoService condicionPService;
 
     // Estado interno
     private final List<DetalleRecepcionMercancia> detalles = new ArrayList<>();
@@ -80,6 +86,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
     private final TextField txtDocOrigen = new TextField("N° Doc. Referencia / NCF");
     private final ComboBox<Proveedor> cbSuplidor = new ComboBox<>("Suplidor / Proveedor");
     private final ComboBox<Almacen> cbAlmacenDestino = new ComboBox<>("Almacén Destino");
+    private final ComboBox<CondicionPago> cbCondicionPago = new ComboBox<>("Condición de Pago");
     private final DatePicker dtFecha = new DatePicker("Fecha Recepción");
     private final TextArea txtComentario = new TextArea("Comentarios / Observaciones");
 
@@ -113,7 +120,8 @@ public class RecepcionMercanciaView extends VerticalLayout {
             ArticuloEmpaqueService articuloEmpaqueService,
             TipoDocumentoService tipoDocumentoService,
             EstadoDocumentoService essDocumentoService,
-            UnidadDeVentaService unidadDeVentaService) {
+            UnidadDeVentaService unidadDeVentaService,
+            CondicionPagoService condicionPService) {
 
         this.recepcionService = recepcionService;
         this.ordenCompraService = ordenCompraService;
@@ -124,6 +132,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
         this.tipoDocumentoService = tipoDocumentoService;
         this.essDocumentoService = essDocumentoService;
         this.unidadDeVentaService = unidadDeVentaService;
+        this.condicionPService = condicionPService;
 
         setSpacing(true);
         setPadding(true);
@@ -188,10 +197,17 @@ public class RecepcionMercanciaView extends VerticalLayout {
             gridDetalles.getDataProvider().refreshAll();
         });
 
+        // Condición de pago (contado, crédito 30 días, etc.)
+        cbCondicionPago.setItems(condicionPService.getLista());
+        cbCondicionPago.setItemLabelGenerator(CondicionPago::getNombre);
+        cbCondicionPago.setAllowCustomValue(false);
+        cbCondicionPago.setRequired(true);
+        cbCondicionPago.setPlaceholder("Seleccione la condición...");
+
         dtFecha.setValue(LocalDate.now());
         txtComentario.setMinHeight("70px");
 
-        form.add(txtNumero, cbTipoDocumento, layoutOrden, txtDocOrigen, cbSuplidor, cbAlmacenDestino, dtFecha);
+        form.add(txtNumero, cbTipoDocumento, layoutOrden, txtDocOrigen, cbSuplidor, cbAlmacenDestino, cbCondicionPago, dtFecha);
         form.add(txtComentario);
         form.setColspan(txtComentario, 3);
 
@@ -732,12 +748,13 @@ public class RecepcionMercanciaView extends VerticalLayout {
         layoutTotales.addFormItem(lblTotal, "Total Entrada:");
 
         btnGuardar.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        btnGuardar.addClickListener(e ->{
-        
-             procesarRecepcion();
+        btnGuardar.addClickListener(e -> {
+
+            procesarRecepcion();
         });
 
-        btnCancelar.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("ordenes-compra")));
+        btnCancelar.addClickListener(e -> getUI().ifPresent(ui
+                -> UI.getCurrent().navigate(ConsultaRecepcionMercanciaView.class)));
 
         HorizontalLayout layoutBotones = new HorizontalLayout(btnGuardar, btnCancelar);
 
@@ -772,6 +789,12 @@ public class RecepcionMercanciaView extends VerticalLayout {
 
         if (cbSuplidor.isEmpty()) {
             Notification.show("Seleccione un Suplidor.", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+            return;
+        }
+
+        if (cbCondicionPago.isEmpty()) {
+            Notification.show("Seleccione la Condición de Pago.", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+            cbCondicionPago.focus();
             return;
         }
 
@@ -813,6 +836,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
 
             rec.setAlmacen(cbAlmacenDestino.getValue());
             rec.setProveedor(cbSuplidor.getValue());
+            rec.setCondicionPago(cbCondicionPago.getValue());
             rec.setNombreUsuario("Admin");
             rec.setUsuario(new Usuario(1));
             rec.setNombreProveedor(cbSuplidor.getValue().getNombre());
@@ -843,7 +867,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
             recepcionService.procesarRecepcion(rec);
 
             ClaseUtil.mostrarNotificacion(" Recepción procesada exitosamente.", NotificationVariant.LUMO_PRIMARY);
-      
+
             limpiarFormularioCompleto();
 
         } catch (Exception ex) {
@@ -865,6 +889,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
             cargarOrdenesPendientes(); // refrescar: la OC recibida puede haber quedado completa
         }
         cbAlmacenDestino.clear();
+        cbCondicionPago.clear();
         txtDocOrigen.clear();
         cbSuplidor.clear();
         cbSuplidor.setReadOnly(false);

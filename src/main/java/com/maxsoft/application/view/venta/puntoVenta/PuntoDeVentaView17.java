@@ -13,7 +13,7 @@ import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueSer
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.venta.CajaService;
 import com.maxsoft.application.servicio.interfaces.venta.ClienteService;
-import com.maxsoft.application.servicio.interfaces.venta.DeliveryService;
+import com.maxsoft.application.servicio.interfaces.delivery.DeliveryService;
 import com.maxsoft.application.servicio.interfaces.venta.EstadoFacturaService;
 import com.maxsoft.application.servicio.interfaces.cxc.FacturaDeVentaService;
 import com.maxsoft.application.servicio.interfaces.reporte.ReporteService;
@@ -37,7 +37,6 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.ShortcutRegistration;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.UI;
@@ -430,7 +429,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
      * que cualquier componente. Con el atajo de Vaadin, si el foco estaba en el
      * buscador, Alt+letra podía llegar como otro carácter (según el teclado o
      * el sistema) y entonces el atajo no se disparaba y la letra se escribía en
-     * el buscador. Aquí se cancela el evento, así que la letra nunca se escribe.
+     * el buscador. Aquí se cancela el evento, así que la letra nunca se
+     * escribe.
      */
     private void instalarAtajosAlt() {
 
@@ -544,13 +544,11 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         TicketVenta ticket
                 = listaTicketsAbiertos.get(index);
 
-       
         ClaseUtil.mostrarNotificacion(
                 "Cambiado a " + ticket.getId(),
-                NotificationVariant.LUMO_SUCCESS,2000
+                NotificationVariant.LUMO_SUCCESS, 2000
         );
 
-    
         enfocarBuscador();
     }
 
@@ -873,7 +871,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
     private void agregarNuevoItemConEmpaque(
             TicketVenta ticket,
-            ArticuloEmpaque articulo,
+            ArticuloEmpaque artculoEmpaque,
             ArticuloEmpaque empaque,
             BigDecimal cantidad) {
 
@@ -881,17 +879,17 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 = new DetalleFacturaDeVenta();
 
         nuevoDetalle.setCodigo(
-                articulo.getCodigo()
+                artculoEmpaque.getCodigo()
         );
 
-        nuevoDetalle.setArticulo(articulo.getArticulo());
+        nuevoDetalle.setArticulo(artculoEmpaque.getArticulo());
 
         nuevoDetalle.setCantidad(cantidad);
 
         // Presentación vendida
-        nuevoDetalle.setArticuloEmpaque(articulo);
+        nuevoDetalle.setArticuloEmpaque(artculoEmpaque);
 
-        BigDecimal factor = obtenerFactorConversion(articulo);
+        BigDecimal factor = obtenerFactorConversion(artculoEmpaque);
 
         nuevoDetalle.setFactorConversion(factor);
 
@@ -899,14 +897,14 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 cantidad.multiply(factor)
         );
 
-        if (articulo.getUnidadEmpaque() != null) {
+        if (artculoEmpaque.getUnidadEmpaque() != null) {
 
             nuevoDetalle.setUnidad(
-                    articulo.getUnidadEmpaque()
+                    artculoEmpaque.getUnidadEmpaque()
             );
 
             nuevoDetalle.setNombreUnidad(
-                    articulo.getUnidadEmpaque().getDescripcion()
+                    artculoEmpaque.getUnidadEmpaque().getDescripcion()
             );
 
         } else {
@@ -920,29 +918,32 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 contadorLineas++
         );
 
-        String nombre = articulo.getNombreArticulo() != null
-                ? articulo.getNombreArticulo()
-                : "";
-
-        String descripcionEmpaque = articulo.getDescripcionEmpaque();
+        String descripcionEmpaque = artculoEmpaque.getDescripcionEmpaque();
+        String nombre = artculoEmpaque.getNombreArticulo();
+        System.out.println("nombre " + nombre + " " + descripcionEmpaque);
+//        String nombre = articulo.getNombreArticulo() != null
+//                ? articulo.getNombreArticulo()
+//                : "";
 
         nuevoDetalle.setDescripcionArticulo(
-                nombre
-                + (descripcionEmpaque != null && !descripcionEmpaque.isBlank()
-                ? " " + descripcionEmpaque
-                : "")
-        );
+                nombre + " " + descripcionEmpaque);
 
-        if (articulo.getArticulo() != null) {
+//        nuevoDetalle.setDescripcionArticulo(
+//                nombre
+//                + (descripcionEmpaque != null && !descripcionEmpaque.isBlank()
+//                ? " " + descripcionEmpaque
+//                : "")
+//        );
+        if (artculoEmpaque.getArticulo() != null) {
             nuevoDetalle.setExistenciaActual(
-                    articulo.getArticulo().getExistencia()
+                    artculoEmpaque.getArticulo().getExistencia()
             );
         }
 
         nuevoDetalle.setPrecioVenta(
                 calcularPrecioEmpaque(
-                        articulo,
-                        empaque != null ? empaque : articulo
+                        artculoEmpaque,
+                        empaque != null ? empaque : artculoEmpaque
                 )
         );
 
@@ -1168,8 +1169,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         );
 
         grid.addColumn(
-                DetalleFacturaDeVenta::getArticuloEmpaque
-        ).setHeader("Producto")
+                DetalleFacturaDeVenta::getDescripcionArticulo
+        ).setHeader("Articulo")
                 .setAutoWidth(true);
 
         // MULTI-EMPAQUE: muestra la presentación vendida en cada línea
@@ -1657,7 +1658,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
             ClaseUtil.mostrarNotificacion(
                     "Ticket limpiado.",
-                    NotificationVariant.LUMO_SUCCESS,2000
+                    NotificationVariant.LUMO_SUCCESS, 2000
             );
 
             enfocarBuscador();
@@ -1682,8 +1683,6 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 = Math.min(
                         Math.max(0, index - 1),
                         listaTicketsAbiertos.size() - 1
-                        
-                        
                 );
 
         ticketActivo
@@ -1697,7 +1696,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         ClaseUtil.mostrarNotificacion(
                 "Venta descartada.",
-                NotificationVariant.LUMO_WARNING,2000
+                NotificationVariant.LUMO_WARNING, 2000
         );
 
         enfocarBuscador();
@@ -1783,16 +1782,16 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 (monto, cantidadCalculada) -> {
 
                     if (ticketActivo == null
-                            || cantidadCalculada == null) {
+                    || cantidadCalculada == null) {
                         return;
                     }
 
                     BigDecimal cantidad
-                            = BigDecimal.valueOf(cantidadCalculada.doubleValue())
-                                    .setScale(
-                                            ESCALA_CALCULO,
-                                            RoundingMode.HALF_UP
-                                    );
+                    = BigDecimal.valueOf(cantidadCalculada.doubleValue())
+                            .setScale(
+                                    ESCALA_CALCULO,
+                                    RoundingMode.HALF_UP
+                            );
 
                     if (cantidad.signum() > 0) {
 
@@ -2112,7 +2111,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
      * </ul>
      */
     private void enfocarBuscador() {
-        
+
         if (searchBox == null || !searchBox.isAttached() || !searchBox.isVisible() || !searchBox.isEnabled()) {
             return;
         }
@@ -2139,7 +2138,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
     /**
      * Un clic en una zona "vacía" de la pantalla devuelve el foco al buscador,
-     * pero un clic sobre un control (botón, grid, campo, pestaña...) lo respeta.
+     * pero un clic sobre un control (botón, grid, campo, pestaña...) lo
+     * respeta.
      *
      * Se resuelve en el navegador. Antes cualquier clic que subiera hasta la
      * vista (incluidos los "clics" sintéticos de los atajos F2, F3, Alt+C y
