@@ -23,11 +23,23 @@ public interface ReciboDeEgresoService {
 
     ReciboDeEgreso procesarReciboDeEgreso(FacturaDeCompra obj);
 
+    /** Pago manual a proveedor; si es en efectivo registra la salida en la caja abierta. */
+    ReciboDeEgreso registrarPagoProveedor(ReciboDeEgreso recibo, List<DetalleReciboDeEgreso> detalles,
+            boolean enEfectivo, String usuario);
+
     List<ReciboDeEgreso> getLista();
 
     List<DetalleReciboDeEgreso> getDetalle(int obj);
 
     ReciboDeEgreso anularReciboDeEgreso(Integer id);
+
+    /** Anula el recibo, devuelve el saldo a sus facturas y, si salió de caja, reingresa el efectivo. */
+    ReciboDeEgreso anularReciboDeEgreso(Integer id, String motivo, String usuario);
+
+    List<ReciboDeEgreso> getRecibosVigentesDeFactura(Integer factura);
+
+    /** true si el recibo también paga facturas distintas a la indicada. */
+    boolean pagaOtrasFacturas(Integer recibo, Integer factura);
 
     Double getPagoFacturaCompra(int fact);
 

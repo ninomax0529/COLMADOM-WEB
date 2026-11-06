@@ -1,5 +1,6 @@
 package com.maxsoft.application.dto;
 
+import com.maxsoft.application.modelo.Cliente;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
@@ -13,16 +14,18 @@ public class PedidoDeliveryDTO implements Serializable {
     public static final String CONTADO = "CONTADO";
     public static final String FIADO = "FIADO";
 
+    private final Cliente cliente;
     private final Integer codigoFactura;
     private final String numeroFactura;
-    private final String cliente;
+    private final String nombreCliente;
     private final String tipoPago;
     private final BigDecimal montoTotal;
 
-    public PedidoDeliveryDTO(Integer codigoFactura, String numeroFactura, String cliente,
-            String tipoPago, BigDecimal montoTotal) {
+    public PedidoDeliveryDTO(Integer codigoFactura, String numeroFactura, String nombreCliente,
+            String tipoPago, BigDecimal montoTotal, Cliente cliente) {
         this.codigoFactura = codigoFactura;
         this.numeroFactura = numeroFactura;
+        this.nombreCliente = nombreCliente;
         this.cliente = cliente;
         this.tipoPago = tipoPago;
         this.montoTotal = montoTotal != null ? montoTotal : BigDecimal.ZERO;
@@ -36,7 +39,7 @@ public class PedidoDeliveryDTO implements Serializable {
         return numeroFactura;
     }
 
-    public String getCliente() {
+    public Cliente getCliente() {
         return cliente;
     }
 

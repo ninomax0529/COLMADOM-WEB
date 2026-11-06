@@ -487,6 +487,13 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         // 🔥 CONTROL DE EXISTENCIA INICIAL:
         if (esEdicion) {
             txtExistenciaModal.setValue(itemEditar.getExistencia());
+            if (itemEditar.getCodigo() != null) {
+                // Ya guardado: la existencia solo cambia con movimientos (ajuste, compra,
+                // venta...) para que el kardex y el stock no se descuadren.
+                txtExistenciaModal.setLabel("Existencia");
+                txtExistenciaModal.setReadOnly(true);
+                txtExistenciaModal.setHelperText("Para corregirla use un Ajuste de Inventario.");
+            }
         } else {
             // Si es un almacén nuevo y es el primero en asignarse, toma la existencia del formulario general
             if (listaArticuloAlmacen.isEmpty() && txtExistencia.getValue() != null) {
@@ -531,7 +538,9 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
             ArticuloAlmacen aa = esEdicion ? itemEditar : new ArticuloAlmacen();
             aa.setAlmacen(almacenSel);
             aa.setNombreAlmacen(almacenSel.getNombre());
-            aa.setExistencia(txtExistenciaModal.getValue() != null ? txtExistenciaModal.getValue() : BigDecimal.ZERO);
+            if (!(esEdicion && itemEditar.getCodigo() != null)) {
+                aa.setExistencia(txtExistenciaModal.getValue() != null ? txtExistenciaModal.getValue() : BigDecimal.ZERO);
+            }
             aa.setMinimo(txtMinimoModal.getValue() != null ? txtMinimoModal.getValue() : BigDecimal.ZERO);
             aa.setMaximo(txtMaximoModal.getValue() != null ? txtMaximoModal.getValue() : new BigDecimal("999999"));
             aa.setUbicacionPasillo(txtUbicacionModal.getValue());

@@ -1,14 +1,19 @@
 package com.maxsoft.application.view.delivery.liquidarfactura;
 
 import com.maxsoft.application.dto.PedidoDeliveryDTO;
+import com.maxsoft.application.modelo.Cliente;
 import com.maxsoft.application.modelo.Delivery;
-import com.maxsoft.application.servicio.interfaces.delivery.DeliveryService;
+import com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService;
+import com.maxsoft.application.servicio.interfaces.cxp.ReciboDeEgresoService;
 import com.maxsoft.application.servicio.interfaces.delivery.LiquidacionDeliveryService;
+import com.maxsoft.application.servicio.interfaces.venta.ClienteService;
+import com.maxsoft.application.servicio.interfaces.delivery.DeliveryService;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
@@ -27,7 +32,9 @@ import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @PageTitle("Liquidación de Delivery")
 @Route(value = "delivery/liquidacionDelivery")
@@ -40,6 +47,8 @@ public class LiquidacionDeliveryView extends VerticalLayout {
 
     private final LiquidacionDeliveryService liquidacionService;
     private final DeliveryService deliveryService;
+    private final ClienteService clienteService;
+    ReciboDeIngresoService reciboDeIngresoService;
 
     private final ComboBox<Delivery> motoristaCombo = new ComboBox<>("Seleccionar Motorista");
     private final Grid<PedidoDeliveryDTO> gridPedidos = new Grid<>(PedidoDeliveryDTO.class, false);
@@ -54,10 +63,14 @@ public class LiquidacionDeliveryView extends VerticalLayout {
 
     @Autowired
     public LiquidacionDeliveryView(LiquidacionDeliveryService liquidacionService,
-            DeliveryService deliveryService) {
+            DeliveryService deliveryService,
+            ClienteService clienteService,
+            ReciboDeIngresoService reciboDeIngresoService) {
 
         this.liquidacionService = liquidacionService;
         this.deliveryService = deliveryService;
+        this.clienteService = clienteService;
+        this.reciboDeIngresoService = reciboDeIngresoService;
 
         setSizeFull();
         setSpacing(true);
@@ -171,6 +184,11 @@ public class LiquidacionDeliveryView extends VerticalLayout {
      * Diálogo de cuadre. Sirve para un pedido (lista de uno) o para todo el
      * lote: muestra el efectivo esperado, pide el efectivo recibido y exige una
      * observación si hay sobrante o faltante.
+     *
+     * <p>
+     * Las facturas de contado se pueden dejar a crédito: se elige el cliente
+     * que se queda con ellas y pasan a cuentas por cobrar. Su monto deja de
+     * contar como efectivo esperado.</p>
      */
     private void abrirDialogoLiquidacion(String titulo, List<PedidoDeliveryDTO> pedidos) {
 
@@ -182,12 +200,13 @@ public class LiquidacionDeliveryView extends VerticalLayout {
             return;
         }
 
-        BigDecimal esperado = efectivoEsperado(pedidos);
-        BigDecimal fiado = totalFiado(pedidos);
+        // codigo de factura -> cliente que se queda a crédito (solo facturas de contado)
+        Map<Integer, Cliente> credito = new LinkedHashMap<>();
+        List<PedidoDeliveryDTO> contado = pedidos.stream().filter(p -> !p.esFiado()).toList();
 
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(titulo);
-        dialog.setWidth("420px");
+        dialog.setWidth(contado.isEmpty() ? "420px" : "720px");
 
         VerticalLayout layout = new VerticalLayout();
         layout.setSpacing(true);
@@ -199,39 +218,75 @@ public class LiquidacionDeliveryView extends VerticalLayout {
             layout.add(new Span("Pedidos a liquidar: " + pedidos.size()));
         }
 
-        Span lblMonto = new Span("Monto Total: " + moneda(esperado.add(fiado)));
+        Span lblMonto = new Span();
         lblMonto.getStyle().set("font-weight", "bold").set("font-size", "1.1rem");
-        layout.add(lblMonto);
 
-        if (fiado.signum() > 0) {
-            Span lblFiado = new Span("De los cuales fiados (no se cobran): " + moneda(fiado));
-            lblFiado.getStyle().set("color", "var(--lumo-error-text-color)");
-            layout.add(lblFiado);
-        }
+        Span lblFiado = new Span();
+        lblFiado.getStyle().set("color", "var(--lumo-error-text-color)");
 
-        Span lblEsperado = new Span("Efectivo Esperado: " + moneda(esperado));
+        Span lblEsperado = new Span();
         lblEsperado.getStyle().set("font-weight", "bold");
-        layout.add(lblEsperado);
+
+        layout.add(lblMonto, lblFiado, lblEsperado);
 
         BigDecimalField efectivoField = new BigDecimalField("Efectivo Recibido en Caja (RD$)");
-        efectivoField.setValue(esperado);
         efectivoField.setWidthFull();
 
         Span lblDiferencia = new Span();
         lblDiferencia.getStyle().set("font-weight", "bold");
-        mostrarDiferencia(lblDiferencia, esperado, esperado);
 
         TextArea txtObservacion = new TextArea("Observación (obligatoria si hay sobrante o faltante)");
         txtObservacion.setWidthFull();
         txtObservacion.setMaxLength(500);
 
-        // Si solo hay pedidos fiados no hay efectivo que cuadrar
-        if (esperado.signum() > 0) {
-            efectivoField.addValueChangeListener(e -> mostrarDiferencia(lblDiferencia, esperado, valor(e.getValue())));
-            layout.add(efectivoField, lblDiferencia, txtObservacion);
-        } else {
-            efectivoField.setValue(BigDecimal.ZERO);
+        // Efectivo esperado vigente: cambia al pasar facturas a crédito
+        BigDecimal[] esperadoActual = {BigDecimal.ZERO};
+
+        Runnable recalcular = () -> {
+
+            List<PedidoDeliveryDTO> efectivas = pedidos.stream()
+                    .filter(p -> p.esFiado() || credito.containsKey(p.getCodigoFactura()))
+                    .toList();
+
+            BigDecimal fiadoTotal = efectivas.stream()
+                    .map(PedidoDeliveryDTO::getMontoTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal esperado = pedidos.stream()
+                    .map(PedidoDeliveryDTO::getMontoTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .subtract(fiadoTotal);
+
+            esperadoActual[0] = esperado;
+
+            lblMonto.setText("Monto Total: " + moneda(esperado.add(fiadoTotal)));
+            lblFiado.setText("A crédito / fiado (no se cobra al motorista): " + moneda(fiadoTotal));
+            lblFiado.setVisible(fiadoTotal.signum() > 0);
+            lblEsperado.setText("Efectivo Esperado: " + moneda(esperado));
+
+            // Si no queda efectivo que cuadrar no se pide
+            boolean hayEfectivo = esperado.signum() > 0;
+            efectivoField.setVisible(hayEfectivo);
+            lblDiferencia.setVisible(hayEfectivo);
+            txtObservacion.setVisible(hayEfectivo);
+
+            efectivoField.setValue(esperado);
+            mostrarDiferencia(lblDiferencia, esperado, esperado);
+        };
+
+        efectivoField.addValueChangeListener(e -> {
+            if (e.isFromClient()) {
+
+                mostrarDiferencia(lblDiferencia, esperadoActual[0], valor(e.getValue()));
+            }
+        });
+
+        // Selector de cliente para dejar facturas de contado a crédito
+        if (!contado.isEmpty()) {
+            layout.add(crearSeccionCredito(contado, credito, recalcular));
         }
+
+        layout.add(efectivoField, lblDiferencia, txtObservacion);
+        recalcular.run();
 
         dialog.add(layout);
 
@@ -243,6 +298,7 @@ public class LiquidacionDeliveryView extends VerticalLayout {
 
         btnConfirmar.addClickListener(e -> {
 
+            BigDecimal esperado = esperadoActual[0];
             BigDecimal recibido = esperado.signum() > 0 ? valor(efectivoField.getValue()) : BigDecimal.ZERO;
 
             if (recibido.signum() < 0) {
@@ -258,7 +314,7 @@ public class LiquidacionDeliveryView extends VerticalLayout {
                 return;
             }
 
-            liquidar(pedidos, recibido, txtObservacion.getValue(), dialog);
+            liquidar(pedidos, credito, recibido, txtObservacion.getValue(), dialog);
         });
 
         dialog.getFooter().add(btnCancelar, btnConfirmar);
@@ -266,19 +322,74 @@ public class LiquidacionDeliveryView extends VerticalLayout {
     }
 
     /**
+     * Tabla con las facturas de contado y un selector de cliente por cada una.
+     * Elegir un cliente deja esa factura a crédito; vaciarlo la devuelve a
+     * contado. {@code credito} se mantiene sincronizado con las selecciones.
+     */
+    private VerticalLayout crearSeccionCredito(List<PedidoDeliveryDTO> contado,
+            Map<Integer, Cliente> credito, Runnable alCambiar) {
+
+        List<Cliente> clientes = clienteService.getLista();
+
+        Span titulo = new Span("¿Alguna factura de contado se queda a crédito? Seleccione el cliente:");
+        titulo.getStyle().set("font-weight", "bold");
+
+        Grid<PedidoDeliveryDTO> grid = new Grid<>(PedidoDeliveryDTO.class, false);
+        grid.addThemeVariants(GridVariant.LUMO_COMPACT, GridVariant.LUMO_ROW_STRIPES);
+        grid.addColumn(PedidoDeliveryDTO::getNumeroFactura).setHeader("Factura").setAutoWidth(true);
+        grid.addColumn(PedidoDeliveryDTO::getCliente).setHeader("Cliente factura").setAutoWidth(true);
+        grid.addColumn(p -> moneda(p.getMontoTotal())).setHeader("Monto").setAutoWidth(true);
+
+        grid.addComponentColumn(p -> {
+            ComboBox<Cliente> cb = new ComboBox<>();
+            cb.setItems(clientes);
+            cb.setItemLabelGenerator(Cliente::getNombre);
+            cb.setPlaceholder("Contado");
+            cb.setClearButtonVisible(true);
+            cb.setWidth("260px");
+            cb.setValue(credito.get(p.getCodigoFactura()));
+            cb.addValueChangeListener(e -> {
+                if (e.getValue() == null) {
+                    credito.remove(p.getCodigoFactura());
+                } else {
+                    credito.put(p.getCodigoFactura(), e.getValue());
+                }
+                alCambiar.run();
+            });
+            return cb;
+        }).setHeader("A crédito a nombre de").setAutoWidth(true).setFlexGrow(1);
+
+        grid.setItems(contado);
+        grid.setAllRowsVisible(contado.size() <= 6);
+        if (contado.size() > 6) {
+            grid.setHeight("260px");
+        }
+
+        VerticalLayout seccion = new VerticalLayout(titulo, grid);
+        seccion.setPadding(false);
+        seccion.setSpacing(false);
+        return seccion;
+    }
+
+    /**
      * Registra la liquidación en el servicio y recarga los pendientes.
      */
-    private void liquidar(List<PedidoDeliveryDTO> pedidos, BigDecimal recibido, String observacion, Dialog dialog) {
+    private void liquidar(List<PedidoDeliveryDTO> pedidos, Map<Integer, Cliente> credito,
+            BigDecimal recibido, String observacion, Dialog dialog) {
 
         try {
+
             List<Integer> codigos = pedidos.stream().map(PedidoDeliveryDTO::getCodigoFactura).toList();
 
-            liquidacionService.liquidar(motoristaCombo.getValue(), codigos, recibido, observacion, USUARIO_ACTUAL);
+            liquidacionService.liquidar(motoristaCombo.getValue(), codigos, new LinkedHashMap<>(credito),
+                    recibido, observacion, USUARIO_ACTUAL);
+
+            String extra = credito.isEmpty() ? "" : " (" + credito.size() + " pasada(s) a cuentas por cobrar)";
 
             Notification.show(pedidos.size() == 1
-                    ? "Pedido " + pedidos.get(0).getNumeroFactura() + " liquidado correctamente"
-                    : "¡" + pedidos.size() + " pedidos liquidados con éxito!",
-                    3000, Notification.Position.MIDDLE)
+                    ? "Pedido " + pedidos.get(0).getNumeroFactura() + " liquidado correctamente" + extra
+                    : "¡" + pedidos.size() + " pedidos liquidados con éxito!" + extra,
+                    3500, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
             dialog.close();

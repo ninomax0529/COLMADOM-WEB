@@ -864,17 +864,51 @@ public class RecepcionMercanciaView extends VerticalLayout {
             rec.setDetalleRecepcionMercanciaCollection(detalles);
 
             // Transaccional: inventario + actualización de pendiente/estado de la OC (ver servicio)
+            java.util.List<Integer> articulosRecibidos = detalles.stream()
+                    .filter(d -> d.getArticulo() != null)
+                    .map(d -> d.getArticulo().getCodigo())
+                    .toList();
+
             recepcionService.procesarRecepcion(rec);
 
             ClaseUtil.mostrarNotificacion(" Recepción procesada exitosamente.", NotificationVariant.LUMO_PRIMARY);
 
             limpiarFormularioCompleto();
 
+            // Con el costo promedio ya actualizado, avisar si algo quedó vendiéndose con pérdida
+            mostrarAvisoPerdida(recepcionService.empaquesVendiendoConPerdida(articulosRecibidos));
+
         } catch (Exception ex) {
             ex.printStackTrace();
             Notification.show("Error al procesar la recepción: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
+    }
+
+    private void mostrarAvisoPerdida(java.util.List<String> alertas) {
+
+        if (alertas == null || alertas.isEmpty()) {
+            return;
+        }
+
+        com.vaadin.flow.component.dialog.Dialog dlg = new com.vaadin.flow.component.dialog.Dialog();
+        dlg.setHeaderTitle("⚠ Precios por debajo del costo");
+        dlg.setWidth("560px");
+
+        com.vaadin.flow.component.html.Paragraph intro = new com.vaadin.flow.component.html.Paragraph(
+                "Con el nuevo costo de esta compra, estos productos se están vendiendo al costo o con pérdida. "
+                + "Revise su precio de venta en el mantenimiento de artículos:");
+
+        com.vaadin.flow.component.html.UnorderedList lista = new com.vaadin.flow.component.html.UnorderedList();
+        alertas.forEach(a -> lista.add(new com.vaadin.flow.component.html.ListItem(a)));
+        lista.getStyle().set("color", "var(--lumo-error-text-color)");
+
+        dlg.add(intro, lista);
+
+        Button btnOk = new Button("Entendido", ev -> dlg.close());
+        btnOk.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        dlg.getFooter().add(btnOk);
+        dlg.open();
     }
 
     private void limpiarFormularioCompleto() {

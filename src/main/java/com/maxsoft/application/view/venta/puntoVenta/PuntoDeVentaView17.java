@@ -37,7 +37,6 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.ShortcutRegistration;
 import com.vaadin.flow.component.Shortcuts;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -47,8 +46,11 @@ import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -91,9 +93,6 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     // ============================================================
     // CONSTANTES
     // ============================================================
-    private static final DecimalFormat MONEDA_FORMAT
-            = new DecimalFormat("#,##0.00");
-
     private static final BigDecimal CIEN
             = BigDecimal.valueOf(100);
 
@@ -126,9 +125,17 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     /**
      * Ruta a la que se vuelve si el cajero cierra el diálogo de apertura sin
      * abrir caja. No puede ser la propia ruta del POS (se reabriría el diálogo
-     * en bucle).
+     * en bucle). Es la misma ruta que usan los diálogos de apertura y cierre
+     * de caja.
      */
-    private static final String RUTA_SIN_CAJA = "";
+    private static final String RUTA_SIN_CAJA = "modulo/moduloPrincipal";
+
+    /**
+     * Selector de los diálogos abiertos en el navegador. Con uno abierto, el
+     * foco y los atajos le pertenecen al diálogo.
+     */
+    private static final String SELECTOR_DIALOGO_ABIERTO
+            = "vaadin-dialog-overlay[opened], vaadin-confirm-dialog-overlay[opened]";
 
     // ============================================================
     // SERVICIOS
@@ -138,16 +145,25 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     private final ArticuloService articuloService;
     private final ArticuloEmpaqueService articuloEmpaqueService; // MULTI-EMPAQUE
     private final ClienteService clienteService;
+    private final com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService reciboDeIngresoService;
     private final DeliveryService deliveryService;
     private final TipoVentaService tipoVentaService;
     private final EstadoFacturaService estadoFacturaService;
     private final FacturaDeVentaService factService;
     private final ImpresionDirectaService impresionDirectaService;
-    ArticuloAlmacenService articuloAlmacenService;
+    private final ArticuloAlmacenService articuloAlmacenService;
 
     // ============================================================
     // COMPONENTES / ESTADO DEL POS
     // ============================================================
+    // DecimalFormat no es thread-safe: cada vista (sesión) usa su propia
+    // instancia en lugar de una estática compartida por todos los cajeros.
+    private final DecimalFormat monedaFormat
+            = new DecimalFormat("#,##0.00");
+
+    private final DecimalFormat cantidadFormat
+            = new DecimalFormat("#,##0.####");
+
     private final TabSheet ticketTabSheet = new TabSheet();
 
     private final List<TicketVenta> listaTicketsAbiertos
@@ -158,21 +174,31 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     // enfocarBuscador() no tenía ningún efecto.
     private ComboBox<ArticuloEmpaque> searchBox;
 
-    private final List<Cliente> libretaClientes
-            = new ArrayList<>();
+    // Panel izquierdo (catálogo y botones de caja)
+    private PanelProductos panelProductos;
 
-    private final List<ShortcutRegistration> atajosRegistrados
+    private final List<Cliente> libretaClientes
             = new ArrayList<>();
 
     private TicketVenta ticketActivo;
 
     private int contadorSecuencialTickets = 0;
 
-    private int contadorLineas = 1;
-
     private boolean cajaAbierta = false;
 
     private DialogoSeleccionCliente dialogoActivo;
+
+    /**
+     * PDF de la última factura impresa. Se libera al imprimir la siguiente
+     * para no acumular recursos en la sesión durante todo el turno.
+     */
+    private StreamRegistration ultimoPdfRegistrado;
+
+    /**
+     * Se activa cuando el cajero confirma salir del POS con ventas
+     * pendientes, para no volver a preguntar en la misma navegación.
+     */
+    private boolean salidaConfirmada = false;
 
     // ============================================================
     // CONSTRUCTOR
@@ -188,8 +214,11 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             TipoVentaService tipoVentaService,
             EstadoFacturaService estadoFacturaService,
             ImpresionDirectaService impresionDirectaService,
-            ArticuloAlmacenService articuloAlmacenService
+            ArticuloAlmacenService articuloAlmacenService,
+            com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService reciboDeIngresoService
     ) {
+
+        this.reciboDeIngresoService = reciboDeIngresoService;
 
         this.reporteService = reporteService;
         this.cajaService = cajaService;
@@ -203,6 +232,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         this.impresionDirectaService = impresionDirectaService;
         this.articuloAlmacenService = articuloAlmacenService;
 
+        // "*" (teclado numérico) edita la cantidad de la línea seleccionada.
+        // Es el ÚNICO registro de este atajo: antes también se registraba en
+        // cada grid y, con el foco en el grid, se abrían dos diálogos.
         Shortcuts.addShortcutListener(
                 this,
                 () -> {
@@ -223,9 +255,11 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         // Los atajos Alt+tecla (N, R, C, X, A, 1..9) se instalan en el navegador
         // desde onAttach(): ver instalarAtajosAlt().
+        // F2 (cobrar) y F3 (fiar) son click-shortcuts de los botones de cada
+        // ticket (PanelTicketContenido). Antes F3 también se registraba aquí y
+        // con la venta vacía se mostraba el aviso dos veces.
         configurarVista();
         configurarEventos();
-        configurarAtajoCliente();
 
         crearNuevoTicket(null);
     }
@@ -294,22 +328,6 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         });
     }
 
-    private void configurarAtajoCliente() {
-
-        Shortcuts.addShortcutListener(
-                this,
-                () -> {
-
-                    if (dialogoActivo == null
-                    || !dialogoActivo.isOpened()) {
-
-                        abrirDialogoSeleccionCliente(ticketActivo);
-                    }
-                },
-                Key.F3
-        );
-    }
-
     // ============================================================
     // CICLO DE VIDA VAADIN
     // ============================================================
@@ -324,9 +342,22 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         Optional<CajaTurno> turnoActivo
                 = cajaService.obtenerCajaAbierta();
 
-        cajaAbierta = turnoActivo.isPresent();
+        marcarCajaAbierta(turnoActivo.isPresent());
 
         setVisible(cajaAbierta);
+    }
+
+    /**
+     * Único punto donde cambia el estado de la caja: actualiza el flag y los
+     * botones del panel (Abrir Caja solo sin caja; Cerrar Caja solo con caja).
+     */
+    private void marcarCajaAbierta(boolean abierta) {
+
+        cajaAbierta = abierta;
+
+        if (panelProductos != null) {
+            panelProductos.actualizarEstadoCaja(abierta);
+        }
     }
 
     @Override
@@ -338,23 +369,25 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         instalarAtajosAlt();
 
-        if (!attachEvent.isInitialAttach()) {
-            setVisible(true);
-            enfocarBuscador();
-            return;
-        }
+        salidaConfirmada = false;
 
+        // Tanto en el primer attach como al volver a la vista se consulta la
+        // caja: antes, al volver, el POS se mostraba aunque la caja se hubiera
+        // cerrado mientras tanto.
         Optional<CajaTurno> turnoActivo
                 = cajaService.obtenerCajaAbierta();
 
         if (turnoActivo.isPresent()) {
 
-            cajaAbierta = true;
+            marcarCajaAbierta(true);
             setVisible(true);
             enfocarBuscador();
 
             return;
         }
+
+        marcarCajaAbierta(false);
+        setVisible(false);
 
         abrirDialogoAperturaInicial();
     }
@@ -366,7 +399,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                         cajaService,
                         fondo -> {
 
-                            cajaAbierta = true;
+                            marcarCajaAbierta(true);
 
                             getUI().ifPresent(ui
                                     -> ui.access(() -> {
@@ -380,12 +413,26 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         dialogo.addOpenedChangeListener(event -> {
 
-            if (!event.isOpened() && !cajaAbierta) {
-
-                getUI().ifPresent(ui
-                        -> ui.navigate(RUTA_SIN_CAJA)
-                );
+            if (event.isOpened()) {
+                return;
             }
+
+            /*
+             * El diálogo se cierra ANTES de ejecutar el callback de apertura
+             * (que corre en un ui.access diferido), así que el flag cajaAbierta
+             * todavía está en false en este punto. Se consulta la caja real
+             * para no sacar al cajero del POS justo después de abrirla.
+             */
+            if (cajaService.obtenerCajaAbierta().isPresent()) {
+
+                marcarCajaAbierta(true);
+
+                return;
+            }
+
+            getUI().ifPresent(ui
+                    -> ui.navigate(RUTA_SIN_CAJA)
+            );
         });
 
         dialogo.open();
@@ -394,11 +441,11 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     @Override
     protected void onDetach(DetachEvent detachEvent) {
 
-        atajosRegistrados.forEach(
-                ShortcutRegistration::remove
-        );
-
-        atajosRegistrados.clear();
+        // Los atajos de cada grid están ligados al ciclo de vida del grid
+        // (Shortcuts.addShortcutListener(grid, ...)), así que no se eliminan
+        // aquí. Antes se borraban al salir de la vista y, al volver, Supr ya
+        // no quitaba líneas.
+        liberarUltimoPdf();
 
         if (dialogoActivo != null
                 && dialogoActivo.isOpened()) {
@@ -470,7 +517,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                     if (!accion) { return; }
 
                     // Con un diálogo abierto no se disparan los atajos de la venta
-                    if (document.querySelector('vaadin-dialog-overlay[opened], vaadin-confirm-dialog-overlay[opened]')) { return; }
+                    if (document.querySelector($1)) { return; }
 
                     e.preventDefault();
                     e.stopPropagation();
@@ -479,12 +526,17 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
                 document.addEventListener('keydown', manejador, true);
                 """,
-                getElement()
+                getElement(),
+                SELECTOR_DIALOGO_ABIERTO
         );
     }
 
     @ClientCallable
     public void atajoNuevaVenta() {
+
+        if (!cajaAbierta) {
+            return;
+        }
 
         crearNuevoTicket(null);
     }
@@ -571,6 +623,10 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         // El foco del POS (después de cada venta, cada diálogo, cada cambio de
         // pestaña) debe volver al buscador/lector de códigos del panel.
         this.searchBox = panel.getSearchBox();
+
+        this.panelProductos = panel;
+
+        panel.actualizarEstadoCaja(cajaAbierta);
 
         return panel;
     }
@@ -800,6 +856,25 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                             .add(cantidad.multiply(
                                     obtenerFactorConversion(articuloEmpaque)));
 
+            if (stock.compareTo(requerido) < 0
+                    && !Boolean.TRUE.equals(base.getPermitirVentaSinExistencia())) {
+
+                // El artículo no permite venta sin existencia: se bloquea aquí
+                // en lugar de fallar al cobrar (el kardex lo rechazaría).
+                Notification bloqueo = Notification.show(
+                        "⛔ " + articuloEmpaque.getNombreArticulo()
+                        + ": stock insuficiente ("
+                        + stock.stripTrailingZeros().toPlainString()
+                        + " disponible, se requieren "
+                        + requerido.stripTrailingZeros().toPlainString()
+                        + " en unidad base). Este artículo no permite venta sin existencia.",
+                        4000,
+                        Notification.Position.TOP_CENTER
+                );
+                bloqueo.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
             if (stock.compareTo(requerido) < 0) {
 
                 Notification notif = Notification.show(
@@ -854,7 +929,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         BigDecimal nuevaCantidad
                 = cantidadActual.add(cantidad);
 
-        if (nuevaCantidad.doubleValue() <= 0) {
+        if (nuevaCantidad.signum() <= 0) {
 
             confirmarEliminarItem(
                     ticket,
@@ -915,25 +990,13 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         }
 
         nuevoDetalle.setNumeroDeLinea(
-                contadorLineas++
+                siguienteNumeroLinea(ticket)
         );
 
-        String descripcionEmpaque = artculoEmpaque.getDescripcionEmpaque();
-        String nombre = artculoEmpaque.getNombreArticulo();
-        System.out.println("nombre " + nombre + " " + descripcionEmpaque);
-//        String nombre = articulo.getNombreArticulo() != null
-//                ? articulo.getNombreArticulo()
-//                : "";
-
         nuevoDetalle.setDescripcionArticulo(
-                nombre + " " + descripcionEmpaque);
+                construirDescripcion(artculoEmpaque)
+        );
 
-//        nuevoDetalle.setDescripcionArticulo(
-//                nombre
-//                + (descripcionEmpaque != null && !descripcionEmpaque.isBlank()
-//                ? " " + descripcionEmpaque
-//                : "")
-//        );
         if (artculoEmpaque.getArticulo() != null) {
             nuevoDetalle.setExistenciaActual(
                     artculoEmpaque.getArticulo().getExistencia()
@@ -962,6 +1025,43 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         recalcularTotalesItem(nuevoDetalle);
 
         ticket.getItems().add(nuevoDetalle);
+
+        // La línea recién agregada queda seleccionada: "*" y Supr actúan
+        // sobre ella sin tener que tocar el grid.
+        ticket.getGrid().select(nuevoDetalle);
+    }
+
+    /**
+     * Número de línea dentro del ticket. Antes era un contador global de la
+     * vista, por lo que cada venta empezaba en el número donde quedó la
+     * anterior.
+     */
+    private int siguienteNumeroLinea(TicketVenta ticket) {
+
+        return ticket.getItems()
+                .stream()
+                .mapToInt(DetalleFacturaDeVenta::getNumeroDeLinea)
+                .max()
+                .orElse(0) + 1;
+    }
+
+    /**
+     * Nombre del artículo + presentación (ej. "Arroz Selecto Saco 25 lb").
+     * Evita el texto "null" cuando el empaque no tiene descripción.
+     */
+    private String construirDescripcion(ArticuloEmpaque articuloEmpaque) {
+
+        String nombre = articuloEmpaque.getNombreArticulo() != null
+                ? articuloEmpaque.getNombreArticulo().trim()
+                : "";
+
+        String descripcionEmpaque = articuloEmpaque.getDescripcionEmpaque();
+
+        if (descripcionEmpaque == null || descripcionEmpaque.isBlank()) {
+            return nombre;
+        }
+
+        return (nombre + " " + descripcionEmpaque.trim()).trim();
     }
 
     // ============================================================
@@ -1168,28 +1268,53 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 Grid.SelectionMode.SINGLE
         );
 
+        grid.addThemeVariants(
+                GridVariant.LUMO_ROW_STRIPES,
+                GridVariant.LUMO_COMPACT
+        );
+
+        grid.setEmptyStateComponent(
+                crearEstadoVacioTicket()
+        );
+
         grid.addColumn(
                 DetalleFacturaDeVenta::getDescripcionArticulo
-        ).setHeader("Articulo")
-                .setAutoWidth(true);
+        ).setHeader("Artículo")
+                .setFlexGrow(3)
+                .setTooltipGenerator(
+                        DetalleFacturaDeVenta::getDescripcionArticulo
+                );
 
         // MULTI-EMPAQUE: muestra la presentación vendida en cada línea
         grid.addColumn(
                 DetalleFacturaDeVenta::getNombreUnidad
         ).setHeader("Unidad")
-                .setAutoWidth(true);
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
+        // Cantidad sin ceros sobrantes (1 en vez de 1.0000; 0.5 en venta
+        // por monto o por libra)
         grid.addColumn(
-                DetalleFacturaDeVenta::getCantidad
-        ).setHeader("Cant.");
+                item -> cantidad(item.getCantidad())
+        ).setHeader("Cant.")
+                .setTextAlign(ColumnTextAlign.END)
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
         grid.addColumn(
                 item -> moneda(item.getPrecioVenta())
-        ).setHeader("Precio");
+        ).setHeader("Precio")
+                .setTextAlign(ColumnTextAlign.END)
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
         grid.addColumn(
                 item -> moneda(item.getSubTotal())
-        ).setHeader("Total");
+        ).setHeader("Total")
+                .setTextAlign(ColumnTextAlign.END)
+                .setAutoWidth(true)
+                .setFlexGrow(0)
+                .setPartNameGenerator(item -> "pos-total-linea");
 
         grid.addComponentColumn(item -> {
 
@@ -1208,6 +1333,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                     ButtonVariant.LUMO_SMALL
             );
 
+            editQtyBtn.setTooltipText("Editar cantidad (*)");
+
             Button removeBtn
                     = new Button(
                             VaadinIcon.TRASH.create(),
@@ -1224,12 +1351,21 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                     ButtonVariant.LUMO_SMALL
             );
 
-            return new HorizontalLayout(
-                    editQtyBtn,
-                    removeBtn
-            );
+            removeBtn.setTooltipText("Quitar de la venta (Supr)");
 
-        }).setHeader("");
+            HorizontalLayout acciones
+                    = new HorizontalLayout(
+                            editQtyBtn,
+                            removeBtn
+                    );
+
+            acciones.setSpacing(false);
+
+            return acciones;
+
+        }).setHeader("")
+                .setAutoWidth(true)
+                .setFlexGrow(0);
 
         grid.addItemDoubleClickListener(
                 event
@@ -1250,57 +1386,99 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         grid.setHeightFull();
     }
 
+    /**
+     * Contenido del grid cuando la venta no tiene productos: carrito, mensaje
+     * y atajos, centrados en el área del grid (antes era una línea de texto
+     * arriba a la izquierda y el resto del panel quedaba vacío).
+     */
+    private VerticalLayout crearEstadoVacioTicket() {
+
+        Icon icono = VaadinIcon.CART_O.create();
+
+        icono.setSize("4rem");
+
+        icono.getStyle()
+                .set("color", "var(--lumo-contrast-30pct)");
+
+        Span titulo = new Span(
+                "Venta vacía"
+        );
+
+        titulo.getStyle()
+                .set("font-size", "var(--lumo-font-size-l)")
+                .set("font-weight", "600")
+                .set("color", "var(--lumo-secondary-text-color)");
+
+        Span ayuda = new Span(
+                "Escanee o busque un producto (F4), o toque una tarjeta del catálogo."
+        );
+
+        ayuda.getStyle()
+                .set("font-size", "var(--lumo-font-size-s)")
+                .set("color", "var(--lumo-tertiary-text-color)")
+                .set("text-align", "center");
+
+        VerticalLayout estadoVacio
+                = new VerticalLayout(
+                        icono,
+                        titulo,
+                        ayuda
+                );
+
+        estadoVacio.setSpacing(false);
+        estadoVacio.setWidthFull();
+        estadoVacio.setAlignItems(Alignment.CENTER);
+        estadoVacio.setJustifyContentMode(JustifyContentMode.CENTER);
+
+        // El área del grid ocupa aproximadamente la mitad de la pantalla
+        estadoVacio.getStyle()
+                .set("min-height", "45vh")
+                .set("gap", "var(--lumo-space-s)");
+
+        return estadoVacio;
+    }
+
+    /**
+     * Supr quita la línea seleccionada. El atajo "*" NO se registra aquí: ya
+     * existe a nivel de vista (constructor) y registrarlo dos veces abría dos
+     * diálogos de cantidad.
+     */
     private void registrarAtajosGrid(
             Grid<DetalleFacturaDeVenta> grid,
             TicketVenta ticket) {
 
-        atajosRegistrados.add(
-                Shortcuts.addShortcutListener(
-                        grid,
-                        () -> {
+        Shortcuts.addShortcutListener(
+                grid,
+                () -> {
 
-                            DetalleFacturaDeVenta seleccionado
-                            = grid.asSingleSelect().getValue();
+                    DetalleFacturaDeVenta seleccionado
+                    = grid.asSingleSelect().getValue();
 
-                            if (seleccionado != null) {
+                    if (seleccionado != null) {
 
-                                confirmarEliminarItem(
-                                        ticket,
-                                        seleccionado
-                                );
-                            }
-                        },
-                        Key.DELETE
-                )
-        );
-
-        atajosRegistrados.add(
-                Shortcuts.addShortcutListener(
-                        grid,
-                        () -> {
-
-                            DetalleFacturaDeVenta seleccionado
-                            = grid.asSingleSelect().getValue();
-
-                            if (seleccionado != null) {
-
-                                abrirDialogoEditarCantidad(
-                                        ticket,
-                                        seleccionado
-                                );
-                            }
-                        },
-                        Key.NUMPAD_MULTIPLY
-                )
+                        confirmarEliminarItem(
+                                ticket,
+                                seleccionado
+                        );
+                    }
+                },
+                Key.DELETE
         );
     }
 
     private String moneda(BigDecimal valor) {
 
         return "RD$ "
-                + MONEDA_FORMAT.format(
+                + monedaFormat.format(
                         valorSeguro(valor)
                 );
+    }
+
+    private String cantidad(BigDecimal valor) {
+
+        return cantidadFormat.format(
+                valorSeguro(valor)
+        );
     }
 
     private void actualizarTitulosPestanas() {
@@ -1358,6 +1536,14 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             return;
         }
 
+        /*
+         * El diálogo llama a "guardar" y luego a "cerrar ticket" sin mirar el
+         * resultado. Si el guardado fallaba, la venta se descartaba igual y el
+         * cajero perdía todo lo escaneado. Ahora solo se cierra el ticket
+         * cuando la factura realmente se guardó.
+         */
+        final boolean[] ventaGuardada = {false};
+
         DialogoCobroEfectivo dialogo
                 = new DialogoCobroEfectivo(
                         ticket,
@@ -1372,13 +1558,20 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
                             if (factura != null) {
 
+                                ventaGuardada[0] = true;
+
                                 imprimir(
                                         factura.getCodigo()
                                 );
-
                             }
                         },
-                        this::cerrarTicketActual,
+                        () -> {
+
+                            if (ventaGuardada[0]) {
+
+                                cerrarTicketFacturado(ticket);
+                            }
+                        },
                         this::enfocarBuscador
                 );
 
@@ -1415,7 +1608,10 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 | IllegalArgumentException ex) {
 
             Notification.show(
-                    ex.getMessage(),
+                    Objects.requireNonNullElse(
+                            ex.getMessage(),
+                            "No se pudo procesar la venta."
+                    ),
                     3500,
                     Notification.Position.MIDDLE
             )
@@ -1429,7 +1625,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
             ex.printStackTrace();
             Notification.show(
-                    "Error procesando la factura.",
+                    "Error procesando la factura. La venta se mantiene abierta.",
                     4000,
                     Notification.Position.MIDDLE
             )
@@ -1458,6 +1654,10 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                     "application/pdf"
             );
 
+            // El PDF de la factura anterior ya se imprimió: se libera antes de
+            // registrar el nuevo (antes quedaban todos en memoria de la sesión).
+            liberarUltimoPdf();
+
             StreamRegistration registration
                     = VaadinSession
                             .getCurrent()
@@ -1466,15 +1666,22 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                                     pdfResource
                             );
 
+            ultimoPdfRegistrado = registration;
+
             String pdfUrl
                     = registration
                             .getResourceUri()
                             .toString();
 
-            String script = String.format(
-                    """
-                    fetch('%s')
-                        .then(response => response.blob())
+            // La URL se pasa como parámetro ($0) en lugar de concatenarla en
+            // el script con String.format.
+            String script
+                    = """
+                    fetch($0)
+                        .then(response => {
+                            if (!response.ok) { throw new Error('HTTP ' + response.status); }
+                            return response.blob();
+                        })
                         .then(blob => {
                             const blobUrl = URL.createObjectURL(blob);
 
@@ -1510,13 +1717,11 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                                 err
                             )
                         );
-                    """,
-                    pdfUrl
-            );
+                    """;
 
             UI.getCurrent()
                     .getPage()
-                    .executeJs(script);
+                    .executeJs(script, pdfUrl);
 
             Notification.show(
                     "Enviando a la impresora de caja...",
@@ -1529,9 +1734,14 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         } catch (Exception ex) {
 
+            ex.printStackTrace();
+
+            // La factura YA está guardada: se indica el número para poder
+            // reimprimirla desde la consulta de facturas.
             Notification.show(
-                    "Error al generar el documento.",
-                    4000,
+                    "La factura #" + facturaCodigo
+                    + " se guardó, pero hubo un error al generar el documento.",
+                    5000,
                     Notification.Position.TOP_CENTER
             )
                     .addThemeVariants(
@@ -1540,6 +1750,16 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         }
 
         enfocarBuscador();
+    }
+
+    private void liberarUltimoPdf() {
+
+        if (ultimoPdfRegistrado != null) {
+
+            ultimoPdfRegistrado.unregister();
+
+            ultimoPdfRegistrado = null;
+        }
     }
 
     private void imprimirCaja(int facturaCodigo) {
@@ -1592,7 +1812,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                         cajaService,
                         fondo -> {
 
-                            cajaAbierta = true;
+                            marcarCajaAbierta(true);
 
                             getUI().ifPresent(ui
                                     -> ui.access(
@@ -1607,37 +1827,98 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         enfocarBuscador();
     }
 
+    private long contarVentasPendientes() {
+
+        return listaTicketsAbiertos
+                .stream()
+                .filter(
+                        ticket
+                        -> !ticket.getItems().isEmpty()
+                )
+                .count();
+    }
+
     private void abrirDialogoCierreCaja() {
+
+        // Al cerrar la caja se sale del POS y las ventas abiertas se pierden:
+        // primero hay que cobrarlas o cancelarlas.
+        if (contarVentasPendientes() > 0) {
+
+            ClaseUtil.mostrarNotificacion(
+                    "Cobre o cancele las ventas abiertas antes de cerrar la caja.",
+                    NotificationVariant.LUMO_WARNING
+            );
+
+            enfocarBuscador();
+
+            return;
+        }
 
         DialogoCierreCaja dialogo
                 = new DialogoCierreCaja(
                         cajaService,
-                        this::enfocarBuscador
+                        USUARIO_POR_DEFECTO,
+                        () -> {
+
+                            // Caja cerrada: no se puede seguir vendiendo. El
+                            // diálogo navega luego a la pantalla principal.
+                            marcarCajaAbierta(false);
+                        }
                 );
+
+        dialogo.addOpenedChangeListener(event -> {
+
+            if (!event.isOpened() && cajaAbierta) {
+                enfocarBuscador();
+            }
+        });
 
         dialogo.open();
     }
 
     private void abrirDialogoMovimientoPos() {
 
-        new DialogoMovimientoPos(
-                cajaService,
-                USUARIO_POR_DEFECTO
-        ).open();
+        DialogoMovimientoPos dialogo
+                = new DialogoMovimientoPos(
+                        cajaService,
+                        USUARIO_POR_DEFECTO
+                );
+
+        dialogo.addOpenedChangeListener(event -> {
+
+            if (!event.isOpened()) {
+                enfocarBuscador();
+            }
+        });
+
+        dialogo.open();
     }
 
     // ============================================================
     // TICKETS - ELIMINACIÓN
     // ============================================================
-    private void cerrarTicketActual() {
+    /**
+     * Descarta una venta (cancelada por el cajero).
+     */
+    private void eliminarTicket(
+            TicketVenta ticket) {
 
-        if (ticketActivo != null) {
-            eliminarTicket(ticketActivo);
-        }
+        eliminarTicket(ticket, true);
+    }
+
+    /**
+     * Cierra el ticket de una venta ya facturada. No muestra "Venta
+     * descartada" porque la venta sí se completó.
+     */
+    private void cerrarTicketFacturado(
+            TicketVenta ticket) {
+
+        eliminarTicket(ticket, false);
     }
 
     private void eliminarTicket(
-            TicketVenta ticket) {
+            TicketVenta ticket,
+            boolean notificar) {
 
         if (ticket == null) {
             return;
@@ -1650,16 +1931,17 @@ public class PuntoDeVentaView17 extends HorizontalLayout
          */
         if (listaTicketsAbiertos.size() <= 1) {
 
-            ticket.getItems().clear();
-
-            ticket.updateUI();
+            limpiarTicket(ticket);
 
             actualizarTitulosPestanas();
 
-            ClaseUtil.mostrarNotificacion(
-                    "Ticket limpiado.",
-                    NotificationVariant.LUMO_SUCCESS, 2000
-            );
+            if (notificar) {
+
+                ClaseUtil.mostrarNotificacion(
+                        "Ticket limpiado.",
+                        NotificationVariant.LUMO_SUCCESS, 2000
+                );
+            }
 
             enfocarBuscador();
 
@@ -1694,18 +1976,50 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         actualizarTitulosPestanas();
 
-        ClaseUtil.mostrarNotificacion(
-                "Venta descartada.",
-                NotificationVariant.LUMO_WARNING, 2000
-        );
+        if (notificar) {
+
+            ClaseUtil.mostrarNotificacion(
+                    "Venta descartada.",
+                    NotificationVariant.LUMO_WARNING, 2000
+            );
+        }
 
         enfocarBuscador();
+    }
+
+    /**
+     * Deja el ticket como nuevo. Antes solo se vaciaban las líneas y el
+     * cliente, el motorista y el tipo de venta de la venta anterior quedaban
+     * pegados al siguiente cobro.
+     */
+    private void limpiarTicket(TicketVenta ticket) {
+
+        ticket.getGrid().deselectAll();
+
+        ticket.getItems().clear();
+
+        ticket.setCliente(null);
+        ticket.setNombreCliente(null);
+        ticket.setDireccion(null);
+        ticket.setDelivery(null);
+        ticket.setTipoVenta(null);
+        ticket.setEstadoFactura(null);
+
+        ticket.updateUI();
     }
 
     private void confirmarEliminarTicket(
             TicketVenta ticket) {
 
         if (ticket == null) {
+            return;
+        }
+
+        // Una venta vacía se descarta sin preguntar
+        if (ticket.getItems().isEmpty()) {
+
+            eliminarTicket(ticket);
+
             return;
         }
 
@@ -1776,19 +2090,34 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         BigDecimal precioUnitario
                 = calcularPrecioEmpaque(articulo, articulo);
 
+        if (precioUnitario.signum() <= 0) {
+
+            ClaseUtil.mostrarNotificacion(
+                    "El producto no tiene precio de venta; no se puede vender por monto.",
+                    NotificationVariant.LUMO_WARNING
+            );
+
+            enfocarBuscador();
+
+            return;
+        }
+
         new DialogoVentaPorMonto(
                 articulo.getNombreArticulo(),
                 precioUnitario,
                 (monto, cantidadCalculada) -> {
 
                     if (ticketActivo == null
-                    || cantidadCalculada == null) {
+                    || monto == null) {
                         return;
                     }
 
+                    // Se calcula con BigDecimal desde el monto (el diálogo
+                    // divide con double y puede arrastrar decimales sueltos)
                     BigDecimal cantidad
-                    = BigDecimal.valueOf(cantidadCalculada.doubleValue())
-                            .setScale(
+                    = aDecimal(monto)
+                            .divide(
+                                    precioUnitario,
                                     ESCALA_CALCULO,
                                     RoundingMode.HALF_UP
                             );
@@ -1812,18 +2141,36 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             return;
         }
 
-        new DialogoEditarCantidad(
-                ticket,
-                item,
-                nuevaCantidad -> {
-                    enfocarBuscador();
-                },
-                () -> confirmarEliminarItem(ticket, item)
-        ).open();
+        DialogoEditarCantidad dialogo
+                = new DialogoEditarCantidad(
+                        ticket,
+                        item,
+                        nuevaCantidad -> enfocarBuscador(),
+                        () -> confirmarEliminarItem(ticket, item)
+                );
 
-        // Refrescar el Grid y el Span del total dentro del objeto TicketVenta
-        ticket.updateUI();
+        /*
+         * El diálogo solo cambia la cantidad (y, en la vista previa, el
+         * subtotal). Al cerrarse, guardando o cancelando, se recalculan TODOS
+         * los importes de la línea desde la cantidad final:
+         * - al guardar, el ITBIS, el total y la cantidad base quedaban con los
+         *   valores de la cantidad anterior y la factura se guardaba así;
+         * - al cancelar, el subtotal de la vista previa quedaba en la línea.
+         */
+        dialogo.addOpenedChangeListener(event -> {
 
+            if (event.isOpened()) {
+                return;
+            }
+
+            recalcularTotalesItem(item);
+
+            ticket.updateUI();
+
+            actualizarTitulosPestanas();
+        });
+
+        dialogo.open();
     }
 
     private void confirmarEliminarItem(
@@ -1955,14 +2302,20 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         );
 
         /*
-         * Se mantiene la lógica original para la dirección
-         * del cliente. Si posteriormente queremos soportar
-         * una dirección de delivery temporal diferente a la
-         * registrada en el cliente, podemos usar el parámetro
-         * direccion aquí.
+         * Dirección: la registrada en el cliente. Si es un delivery y el
+         * cajero escribió una dirección de entrega en el diálogo, se usa esa.
          */
+        String direccionFinal = clienteSeleccionado.getDireccion();
+
+        if (esDelivery
+                && direccion != null
+                && !direccion.isBlank()) {
+
+            direccionFinal = direccion.trim().toUpperCase();
+        }
+
         ticket.setDireccion(
-                clienteSeleccionado.getDireccion()
+                direccionFinal
         );
 
         ticket.setTipoVenta(
@@ -1976,16 +2329,20 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         cerrarDialogoCliente();
 
-        cerrarTicketActual();
+        if (factura == null) {
 
-        enfocarBuscador();
+            // No se guardó: la venta se queda abierta para corregir y
+            // reintentar (antes se descartaba igual y se perdía).
+            enfocarBuscador();
 
-        if (factura != null) {
-
-            imprimir(
-                    factura.getCodigo()
-            );
+            return;
         }
+
+        cerrarTicketFacturado(ticket);
+
+        imprimir(
+                factura.getCodigo()
+        );
     }
 
     private void cerrarDialogoCliente() {
@@ -2000,8 +2357,23 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
     private void abrirDialogoAbonoLibreta() {
 
+        if (!cajaAbierta) {
+            return;
+        }
+
+        // Solo los clientes que deben algo en su libreta
+        libretaClientes.clear();
+
+        libretaClientes.addAll(
+                clienteService.getLista().stream()
+                        .filter(c -> c.getBalance() != null && c.getBalance().signum() > 0)
+                        .toList()
+        );
+
         new DialogoAbonoLibreta(
                 libretaClientes,
+                reciboDeIngresoService,
+                USUARIO_POR_DEFECTO,
                 this::enfocarBuscador
         ).open();
     }
@@ -2076,28 +2448,91 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     // ============================================================
     // SALIDA DE LA VISTA
     // ============================================================
+    /**
+     * Las ventas abiertas viven solo en esta vista: al salir se pierden. Si
+     * hay ventas con productos se pide confirmación antes de salir (también
+     * cuando el cierre de caja navega a la pantalla principal).
+     */
     @Override
     public void beforeLeave(
             BeforeLeaveEvent event) {
 
-        boolean existenVentasPendientes
-                = listaTicketsAbiertos
-                        .stream()
-                        .anyMatch(
-                                ticket
-                                -> !ticket.getItems().isEmpty()
-                        );
+        long ventasPendientes
+                = contarVentasPendientes();
 
-        if (existenVentasPendientes) {
-
-            /*
-             * Se conserva el comportamiento actual.
-             *
-             * Aquí es un buen punto para implementar posteriormente
-             * un BeforeLeaveDialog/ConfirmDialog que pregunte al
-             * cajero si desea abandonar el POS con ventas pendientes.
-             */
+        // Sin caja abierta (p. ej. la salida que hace el cierre de caja) ya no
+        // se puede seguir vendiendo, así que no tiene sentido retener al cajero.
+        if (ventasPendientes == 0
+                || salidaConfirmada
+                || !cajaAbierta) {
+            return;
         }
+
+        BeforeLeaveEvent.ContinueNavigationAction continuar
+                = event.postpone();
+
+        Dialog confirmDialog
+                = new Dialog();
+
+        confirmDialog.setHeaderTitle(
+                "Ventas sin cobrar"
+        );
+
+        confirmDialog.add(
+                "Hay " + ventasPendientes
+                + (ventasPendientes == 1
+                        ? " venta con productos sin cobrar."
+                        : " ventas con productos sin cobrar.")
+                + " Si sale del punto de venta se perderán."
+        );
+
+        Button quedarseBtn
+                = new Button(
+                        "Seguir vendiendo [Enter]",
+                        e -> confirmDialog.close()
+                );
+
+        quedarseBtn.addThemeVariants(
+                ButtonVariant.LUMO_PRIMARY
+        );
+
+        quedarseBtn.addClickShortcut(
+                Key.ENTER
+        );
+
+        Button salirBtn
+                = new Button(
+                        "Salir y descartar",
+                        e -> {
+
+                            salidaConfirmada = true;
+
+                            confirmDialog.close();
+
+                            continuar.proceed();
+                        }
+                );
+
+        salirBtn.addThemeVariants(
+                ButtonVariant.LUMO_ERROR,
+                ButtonVariant.LUMO_TERTIARY
+        );
+
+        confirmDialog
+                .getFooter()
+                .add(
+                        salirBtn,
+                        quedarseBtn
+                );
+
+        confirmDialog.addOpenedChangeListener(e -> {
+
+            if (!e.isOpened() && !salidaConfirmada) {
+                enfocarBuscador();
+            }
+        });
+
+        confirmDialog.open();
     }
 
     /**
@@ -2127,11 +2562,12 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
             searchBox.getElement().executeJs(
                     """
-                    if (document.querySelector('vaadin-dialog-overlay[opened], vaadin-confirm-dialog-overlay[opened]')) { return; }
+                    if (document.querySelector($0)) { return; }
                     if (document.activeElement === this) { return; }
                     this.focus();
                     if (this.inputElement) { this.inputElement.select(); }
-                    """
+                    """,
+                    SELECTOR_DIALOGO_ABIERTO
             );
         }));
     }
@@ -2162,82 +2598,165 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
                 vista.addEventListener('click', e => {
                     if (e.composedPath().some(n => n.tagName && interactivo.test(n.tagName))) { return; }
-                    if (document.querySelector('vaadin-dialog-overlay[opened], vaadin-confirm-dialog-overlay[opened]')) { return; }
+                    if (document.querySelector($2)) { return; }
                     buscador.focus();
                 });
                 """,
                 getElement(),
-                searchBox.getElement()
+                searchBox.getElement(),
+                SELECTOR_DIALOGO_ABIERTO
         );
     }
 
-    private void ejecutarAnulacion(Integer codigoFactura, String motivo) {
-        try {
-            // Ejecución real contra la capa de negocio
-            FacturaDeVenta facturaAnulada = this.factService.anularVenta(codigoFactura, motivo, USUARIO_POR_DEFECTO);
+    // ============================================================
+    // ANULACIÓN
+    // ============================================================
+    /**
+     * Anula la factura contra la capa de negocio.
+     *
+     * @return true si la factura quedó anulada; false si no existe o el
+     * servicio la rechazó (ya anulada, cerrada, etc.).
+     */
+    private boolean ejecutarAnulacion(Integer codigoFactura, String motivo) {
 
-            if (facturaAnulada != null) {
+        try {
+
+            FacturaDeVenta facturaAnulada
+                    = this.factService.anularVenta(
+                            codigoFactura,
+                            motivo,
+                            USUARIO_POR_DEFECTO
+                    );
+
+            if (facturaAnulada == null) {
+
                 ClaseUtil.mostrarNotificacion(
-                        "Factura #" + codigoFactura + " anulada correctamente.",
-                        NotificationVariant.LUMO_SUCCESS
+                        "No se encontró la factura N° " + codigoFactura,
+                        NotificationVariant.LUMO_ERROR
                 );
 
-                // Re-impresión del comprobante o ticket de anulación
-//                imprimir(facturaAnulada.getCodigo());
-            } else {
-                ClaseUtil.mostrarNotificacion("No se encontró la factura N° " + codigoFactura, NotificationVariant.LUMO_ERROR);
+                return false;
             }
+
+            ClaseUtil.mostrarNotificacion(
+                    "Factura #" + codigoFactura + " anulada correctamente.",
+                    NotificationVariant.LUMO_SUCCESS
+            );
+
+            return true;
+
         } catch (Exception ex) {
-            System.out.println("Erro msg " + ex.getMessage());
-            // En caso de que la factura ya esté anulada, cerrada o devuelva error de negocio
-            Notification.show("Error al anular: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-        } finally {
-            enfocarBuscador();
+
+            ex.printStackTrace();
+
+            // Factura ya anulada, cerrada o cualquier error de negocio
+            Notification.show(
+                    "Error al anular: "
+                    + Objects.requireNonNullElse(
+                            ex.getMessage(),
+                            "error inesperado."
+                    ),
+                    4000,
+                    Notification.Position.MIDDLE
+            )
+                    .addThemeVariants(
+                            NotificationVariant.LUMO_ERROR
+                    );
+
+            return false;
         }
     }
 
     public void abrirDialogoAnulacion() {
 
+        if (!cajaAbierta) {
+            return;
+        }
+
         Dialog dialogo = new Dialog();
         dialogo.setHeaderTitle("Anular Factura / Venta");
+        dialogo.setWidth("420px");
 
         VerticalLayout layout = new VerticalLayout();
-        layout.setPadding(true);
+        layout.setPadding(false);
         layout.setSpacing(true);
+
+        Span aviso = new Span(
+                "La anulación no se puede deshacer. Verifique el número de factura."
+        );
+
+        aviso.getStyle()
+                .set("font-size", "var(--lumo-font-size-s)")
+                .set("color", "var(--lumo-error-text-color)");
 
         IntegerField txtCodigoFactura = new IntegerField("Número de Factura");
         txtCodigoFactura.setPlaceholder("Ej. 1045");
+        txtCodigoFactura.setMin(1);
         txtCodigoFactura.setWidthFull();
         txtCodigoFactura.setAutofocus(true);
 
         TextArea txtMotivo = new TextArea("Motivo de Anulación");
         txtMotivo.setPlaceholder("Ingrese la razón de la anulación...");
+        txtMotivo.setMaxLength(250);
         txtMotivo.setWidthFull();
 
-        layout.add(txtCodigoFactura, txtMotivo);
+        layout.add(aviso, txtCodigoFactura, txtMotivo);
 
-        Button btnAnular = new Button("Confirmar Anulación", VaadinIcon.CLOSE_CIRCLE.create(), e -> {
-            Integer codigoFactura = txtCodigoFactura.getValue();
-            String motivo = txtMotivo.getValue();
+        Button btnAnular = new Button(
+                "Confirmar Anulación",
+                VaadinIcon.CLOSE_CIRCLE.create(),
+                e -> {
 
-            if (codigoFactura == null) {
-                ClaseUtil.mostrarNotificacion("Debe ingresar un número de factura válido.", NotificationVariant.LUMO_WARNING);
-                return;
-            }
+                    Integer codigoFactura = txtCodigoFactura.getValue();
+                    String motivo = txtMotivo.getValue();
 
-            if (motivo == null || motivo.trim().isEmpty()) {
-                ClaseUtil.mostrarNotificacion("Debe especificar el motivo de la anulación.", NotificationVariant.LUMO_WARNING);
-                return;
-            }
+                    if (codigoFactura == null || codigoFactura <= 0) {
 
-            ejecutarAnulacion(codigoFactura, motivo.trim());
-            dialogo.close();
-        });
+                        ClaseUtil.mostrarNotificacion(
+                                "Debe ingresar un número de factura válido.",
+                                NotificationVariant.LUMO_WARNING
+                        );
+
+                        txtCodigoFactura.focus();
+
+                        return;
+                    }
+
+                    if (motivo == null || motivo.trim().isEmpty()) {
+
+                        ClaseUtil.mostrarNotificacion(
+                                "Debe especificar el motivo de la anulación.",
+                                NotificationVariant.LUMO_WARNING
+                        );
+
+                        txtMotivo.focus();
+
+                        return;
+                    }
+
+                    // Solo se cierra si se anuló; si falló, el cajero puede
+                    // corregir el número sin volver a escribir el motivo.
+                    if (ejecutarAnulacion(codigoFactura, motivo.trim())) {
+                        dialogo.close();
+                    }
+                });
+
         btnAnular.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+
+        // Evita doble anulación por doble clic mientras procesa
+        btnAnular.setDisableOnClick(true);
+
+        btnAnular.addClickListener(e -> btnAnular.setEnabled(true));
 
         Button btnCancelar = new Button("Cancelar", e -> dialogo.close());
         btnCancelar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        dialogo.addOpenedChangeListener(event -> {
+
+            if (!event.isOpened()) {
+                enfocarBuscador();
+            }
+        });
 
         dialogo.getFooter().add(btnCancelar, btnAnular);
         dialogo.add(layout);

@@ -17,8 +17,10 @@ import java.util.Optional;
 
 public class TicketVenta {
 
-    private static final DecimalFormat CANTIDAD_FORMAT = new DecimalFormat("#,##0.##");
-    private static final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");
+    // DecimalFormat no es thread-safe: una instancia por ticket en lugar de una
+    // estática compartida entre todas las sesiones.
+    private final DecimalFormat CANTIDAD_FORMAT = new DecimalFormat("#,##0.##");
+    private final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");
     private String id;
     private final int numeroTicket;
     private Cliente cliente;
@@ -165,6 +167,9 @@ public class TicketVenta {
 
         for (DetalleFacturaDeVenta det : items) {
             // Multiplicamos cantidad por precio y acumulamos el resultado en subTotal
+            if (det.getCantidad() == null || det.getPrecioVenta() == null) {
+                continue;
+            }
             BigDecimal totalItem = det.getCantidad().multiply(det.getPrecioVenta());
             subTotal = subTotal.add(totalItem);
         }

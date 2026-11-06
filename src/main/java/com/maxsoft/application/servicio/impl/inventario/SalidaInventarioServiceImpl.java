@@ -12,6 +12,8 @@ import com.maxsoft.application.modelo.DetalleSalidaInventario;
 import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.Merma;
+import com.maxsoft.application.modelo.RecepcionMercancia;
+import com.maxsoft.application.modelo.DetalleRecepcionMercancia;
 import com.maxsoft.application.modelo.SalidaInventario;
 import com.maxsoft.application.modelo.TipoDocumento;
 import com.maxsoft.application.modelo.TipoMovimiento;
@@ -116,9 +118,10 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                         BigDecimal subTotal = costoUnitario.multiply(cantidadSalida);
                         BigDecimal itbis = BigDecimal.ZERO;
                         BigDecimal total = subTotal.add(itbis);
-                        BigDecimal cantidadFisicaBase = detalle.getFactorConversion().multiply(cantidadSalida);
+                        BigDecimal factor = (detalle.getFactorConversion() != null && detalle.getFactorConversion().signum() > 0) ? detalle.getFactorConversion() : BigDecimal.ONE;
+                        BigDecimal cantidadFisicaBase = factor.multiply(cantidadSalida); // UNIDAD BASE
 
-                        ArticuloEmpaque artEmpaq = this.articuloEmpaqueService.getEmpaqueBase(articulo.getCodigo()).get();
+                        ArticuloEmpaque artEmpaq = this.articuloEmpaqueService.getEmpaqueBase(articulo.getCodigo()).orElse(null);
 
                         // LLAMADA CORREGIDA: 13 parámetros según la interfaz MovimientoInventarioService
                         movimientoService.registrarMovimiento(
@@ -489,5 +492,70 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
         return guardar(salida, nombreUsuario);
 
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SalidaInventario crearSalidaPorAnulacionRecepcion(RecepcionMercancia recepcion,
+            List<DetalleRecepcionMercancia> detalles, String usuario, String motivo) {
+
+        Date ahora = new Date();
+        String nombreUsuario = usuario != null && !usuario.isBlank() ? usuario : "SISTEMA";
+
+        SalidaInventario salida = new SalidaInventario();
+        salida.setFecha(ahora);
+        salida.setFechaRegistro(ahora);
+        salida.setFechaContabilizacion(ahora);
+        salida.setTipoDocumento(this.tipoDocumentoService.getTipoDocumento(9)); // Recepción de mercancía
+        salida.setNumeroDocumento("ANU-REC-" + recepcion.getCodigo());
+        salida.setUsuario(new Usuario(1));
+        salida.setNombreUsuario(nombreUsuario);
+        salida.setAnulada(false);
+        salida.setObservacion("Salida por anulación de Recepción de Mercancía #" + recepcion.getCodigo()
+                + (motivo != null && !motivo.isBlank() ? ". Motivo: " + motivo.trim() : ""));
+
+        List<DetalleSalidaInventario> detallesSalida = new ArrayList<>();
+
+        for (DetalleRecepcionMercancia det : detalles) {
+
+            if (det.getArticulo() == null || det.getCantidadRecibida() == null
+                    || det.getCantidadRecibida().signum() <= 0) {
+                continue;
+            }
+
+            BigDecimal factor = det.getFactorConversion() != null && det.getFactorConversion().signum() > 0
+                    ? det.getFactorConversion() : BigDecimal.ONE;
+            Almacen almacen = det.getAlmacen() != null ? det.getAlmacen() : recepcion.getAlmacen();
+
+            BigDecimal stockActual = (almacen != null)
+                    ? this.articuloAlmacenService.buscarPorArticuloYAlmacen(det.getArticulo().getCodigo(), almacen.getCodigo())
+                            .map(ArticuloAlmacen::getExistencia).orElse(BigDecimal.ZERO)
+                    : BigDecimal.ZERO;
+
+            DetalleSalidaInventario detSalida = new DetalleSalidaInventario();
+            detSalida.setSalidaInventario(salida);
+            detSalida.setArticulo(det.getArticulo());
+            detSalida.setArticuloEmpaque(det.getArticuloEmpaque());
+            detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
+            detSalida.setAlmacen(almacen);
+            detSalida.setCantidad(det.getCantidadRecibida());
+            detSalida.setFactorConversion(factor);
+            detSalida.setCantidadFisicaBase(det.getCantidadRecibida().multiply(factor));
+            detSalida.setExistenciaAnterior(stockActual);
+            detSalida.setExistencia(stockActual);
+            if (det.getArticuloEmpaque() != null) {
+                detSalida.setUnidad(det.getArticuloEmpaque().getUnidadEmpaque());
+            }
+            // Se valora al mismo precio con que entró
+            BigDecimal costo = det.getPrecioUnitario() != null ? det.getPrecioUnitario() : BigDecimal.ZERO;
+            detSalida.setCostoUnitario(costo);
+            detSalida.setPrecioCompra(costo);
+            detSalida.setPrecioVenta(BigDecimal.ZERO);
+
+            detallesSalida.add(detSalida);
+        }
+
+        salida.setDetalleSalidaInventarioCollection(detallesSalida);
+        return guardar(salida, nombreUsuario);
     }
 }

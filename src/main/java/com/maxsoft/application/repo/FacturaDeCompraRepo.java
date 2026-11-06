@@ -16,7 +16,9 @@ import org.springframework.data.repository.query.Param;
  * @author maximilianoalmonte
  */
 public interface FacturaDeCompraRepo extends JpaRepository<FacturaDeCompra, Integer>{
-    
+
+    List<FacturaDeCompra> findByRecepcionMercanciaCodigo(Integer recepcion);
+
         
     String strDet = "  select * from  detalle_factura_de_compra o where factura_de_compra=:obj ";
 

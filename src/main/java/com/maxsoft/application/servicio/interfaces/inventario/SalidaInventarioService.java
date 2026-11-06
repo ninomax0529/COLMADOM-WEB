@@ -47,4 +47,8 @@ public interface SalidaInventarioService {
     SalidaInventario crearSalidaPorTraslado(TrasladoInventario traslado, List<DetalleTrasladoInventario> detalles);
         
     SalidaInventario crearSalidaPorMerma(Merma merma, List<DetalleMerma> detalles);
+
+    /** Saca del inventario lo que entró con una recepción que se está anulando. */
+    SalidaInventario crearSalidaPorAnulacionRecepcion(com.maxsoft.application.modelo.RecepcionMercancia recepcion,
+            List<com.maxsoft.application.modelo.DetalleRecepcionMercancia> detalles, String usuario, String motivo);
 }

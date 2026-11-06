@@ -48,11 +48,8 @@ public class FacturaDeVenta implements Serializable {
     @Size(max = 60)
     @Column(name = "nombre_delivery")
     private String nombreDelivery;
-    @Column(name = "fecha_actualizacion")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaActualizacion;
     @Lob()
-    @Size(max = 65535)
+    @Size(max = 5535)
     @Column(name = "comentario")
     private String comentario;
     @Size(max = 80)
@@ -64,6 +61,9 @@ public class FacturaDeVenta implements Serializable {
     @Size(max = 45)
     @Column(name = "direccion")
     private String direccion;
+    @Column(name = "fecha_actualizacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaActualizacion;
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "factura")
     private DetalleLiquidacionDelivery detalleLiquidacionDelivery;
     @OneToMany(mappedBy = "factura")
@@ -113,6 +113,9 @@ public class FacturaDeVenta implements Serializable {
     private BigDecimal totalPagado;
     @Column(name = "total_pendiente")
     private BigDecimal totalPendiente;
+    /** Monto acumulado de devoluciones (a precio de venta). Pendiente = total - devuelto - pagado. */
+    @Column(name = "total_devuelto")
+    private BigDecimal totalDevuelto = BigDecimal.ZERO;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "factura")
     private Collection<DetalleFacturaDeVenta> detalleFacturaDeVentaCollection;
     @JoinColumn(name = "cliente", referencedColumnName = "codigo")
@@ -312,6 +315,14 @@ public class FacturaDeVenta implements Serializable {
         this.totalPendiente = totalPendiente;
     }
 
+    public BigDecimal getTotalDevuelto() {
+        return totalDevuelto != null ? totalDevuelto : BigDecimal.ZERO;
+    }
+
+    public void setTotalDevuelto(BigDecimal totalDevuelto) {
+        this.totalDevuelto = totalDevuelto;
+    }
+
 
     public Collection<DetalleFacturaDeVenta> getDetalleFacturaDeVentaCollection() {
         return detalleFacturaDeVentaCollection;
@@ -387,13 +398,6 @@ public class FacturaDeVenta implements Serializable {
         this.detalleReciboDeIngresoCollection = detalleReciboDeIngresoCollection;
     }
 
-    public String getNcf() {
-        return ncf;
-    }
-
-    public void setNcf(String ncf) {
-        this.ncf = ncf;
-    }
 
     public Date getFechaActualizacion() {
         return fechaActualizacion;
@@ -401,6 +405,23 @@ public class FacturaDeVenta implements Serializable {
 
     public void setFechaActualizacion(Date fechaActualizacion) {
         this.fechaActualizacion = fechaActualizacion;
+    }
+
+
+    public DetalleLiquidacionDelivery getDetalleLiquidacionDelivery() {
+        return detalleLiquidacionDelivery;
+    }
+
+    public void setDetalleLiquidacionDelivery(DetalleLiquidacionDelivery detalleLiquidacionDelivery) {
+        this.detalleLiquidacionDelivery = detalleLiquidacionDelivery;
+    }
+
+    public String getNcf() {
+        return ncf;
+    }
+
+    public void setNcf(String ncf) {
+        this.ncf = ncf;
     }
 
     public String getComentario() {
@@ -417,14 +438,6 @@ public class FacturaDeVenta implements Serializable {
 
     public void setDireccion(String direccion) {
         this.direccion = direccion;
-    }
-
-    public DetalleLiquidacionDelivery getDetalleLiquidacionDelivery() {
-        return detalleLiquidacionDelivery;
-    }
-
-    public void setDetalleLiquidacionDelivery(DetalleLiquidacionDelivery detalleLiquidacionDelivery) {
-        this.detalleLiquidacionDelivery = detalleLiquidacionDelivery;
     }
     
 }

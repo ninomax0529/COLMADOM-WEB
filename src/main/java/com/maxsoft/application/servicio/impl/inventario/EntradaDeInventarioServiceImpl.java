@@ -3,6 +3,7 @@ package com.maxsoft.application.servicio.impl.inventario;
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
 import com.maxsoft.application.modelo.*;
 import com.maxsoft.application.repo.ArticuloEmpaqueRepo;
+import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.repo.EntradaDeInventarioRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.*;
 
@@ -11,10 +12,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioService {
@@ -26,6 +30,9 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
     private final ArticuloAlmacenService articuloAlmacenService;
     ArticuloEmpaqueService articuloEmpaqueService;
     ArticuloEmpaqueRepo articuloEmpaqueRepo;
+    private final ArticuloRepo articuloRepo;
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EntradaDeInventarioServiceImpl.class);
 
     @Autowired
     public EntradaDeInventarioServiceImpl(
@@ -35,8 +42,10 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
             TipoDocumentoService tipoDocumentoService,
             ArticuloAlmacenService articuloAlmacenService,
             ArticuloEmpaqueService articuloEmpaqueService,
-            ArticuloEmpaqueRepo articuloEmpaqueRepo
+            ArticuloEmpaqueRepo articuloEmpaqueRepo,
+            ArticuloRepo articuloRepo
     ) {
+        this.articuloRepo = articuloRepo;
         this.entradaRepo = entradaRepo;
         this.movimientoService = movimientoService;
         this.tipoMovimientoService = tipoMovimientoService;
@@ -85,7 +94,7 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                         : new Almacen(1);
 
                 ArticuloEmpaque artEmpaque = this.articuloEmpaqueService
-                        .getEmpaqueBase(articulo.getCodigo()).get();
+                        .getEmpaqueBase(articulo.getCodigo()).orElse(null);
 
                 BigDecimal cantidadEntrante = detalle.getCantidadRecibida() != null
                         ? detalle.getCantidadRecibida()
@@ -102,7 +111,10 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                     BigDecimal itbis = BigDecimal.ZERO; // Ajustar si calculas ITBIS en el detalle
                     BigDecimal total = subTotal.add(itbis);
 
-                    BigDecimal cantidadFisicaBase = detalle.getCantidadRecibida().multiply(detalle.getFactorConversion());
+                    BigDecimal factor = detalle.getFactorConversion() != null
+                            && detalle.getFactorConversion().signum() > 0
+                            ? detalle.getFactorConversion() : BigDecimal.ONE;
+                    BigDecimal cantidadFisicaBase = cantidadEntrante.multiply(factor); // UNIDAD BASE
 
                     // LLAMADA CORREGIDA CON LOS 13 PARÁMETROS DE LA INTERFAZ:
                     movimientoService.registrarMovimiento(
@@ -165,24 +177,41 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                         .filter(d -> d.getCodigo() != null && d.getCodigo()
                         .equals(itemDev.getIdDetalleFactura()))
                         .findFirst()
-                        .orElse(null);
+                        .orElseThrow(() -> new IllegalArgumentException(
+                        "El detalle " + itemDev.getIdDetalleFactura() + " no pertenece a la factura #" + factura.getCodigo()));
 
-                // 3. Validar que exista el detalle y el artículo sea inventariable
-//                if (det != null && det.getArticulo() != null   && Boolean.TRUE.equals(det.getArticulo().getInventariable())) {
-                // Convertir cantidad de forma segura según su tipo
+                if (det.getArticulo() == null) {
+                    throw new IllegalStateException("La línea " + det.getCodigo() + " de la factura no tiene artículo.");
+                }
+                if (det.getAlmacen() == null) {
+                    throw new IllegalStateException("La línea de " + det.getArticulo().getDescripcion()
+                            + " no tiene almacén; no se puede reingresar al inventario.");
+                }
+
+                // Cantidad devuelta en la unidad vendida (empaque) y su equivalente en unidad base
                 BigDecimal cantidad = itemDev.getCantidadADevolver() != null
                         ? new BigDecimal(itemDev.getCantidadADevolver().toString())
                         : BigDecimal.ZERO;
+                BigDecimal factor = det.getFactorConversion() != null && det.getFactorConversion().signum() > 0
+                        ? det.getFactorConversion() : BigDecimal.ONE;
+                BigDecimal cantidadBase = cantidad.multiply(factor);
+
+                // Importes proporcionales a lo devuelto (no los de la línea completa)
+                BigDecimal proporcion = det.getCantidad() != null && det.getCantidad().signum() > 0
+                        ? cantidad.divide(det.getCantidad(), 8, java.math.RoundingMode.HALF_UP) : BigDecimal.ONE;
+                BigDecimal itbis = escalar(det.getTotalItbis(), proporcion);
+                BigDecimal subTotal = escalar(det.getSubTotal(), proporcion);
+                BigDecimal total = escalar(det.getTotal(), proporcion);
 
                 DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
                         entrada,
                         det.getArticulo(),
                         det.getArticuloEmpaque(),
-                        det.getFactorConversion(),
-                        det.getCantidadFisicaBase(),
-                        det.getTotalItbis(),
-                        det.getSubTotal(),
-                        det.getTotal(),
+                        factor,
+                        cantidadBase,
+                        itbis,
+                        subTotal,
+                        total,
                         cantidad,
                         det.getArticulo().getExistencia(),
                         det.getAlmacen(),
@@ -198,8 +227,10 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                 detEntrada.setPrecioVenta(precio);
 
                 detallesList.add(detEntrada);
-//                }
             }
+        }
+        if (detallesList.isEmpty()) {
+            throw new IllegalArgumentException("La devolución no tiene artículos.");
         }
 
         // 4. Asignar lista de detalles a la cabecera y guardar
@@ -294,6 +325,10 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
 
         EntradaInventario entrada = inicializarCabeceraBase(9, "REC-" + recepcion.getCodigo(), usuario, comentario);
 
+        // El costo se recalcula ANTES de mover el stock: el promedio necesita la
+        // existencia que había antes de esta compra.
+        actualizarCostoPromedio(detalles);
+
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
 
         for (DetalleRecepcionMercancia det : detalles) {
@@ -318,6 +353,12 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                     det.getAlmacen().getNombre(),
                     det.getNombreUnidad()
             );
+
+            // La entrada se valora al precio pagado en esta compra (por unidad del documento)
+            if (det.getPrecioUnitario() != null) {
+                detEntrada.setCostoUnitario(det.getPrecioUnitario());
+                detEntrada.setPrecioCompra(det.getPrecioUnitario());
+            }
 
             detallesEntrada.add(detEntrada);
 //            }
@@ -376,6 +417,71 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         return guardar(entrada, entrada.getNombreUsuario());
     }
 
+    /**
+     * Costo promedio ponderado por unidad base:
+     * (existencia × costo actual + cantidad comprada × costo de compra) / (existencia + cantidad comprada).
+     * Si la existencia es cero o negativa, o el artículo no tenía costo, queda el costo de la compra.
+     * Se agrupa por artículo por si la misma recepción trae varias líneas (o empaques) del mismo.
+     * Luego se actualiza el costo de cada empaque = costo base × factor.
+     */
+    private void actualizarCostoPromedio(List<DetalleRecepcionMercancia> detalles) {
+
+        // artículo -> [cantidad base comprada, costo total de la compra]
+        Map<Integer, BigDecimal[]> compraPorArticulo = new LinkedHashMap<>();
+
+        for (DetalleRecepcionMercancia det : detalles) {
+            if (det.getArticulo() == null || det.getPrecioUnitario() == null
+                    || det.getCantidadRecibida() == null || det.getCantidadRecibida().signum() <= 0) {
+                continue;
+            }
+            BigDecimal factor = det.getFactorConversion() != null && det.getFactorConversion().signum() > 0
+                    ? det.getFactorConversion() : BigDecimal.ONE;
+            BigDecimal cantidadBase = det.getCantidadRecibida().multiply(factor);
+            BigDecimal costoTotal = det.getCantidadRecibida().multiply(det.getPrecioUnitario());
+
+            compraPorArticulo.merge(det.getArticulo().getCodigo(),
+                    new BigDecimal[]{cantidadBase, costoTotal},
+                    (a, b) -> new BigDecimal[]{a[0].add(b[0]), a[1].add(b[1])});
+        }
+
+        for (Map.Entry<Integer, BigDecimal[]> e : compraPorArticulo.entrySet()) {
+
+            Articulo articulo = articuloRepo.findById(e.getKey()).orElse(null);
+            if (articulo == null) {
+                continue;
+            }
+            BigDecimal cantidadComprada = e.getValue()[0];
+            BigDecimal costoCompraTotal = e.getValue()[1];
+            BigDecimal costoCompraBase = costoCompraTotal.divide(cantidadComprada, 4, RoundingMode.HALF_UP);
+
+            BigDecimal existencia = articulo.getExistencia() != null
+                    ? articulo.getExistencia().max(BigDecimal.ZERO) : BigDecimal.ZERO;
+            BigDecimal costoActual = articulo.getPrecioCompra();
+
+            BigDecimal nuevoCosto;
+            if (existencia.signum() == 0 || costoActual == null || costoActual.signum() <= 0) {
+                nuevoCosto = costoCompraBase;
+            } else {
+                nuevoCosto = existencia.multiply(costoActual).add(costoCompraTotal)
+                        .divide(existencia.add(cantidadComprada), 4, RoundingMode.HALF_UP);
+            }
+
+            log.info("Costo promedio artículo {} ({}): existencia {} a {} + compra {} a {} => {}",
+                    articulo.getCodigo(), articulo.getDescripcion(), existencia, costoActual,
+                    cantidadComprada, costoCompraBase, nuevoCosto);
+
+            articulo.setPrecioCompra(nuevoCosto.setScale(2, RoundingMode.HALF_UP));
+            articuloRepo.save(articulo);
+
+            for (ArticuloEmpaque emp : articuloEmpaqueRepo.findByArticuloCodigo(articulo.getCodigo())) {
+                BigDecimal factor = emp.getFactorConversion() != null && emp.getFactorConversion().signum() > 0
+                        ? emp.getFactorConversion() : BigDecimal.ONE;
+                emp.setPrecioCompra(nuevoCosto.multiply(factor).setScale(2, RoundingMode.HALF_UP));
+                articuloEmpaqueRepo.save(emp);
+            }
+        }
+    }
+
     // --- Métodos Helper ---
     private EntradaInventario inicializarCabeceraBase(Integer tipoDocumento, String numDocumento, String usuario, String comentario) {
         EntradaInventario entrada = new EntradaInventario();
@@ -396,16 +502,20 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         return entrada;
     }
 
+    private static BigDecimal escalar(BigDecimal valor, BigDecimal proporcion) {
+        return valor == null ? BigDecimal.ZERO : valor.multiply(proporcion).setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
     private DetalleEntradaInventario buildDetalleEntradaBase(
             EntradaInventario entrada,
             Articulo articulo,
             ArticuloEmpaque articuloEmpaque,
             BigDecimal factorConversion,
-            BigDecimal cantidadEmpaque,
+            BigDecimal cantidadEmpaque, // cantidad en UNIDAD BASE
+            BigDecimal itbis, // todos los llamadores pasan (itbis, subTotal, total)
             BigDecimal subTotal,
-            BigDecimal itbis,
             BigDecimal total,
-            BigDecimal cantidadRecibida,
+            BigDecimal cantidadRecibida, // cantidad en la unidad del documento
             BigDecimal stockActual,
             Almacen almacen,
             String nombreAlmacen,
@@ -426,7 +536,11 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         detEntrada.setExistenciaActual(actual);
         detEntrada.setCantidadPedida(BigDecimal.ZERO);
         detEntrada.setCantidadPendiente(BigDecimal.ZERO);
-        detEntrada.setNuevaExistencia(actual.add(cantidadRecibida));
+        // La existencia está en unidad base: se suma la cantidad base, no la del empaque
+        BigDecimal base = cantidadEmpaque != null ? cantidadEmpaque
+                : (cantidadRecibida != null && factorConversion != null
+                        ? cantidadRecibida.multiply(factorConversion) : BigDecimal.ZERO);
+        detEntrada.setNuevaExistencia(actual.add(base));
         detEntrada.setNombreAlmacen(nombreAlmacen);
         detEntrada.setNombreUnidad(nombreUnidad);
         detEntrada.setUnidad(articuloEmpaque.getUnidadEmpaque());

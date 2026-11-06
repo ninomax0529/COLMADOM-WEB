@@ -30,6 +30,9 @@ public interface FacturaDeCompraService {
 
     FacturaDeCompra anularFactura(Integer idFactura, String motivoAnulacion);
 
+    /** Facturas de compra generadas por una recepción de mercancía. */
+    List<FacturaDeCompra> getFacturasDeRecepcion(Integer recepcion);
+
     List<FacturaDeCompra> getListaFactPendiente(int codPro);
 
 }

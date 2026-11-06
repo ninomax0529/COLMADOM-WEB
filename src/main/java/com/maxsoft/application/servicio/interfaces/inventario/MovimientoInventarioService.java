@@ -34,7 +34,10 @@ public interface MovimientoInventarioService {
      * @param tipoDocumento "COMPRA", "VENTA", "AJUSTE_INVENTARIO",
      * "SALIDA_INVENTARIO", etc.
      * @param numeroDoc Correlativo o número de documento
-     * @param cantidad Cantidad a mover (debe ser mayor a 0)
+     * @param cantidad Cantidad en la unidad del documento (cajas, fardos...),
+     * solo informativa. El stock se mueve y se valida con
+     * {@code cantidadEmpaque}, que debe venir en UNIDAD BASE
+     * (cantidad del documento x factor de conversión) y ser mayor a 0.
      * @param usuario Usuario que ejecuta la transacción
      * @param observacion Detalle o razón del movimiento
      * @return El registro de MovimientoInventario guardado

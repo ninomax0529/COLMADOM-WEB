@@ -45,7 +45,8 @@ public class PanelProductos extends VerticalLayout {
     private static final String IMAGEN_POR_DEFECTO
             = "https://images.unsplash.com/photo-1528825871115-3581a5387919?w=300&auto=format&fit=crop&q=60";
 
-    private static final DecimalFormat FORMATO_PRECIO = new DecimalFormat("#,##0.00");
+    // DecimalFormat no es thread-safe: instancia propia, no estática compartida
+    private final DecimalFormat FORMATO_PRECIO = new DecimalFormat("#,##0.00");
 
     private ComboBox<ArticuloEmpaque> searchBox;
     FacturaDeVentaService facturaDeVentaService;
@@ -55,6 +56,12 @@ public class PanelProductos extends VerticalLayout {
     private final Div gridContainer = new Div();
     private final Button btnMostrarMas = new Button();
     private int tarjetasCargadas = 0;
+
+    // Botones de caja: se muestran u ocultan según el estado de la caja
+    // (ver actualizarEstadoCaja)
+    private Button btnAbrirCaja;
+    private Button btnCerrarCaja;
+    private Button btnMovimientoPos;
 
     private final BiConsumer<ArticuloEmpaque, BigDecimal> onAgregarCantidadAlTicketActivo;
     private final Consumer<ArticuloEmpaque> onAbrirVentaPorMonto;
@@ -85,21 +92,21 @@ public class PanelProductos extends VerticalLayout {
         searchBox = crearBuscador();
 
         // Botones de Gestión de Caja
-        Button btnCerrarCaja = new Button("Cerrar Caja", VaadinIcon.LOCK.create(), e -> {
+        btnCerrarCaja = new Button("Cerrar Caja", VaadinIcon.LOCK.create(), e -> {
             if (onAbrirCierreCaja != null) {
                 onAbrirCierreCaja.run();
             }
         });
         btnCerrarCaja.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
 
-        Button btnAbrirCaja = new Button("Abrir Caja", VaadinIcon.UNLOCK.create(), e -> {
+        btnAbrirCaja = new Button("Abrir Caja", VaadinIcon.UNLOCK.create(), e -> {
             if (onAbrirAperturaCaja != null) {
                 onAbrirAperturaCaja.run();
             }
         });
         btnAbrirCaja.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_SUCCESS);
 
-        Button btnMovimientoPos = new Button("Movimiento POS", VaadinIcon.CREDIT_CARD.create(), e -> {
+        btnMovimientoPos = new Button("Movimiento POS", VaadinIcon.CREDIT_CARD.create(), e -> {
             try {
                 if (onAbrirMovimientoPos != null) {
                     onAbrirMovimientoPos.run();
@@ -111,14 +118,19 @@ public class PanelProductos extends VerticalLayout {
 
         btnMovimientoPos.addThemeVariants(ButtonVariant.LUMO_SMALL);
 
-        Button btnDevolucion = new Button("Devolución", new Icon(VaadinIcon.ABACUS));
-        btnDevolucion.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_CONTRAST);
+        // Mismo estilo que "Movimiento POS": antes era negro sólido y resaltaba
+        // más que cualquier otra acción de la pantalla.
+        Button btnDevolucion = new Button("Devolución", new Icon(VaadinIcon.ARROW_BACKWARD));
+        btnDevolucion.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        btnDevolucion.setTooltipText("Devolver productos de una factura");
 
         // Evento de clic
         btnDevolucion.addClickListener(e -> abrirModalBuscarFactura());
 
-        HorizontalLayout cajaButtonsLayout = new HorizontalLayout(btnAbrirCaja, btnMovimientoPos, btnCerrarCaja, btnDevolucion);
+        // Orden: acciones del día a día primero, cerrar caja al final
+        HorizontalLayout cajaButtonsLayout = new HorizontalLayout(btnAbrirCaja, btnMovimientoPos, btnDevolucion, btnCerrarCaja);
         cajaButtonsLayout.setSpacing(true);
+        cajaButtonsLayout.setAlignItems(FlexComponent.Alignment.CENTER);
         // Los botones pasan a otra línea en pantallas angostas
         cajaButtonsLayout.getStyle().set("flex-wrap", "wrap");
 
@@ -153,6 +165,9 @@ public class PanelProductos extends VerticalLayout {
         contenidoCatalogo.setPadding(false);
         contenidoCatalogo.setSpacing(true);
         contenidoCatalogo.setAlignItems(FlexComponent.Alignment.CENTER);
+        // Margen inferior: la última fila de tarjetas se ve completa al
+        // llegar al final del scroll (antes quedaba cortada contra el borde).
+        contenidoCatalogo.getStyle().set("padding-bottom", "var(--lumo-space-l)");
 
         Div scrollCatalogo = new Div(contenidoCatalogo);
         scrollCatalogo.setWidthFull();
@@ -269,6 +284,18 @@ public class PanelProductos extends VerticalLayout {
     // Método para permitir enfocar el buscador externamente si es necesario
     public ComboBox<ArticuloEmpaque> getSearchBox() {
         return searchBox;
+    }
+
+    /**
+     * Ajusta los botones de caja al estado real del turno: con la caja abierta
+     * se oculta "Abrir Caja"; sin caja se oculta "Cerrar Caja" y se desactivan
+     * los movimientos. La vista del POS lo llama cada vez que cambia el estado.
+     */
+    public void actualizarEstadoCaja(boolean cajaAbierta) {
+
+        btnAbrirCaja.setVisible(!cajaAbierta);
+        btnCerrarCaja.setVisible(cajaAbierta);
+        btnMovimientoPos.setEnabled(cajaAbierta);
     }
 
     // ============================================================

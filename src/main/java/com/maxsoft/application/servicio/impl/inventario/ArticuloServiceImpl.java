@@ -30,6 +30,9 @@ public class ArticuloServiceImpl implements ArticuloService {
     ArticuloRepo repo;
     @Autowired
     ArticuloEmpaqueRepo articuloEmpaqueRepo;
+
+    @Autowired
+    com.maxsoft.application.repo.ArticuloAlmacenRepo articuloAlmacenRepo;
     @Autowired
     AlmacenService almacenService;
 
@@ -152,6 +155,22 @@ public class ArticuloServiceImpl implements ArticuloService {
 
             }
         }
+
+        // La existencia solo la cambian los movimientos de inventario. Al editar la
+        // ficha se conserva la de la BD (la pantalla puede traer un valor viejo si
+        // hubo ventas o compras mientras estaba abierta), y la existencia general
+        // es siempre la suma de los almacenes.
+        BigDecimal existenciaTotal = BigDecimal.ZERO;
+        for (ArticuloAlmacen itemAlmacen : listaAlmacenes) {
+            if (itemAlmacen.getCodigo() != null) {
+                articuloAlmacenRepo.findById(itemAlmacen.getCodigo())
+                        .ifPresent(bd -> itemAlmacen.setExistencia(bd.getExistencia()));
+            }
+            if (itemAlmacen.getExistencia() != null) {
+                existenciaTotal = existenciaTotal.add(itemAlmacen.getExistencia());
+            }
+        }
+        articulo.setExistencia(existenciaTotal);
 
         // 🔥 Asignación directa mediante la colección del Artículo
         articulo.setArticuloAlmacenCollection(listaAlmacenes);

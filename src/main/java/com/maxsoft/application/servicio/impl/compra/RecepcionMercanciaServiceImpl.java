@@ -12,6 +12,15 @@ import com.maxsoft.application.modelo.OrdenDeCompra;
 import com.maxsoft.application.modelo.RecepcionMercancia;
 import com.maxsoft.application.modelo.ReciboDeEgreso;
 import com.maxsoft.application.modelo.ReciboDeIngreso;
+import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.ArticuloEmpaque;
+import com.maxsoft.application.modelo.EstadoDocumento;
+import com.maxsoft.application.repo.ArticuloEmpaqueRepo;
+import com.maxsoft.application.repo.ArticuloRepo;
+import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
+import java.math.RoundingMode;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import com.maxsoft.application.repo.RecepcionMercanciaRepo;
 import com.maxsoft.application.servicio.interfaces.compra.OrdenDeCompraService;
 import com.maxsoft.application.servicio.interfaces.compra.RecepcionMercanciaService;
@@ -36,6 +45,15 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
     FacturaDeCompraService facturaDeCompraService;
     ReciboDeEgresoService reciboDeEgresoService;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private ArticuloEmpaqueRepo articuloEmpaqueRepo;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private ArticuloRepo articuloRepo;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private SalidaInventarioService salidaInventarioService;
+
     public RecepcionMercanciaServiceImpl(RecepcionMercanciaRepo recepcionRepo,
             ArticuloService articuloService,
             OrdenDeCompraService ordenCompraService,
@@ -50,6 +68,188 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
         this.facturaDeCompraService = facturaDeCompraService;
         this.reciboDeEgresoService=reciboDeEgresoService;
 
+    }
+
+    // =====================================================================
+    // ANULACIÓN
+    // =====================================================================
+    private static final int ESTADO_DOCUMENTO_ANULADO = 4;
+
+    /**
+     * Reversa todo lo que hizo procesarRecepcion, en orden inverso:
+     * 1) anula los recibos de egreso de su factura (si era de contado, el
+     *    efectivo vuelve a la caja), 2) anula la factura de compra, 3) revierte
+     *    el costo promedio, 4) saca la mercancía del inventario, 5) devuelve
+     *    lo recibido a la orden de compra y 6) marca la recepción como anulada.
+     * Si algo falla (p. ej. ya se vendió parte de la mercancía), no se cambia nada.
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public RecepcionMercancia anularRecepcion(Integer codigo, String motivo, String usuario) {
+
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException("Indique el motivo de la anulación.");
+        }
+        String nombreUsuario = usuario != null && !usuario.isBlank() ? usuario : "Admin";
+
+        RecepcionMercancia rec = recepcionRepo.findById(codigo)
+                .orElseThrow(() -> new IllegalArgumentException("La recepción #" + codigo + " no existe."));
+        if (rec.getEstadoDocumento() != null
+                && (Integer.valueOf(ESTADO_DOCUMENTO_ANULADO).equals(rec.getEstadoDocumento().getCodigo())
+                || (rec.getEstadoDocumento().getNombre() != null
+                && rec.getEstadoDocumento().getNombre().toLowerCase().contains("anul")))) {
+            throw new IllegalStateException("La recepción #" + codigo + " ya está anulada.");
+        }
+
+        List<DetalleRecepcionMercancia> detalle = recepcionRepo.getDetalle(codigo);
+
+        // 1 y 2. Pagos y factura de compra
+        for (FacturaDeCompra fact : facturaDeCompraService.getFacturasDeRecepcion(codigo)) {
+            if (Boolean.TRUE.equals(fact.getAnulada())) {
+                continue;
+            }
+            for (ReciboDeEgreso recibo : reciboDeEgresoService.getRecibosVigentesDeFactura(fact.getCodigo())) {
+                if (reciboDeEgresoService.pagaOtrasFacturas(recibo.getCodigo(), fact.getCodigo())) {
+                    throw new IllegalStateException("El recibo de egreso #" + recibo.getCodigo()
+                            + " también paga otras facturas. Anúlelo manualmente antes de anular la recepción.");
+                }
+                reciboDeEgresoService.anularReciboDeEgreso(recibo.getCodigo(),
+                        "Anulación de recepción #" + codigo + ": " + motivo, nombreUsuario);
+            }
+            facturaDeCompraService.anularFactura(fact.getCodigo(), "Anulación de recepción #" + codigo + ": " + motivo);
+        }
+
+        // 3. Costo promedio (antes de sacar el stock: la fórmula usa la existencia actual)
+        revertirCostoPromedio(detalle);
+
+        // 4. Inventario
+        salidaInventarioService.crearSalidaPorAnulacionRecepcion(rec, detalle, nombreUsuario, motivo);
+
+        // 5. Orden de compra
+        revertirOrdenDeCompra(rec, detalle);
+
+        // 6. Recepción
+        rec.setEstadoDocumento(new EstadoDocumento(ESTADO_DOCUMENTO_ANULADO));
+        rec.setNombreEstado("Anulada");
+        String nota = "ANULADA por " + nombreUsuario + ": " + motivo.trim();
+        String comentario = rec.getComentario() != null ? rec.getComentario() + " | " + nota : nota;
+        rec.setComentario(comentario.length() > 250 ? comentario.substring(0, 250) : comentario);
+        return recepcionRepo.save(rec);
+    }
+
+    /**
+     * Inverso del costo promedio de la compra:
+     * costo anterior = (existencia × costo actual − costo de la compra) / (existencia − cantidad comprada).
+     * Si sin esta compra no queda existencia, el costo se deja como está.
+     */
+    private void revertirCostoPromedio(List<DetalleRecepcionMercancia> detalles) {
+
+        Map<Integer, BigDecimal[]> compraPorArticulo = new LinkedHashMap<>();
+        for (DetalleRecepcionMercancia det : detalles) {
+            if (det.getArticulo() == null || det.getPrecioUnitario() == null
+                    || det.getCantidadRecibida() == null || det.getCantidadRecibida().signum() <= 0) {
+                continue;
+            }
+            BigDecimal factor = det.getFactorConversion() != null && det.getFactorConversion().signum() > 0
+                    ? det.getFactorConversion() : BigDecimal.ONE;
+            compraPorArticulo.merge(det.getArticulo().getCodigo(),
+                    new BigDecimal[]{det.getCantidadRecibida().multiply(factor),
+                        det.getCantidadRecibida().multiply(det.getPrecioUnitario())},
+                    (a, b) -> new BigDecimal[]{a[0].add(b[0]), a[1].add(b[1])});
+        }
+
+        for (Map.Entry<Integer, BigDecimal[]> e : compraPorArticulo.entrySet()) {
+            Articulo articulo = articuloRepo.findById(e.getKey()).orElse(null);
+            if (articulo == null || articulo.getPrecioCompra() == null || articulo.getExistencia() == null) {
+                continue;
+            }
+            BigDecimal cantidad = e.getValue()[0];
+            BigDecimal costoCompra = e.getValue()[1];
+            BigDecimal existenciaSinCompra = articulo.getExistencia().subtract(cantidad);
+            if (existenciaSinCompra.signum() <= 0) {
+                continue;
+            }
+            BigDecimal costoAnterior = articulo.getExistencia().multiply(articulo.getPrecioCompra())
+                    .subtract(costoCompra)
+                    .divide(existenciaSinCompra, 4, RoundingMode.HALF_UP);
+            if (costoAnterior.signum() <= 0) {
+                continue;
+            }
+            articulo.setPrecioCompra(costoAnterior.setScale(2, RoundingMode.HALF_UP));
+            articuloRepo.save(articulo);
+
+            for (ArticuloEmpaque emp : articuloEmpaqueRepo.findByArticuloCodigo(articulo.getCodigo())) {
+                BigDecimal factor = emp.getFactorConversion() != null && emp.getFactorConversion().signum() > 0
+                        ? emp.getFactorConversion() : BigDecimal.ONE;
+                emp.setPrecioCompra(costoAnterior.multiply(factor).setScale(2, RoundingMode.HALF_UP));
+                articuloEmpaqueRepo.save(emp);
+            }
+        }
+    }
+
+    /** Devuelve a la orden de compra lo que esta recepción había recibido. */
+    private void revertirOrdenDeCompra(RecepcionMercancia rec, List<DetalleRecepcionMercancia> detalles) {
+
+        if (rec.getOrdenCompra() == null) {
+            return;
+        }
+        OrdenDeCompra orden = this.ordenCompraService.buscarPorCodigo(rec.getOrdenCompra().getCodigo()).orElse(null);
+        if (orden == null || orden.getDetalleOrdendeDeCompraCollection() == null) {
+            return;
+        }
+
+        for (DetalleRecepcionMercancia det : detalles) {
+            DetalleOrdendeDeCompra linea = buscarLineaOrden(orden, det);
+            BigDecimal recibida = det.getCantidadRecibida() != null ? det.getCantidadRecibida() : BigDecimal.ZERO;
+            BigDecimal recibidaAntes = linea.getCantidadRecibida() != null ? linea.getCantidadRecibida() : BigDecimal.ZERO;
+            BigDecimal pendiente = linea.getPendiente() != null ? linea.getPendiente() : BigDecimal.ZERO;
+
+            linea.setCantidadRecibida(recibidaAntes.subtract(recibida).max(BigDecimal.ZERO));
+            BigDecimal nuevoPendiente = pendiente.add(recibida);
+            if (linea.getCantidad() != null) {
+                nuevoPendiente = nuevoPendiente.min(linea.getCantidad());
+            }
+            linea.setPendiente(nuevoPendiente);
+        }
+
+        if (!"ANULADA".equalsIgnoreCase(orden.getEstado())) {
+            boolean nadaRecibido = orden.getDetalleOrdendeDeCompraCollection().stream()
+                    .allMatch(l -> l.getCantidadRecibida() == null || l.getCantidadRecibida().signum() <= 0);
+            orden.setEstado(nadaRecibido ? "PENDIENTE" : "PARCIAL");
+            orden.setCompletada("NO");
+        }
+        this.ordenCompraService.guardar(orden);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> empaquesVendiendoConPerdida(java.util.Collection<Integer> articulos) {
+
+        List<String> alertas = new java.util.ArrayList<>();
+        if (articulos == null) {
+            return alertas;
+        }
+        for (Integer codigo : new java.util.LinkedHashSet<>(articulos)) {
+            if (codigo == null) {
+                continue;
+            }
+            for (ArticuloEmpaque emp : articuloEmpaqueRepo.findByArticuloCodigo(codigo)) {
+                boolean aLaVenta = !Boolean.FALSE.equals(emp.getSeVendeEn()) && !Boolean.FALSE.equals(emp.getEstado());
+                BigDecimal costo = emp.getPrecioCompra();
+                BigDecimal precio = emp.getPrecioVenta();
+                if (!aLaVenta || costo == null || precio == null || precio.signum() <= 0) {
+                    continue;
+                }
+                if (costo.compareTo(precio) >= 0) {
+                    String articulo = emp.getArticulo() != null ? emp.getArticulo().getDescripcion() : emp.getNombreArticulo();
+                    String empaque = emp.getDescripcionEmpaque() != null ? emp.getDescripcionEmpaque() : "";
+                    alertas.add(articulo + (empaque.isBlank() ? "" : " (" + empaque + ")")
+                            + ": costo RD$ " + String.format("%,.2f", costo)
+                            + " ≥ precio de venta RD$ " + String.format("%,.2f", precio));
+                }
+            }
+        }
+        return alertas;
     }
 
     @Override

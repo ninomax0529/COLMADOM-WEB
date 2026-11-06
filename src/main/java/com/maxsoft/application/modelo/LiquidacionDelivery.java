@@ -36,12 +36,6 @@ import java.util.Date;
     @NamedQuery(name = "LiquidacionDelivery.findAll", query = "SELECT l FROM LiquidacionDelivery l")})
 public class LiquidacionDelivery implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Column(name = "fecha")
@@ -56,9 +50,10 @@ public class LiquidacionDelivery implements Serializable {
     @Column(name = "efectivo_esperado")
     private BigDecimal efectivoEsperado;
     @Basic(optional = false)
-    @NotNull
+    @NotNull()
     @Column(name = "efectivo_recibido")
     private BigDecimal efectivoRecibido;
+    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
     @NotNull
     @Column(name = "diferencia")
@@ -74,6 +69,12 @@ public class LiquidacionDelivery implements Serializable {
     @Size(max = 500)
     @Column(name = "observacion")
     private String observacion;
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "liquidacionDelivery")
     private Collection<DetalleLiquidacionDelivery> detalleLiquidacionDeliveryCollection;
     @JoinColumn(name = "delivery", referencedColumnName = "codigo")
@@ -105,13 +106,6 @@ public class LiquidacionDelivery implements Serializable {
         this.codigo = codigo;
     }
 
-    public Date getFecha() {
-        return fecha;
-    }
-
-    public void setFecha(Date fecha) {
-        this.fecha = fecha;
-    }
 
     public String getNombreUsuario() {
         return nombreUsuario;
@@ -137,13 +131,6 @@ public class LiquidacionDelivery implements Serializable {
         this.efectivoRecibido = efectivoRecibido;
     }
 
-    public BigDecimal getDiferencia() {
-        return diferencia;
-    }
-
-    public void setDiferencia(BigDecimal diferencia) {
-        this.diferencia = diferencia;
-    }
 
     public BigDecimal getTotalFiado() {
         return totalFiado;
@@ -161,13 +148,6 @@ public class LiquidacionDelivery implements Serializable {
         this.totalLiquidado = totalLiquidado;
     }
 
-    public String getObservacion() {
-        return observacion;
-    }
-
-    public void setObservacion(String observacion) {
-        this.observacion = observacion;
-    }
 
     public Collection<DetalleLiquidacionDelivery> getDetalleLiquidacionDeliveryCollection() {
         return detalleLiquidacionDeliveryCollection;
@@ -208,6 +188,30 @@ public class LiquidacionDelivery implements Serializable {
     @Override
     public String toString() {
         return "com.maxsoft.application.modelo.LiquidacionDelivery[ codigo=" + codigo + " ]";
+    }
+
+    public Date getFecha() {
+        return fecha;
+    }
+
+    public void setFecha(Date fecha) {
+        this.fecha = fecha;
+    }
+
+    public BigDecimal getDiferencia() {
+        return diferencia;
+    }
+
+    public void setDiferencia(BigDecimal diferencia) {
+        this.diferencia = diferencia;
+    }
+
+    public String getObservacion() {
+        return observacion;
+    }
+
+    public void setObservacion(String observacion) {
+        this.observacion = observacion;
     }
     
 }

@@ -479,34 +479,66 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
     // ANULACIÓN
     // ============================================================
     private void confirmarAnulacion(RecepcionMercancia rec) {
-        ConfirmDialog dialog = new ConfirmDialog();
-        dialog.setHeader("Anular Recepción de Mercancía");
-        dialog.setText("¿Está seguro de que desea anular la Recepción N° " + rec.getNumeroDocumento() + "? Esta acción reversará las entradas de inventario registradas.");
 
-        dialog.setCancelable(true);
-        dialog.setCancelText("Cancelar");
+        if (esAnulada(rec)) {
+            Notification.show("La recepción ya está anulada.", 3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+            return;
+        }
 
-        dialog.setConfirmText("Sí, Anular");
-        dialog.setConfirmButtonTheme("error primary");
+        com.vaadin.flow.component.dialog.Dialog dialog = new com.vaadin.flow.component.dialog.Dialog();
+        dialog.setHeaderTitle("Anular Recepción N° " + rec.getNumeroDocumento());
+        dialog.setWidth("520px");
 
-        dialog.addConfirmListener(e -> {
+        com.vaadin.flow.component.html.Paragraph texto = new com.vaadin.flow.component.html.Paragraph(
+                "Se sacará del inventario la mercancía recibida, se anulará su factura de compra "
+                + "(y su pago; si fue de contado el efectivo vuelve a la caja), se revertirá el costo "
+                + "y se devolverá lo recibido a la orden de compra. Si ya se vendió parte de la "
+                + "mercancía, la anulación no se podrá hacer.");
+
+        TextField txtMotivo = new TextField("Motivo de la anulación");
+        txtMotivo.setWidthFull();
+        txtMotivo.setRequired(true);
+        txtMotivo.setMaxLength(200);
+
+        dialog.add(texto, txtMotivo);
+
+        Button btnCancelar = new Button("Cancelar", e -> dialog.close());
+        Button btnAnular = new Button("Sí, Anular");
+        btnAnular.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        btnAnular.setDisableOnClick(true);
+        btnAnular.addClickListener(e -> {
+
+            if (txtMotivo.getValue() == null || txtMotivo.getValue().isBlank()) {
+                txtMotivo.setInvalid(true);
+                txtMotivo.setErrorMessage("Indique el motivo");
+                btnAnular.setEnabled(true);
+                return;
+            }
 
             try {
-//                rec.setEstado(EstadoDocumento.ANULADA);
-                // Si tu servicio tiene lógica para revertir Kardex/Inventario al anular, la invocamos aquí
-                recepcionService.procesarRecepcion(rec);
+                recepcionService.anularRecepcion(rec.getCodigo(), txtMotivo.getValue().trim(), "Admin");
 
                 Notification.show("Recepción de Mercancía anulada con éxito.", 3000, Notification.Position.BOTTOM_END)
                         .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-
+                dialog.close();
                 aplicarFiltros();
+
+            } catch (IllegalArgumentException | IllegalStateException ex) {
+                Notification.show(ex.getMessage(), 6000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_WARNING);
+                btnAnular.setEnabled(true);
             } catch (Exception ex) {
-                Notification.show("Error al anular la recepción: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
+                ex.printStackTrace();
+                Notification.show("Error al anular la recepción: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                btnAnular.setEnabled(true);
             }
         });
 
+        dialog.getFooter().add(btnCancelar, btnAnular);
         dialog.open();
+        txtMotivo.focus();
     }
 
     // ============================================================

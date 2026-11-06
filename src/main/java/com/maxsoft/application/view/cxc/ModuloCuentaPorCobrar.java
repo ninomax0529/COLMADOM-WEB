@@ -5,6 +5,7 @@
 package com.maxsoft.application.view.cxc;
 
 import com.maxsoft.application.view.ModuloPrincipal;
+import com.maxsoft.application.view.cxc.estadoCuenta.EstadoDeCuentaView;
 import com.maxsoft.application.view.cxc.reciboIngrso.ReciboDeIngresoView;
 import com.maxsoft.application.view.cxc.factura.FacturaDeVentaView;
 import com.vaadin.flow.component.Component;
@@ -45,6 +46,7 @@ public class ModuloCuentaPorCobrar extends AppLayout {
 //        RouterLink linkOrdenDeCompraView = createLink(VaadinIcon.DASHBOARD, "Orden Compra", OrdenDeCompraView.class);
         RouterLink linkFacturaDeCompraView = createLink(VaadinIcon.DASHBOARD, "Factura", FacturaDeVentaView.class);
         RouterLink linkRReciboDeIngresoView = createLink(VaadinIcon.DASHBOARD, "Recibo de Ingreso", ReciboDeIngresoView.class);
+        RouterLink linkEstadoDeCuentaView = createLink(VaadinIcon.BOOK_DOLLAR, "Estado de Cuenta", EstadoDeCuentaView.class);
 //        RouterLink linkConsultaRecepcionMercanciaView = createLink(VaadinIcon.DASHBOARD, "Recepcion Mercancia", ConsultaRecepcionMercanciaView.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
@@ -53,6 +55,7 @@ public class ModuloCuentaPorCobrar extends AppLayout {
         VerticalLayout menuLayout = new VerticalLayout(
                 linkFacturaDeCompraView,
                 linkRReciboDeIngresoView,
+                linkEstadoDeCuentaView,
                 linkModulo);
 
         menuLayout.setPadding(false);

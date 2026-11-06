@@ -47,6 +47,9 @@ public class DetalleLiquidacionDelivery implements Serializable {
     @NotNull
     @Column(name = "monto")
     private BigDecimal monto;
+    @JoinColumn(name = "cliente", referencedColumnName = "codigo")
+    @ManyToOne
+    private Cliente cliente;
     @JoinColumn(name = "factura", referencedColumnName = "codigo")
     @OneToOne(optional = false)
     private FacturaDeVenta factura;
@@ -89,6 +92,14 @@ public class DetalleLiquidacionDelivery implements Serializable {
 
     public void setMonto(BigDecimal monto) {
         this.monto = monto;
+    }
+
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
     }
 
     public FacturaDeVenta getFactura() {

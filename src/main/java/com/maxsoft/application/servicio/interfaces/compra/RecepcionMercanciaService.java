@@ -12,6 +12,19 @@ public interface RecepcionMercanciaService {
 
     RecepcionMercancia procesarRecepcion(RecepcionMercancia recepcion);
 
+    /**
+     * Anula la recepción reversando sus efectos: pagos (y caja), factura de
+     * compra, costo promedio, inventario y orden de compra.
+     */
+    RecepcionMercancia anularRecepcion(Integer codigo, String motivo, String usuario);
+
+    /**
+     * Revisa, con los costos ya actualizados, qué empaques a la venta de estos
+     * artículos quedaron con un costo igual o mayor que su precio de venta.
+     * Devuelve un texto por empaque afectado (lista vacía si todo está bien).
+     */
+    List<String> empaquesVendiendoConPerdida(java.util.Collection<Integer> articulos);
+
     List<RecepcionMercancia> getLista();
 
     RecepcionMercancia buscarPorId(Long id);

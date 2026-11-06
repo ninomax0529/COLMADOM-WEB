@@ -75,6 +75,10 @@ public class ClienteView extends VerticalLayout {
         grid.addColumn(Cliente::getCelular).setHeader("Celular").setAutoWidth(true);
         grid.addColumn(Cliente::getDireccion).setHeader("Dirección").setAutoWidth(true);
         grid.addColumn(Cliente::getLugarDeTrabajo).setHeader("Lugar de Trabajo").setAutoWidth(true);
+        grid.addColumn(c -> c.getLimiteCredito() != null ? String.format("%,.2f", c.getLimiteCredito()) : "Sin límite")
+                .setHeader("Límite crédito").setAutoWidth(true);
+        grid.addColumn(c -> String.format("%,.2f", c.getBalance() != null ? c.getBalance() : java.math.BigDecimal.ZERO))
+                .setHeader("Balance").setAutoWidth(true);
 
         grid.addColumn(cliente -> cliente.getHabilitado() ? "Sí" : "No").setHeader("Habilitado").setAutoWidth(true);
 

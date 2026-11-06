@@ -345,3 +345,9 @@ vaadin-form-layout[empty] {
     width: 100%;
 }
 
+
+/* TOTAL POR LINEA EN EL GRID DEL TICKET - POS V17 */
+vaadin-grid::part(pos-total-linea) {
+    font-weight: 600;
+    color: var(--lumo-primary-text-color);
+}

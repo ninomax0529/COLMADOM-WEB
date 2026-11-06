@@ -12,9 +12,14 @@ import java.util.List;
  * @author maximilianoalmonte
  */
 public interface ClienteService {
-    
-     Cliente guardar(Cliente obj);
 
+    Cliente guardar(Cliente obj);
+
+    /**
+     * Guarda el cliente y, si cambió su límite de crédito, deja el cambio en
+     * el histórico con el usuario y el motivo.
+     */
+    Cliente guardar(Cliente obj, String usuario, String motivoCambioLimite);
 
     List<Cliente> getLista();
 }

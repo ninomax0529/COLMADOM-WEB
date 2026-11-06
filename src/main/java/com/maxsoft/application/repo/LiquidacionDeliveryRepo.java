@@ -2,6 +2,7 @@ package com.maxsoft.application.repo;
 
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.LiquidacionDelivery;
+import java.util.Date;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,4 +24,17 @@ public interface LiquidacionDeliveryRepo extends JpaRepository<LiquidacionDelive
             + "order by f.codigo")
     List<FacturaDeVenta> findPendientes(@Param("delivery") Integer codigoDelivery,
             @Param("estado") Integer codigoEstadoDelivery);
+    
+        /**
+     * Facturas con motorista en un rango de fechas ([desde, hasta) ), cada una
+     * con su línea de liquidación (null si todavía no se liquidó). Cada fila es
+     * un Object[] { FacturaDeVenta, DetalleLiquidacionDelivery }.
+     */
+    @Query("select f, d from FacturaDeVenta f "
+            + "left join DetalleLiquidacionDelivery d on d.factura = f "
+            + "where f.delivery is not null "
+            + "and f.fecha >= :desde and f.fecha < :hasta "
+            + "order by f.fecha desc, f.codigo desc")
+    List<Object[]> findDeliveriesConLiquidacion(@Param("desde") Date desde,
+            @Param("hasta") Date hastaExclusivo);
 }

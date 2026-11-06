@@ -31,6 +31,9 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
 
     private final MovimientoInventarioRepo movimientoRepo;
     private final ArticuloRepo articuloRepo;
+
+    @Autowired
+    private com.maxsoft.application.repo.ArticuloAlmacenRepo articuloAlmacenRepo;
     AlmacenService almacenService;
     ArticuloAlmacenService articuloAlmacenService;
 
@@ -110,12 +113,19 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
             case 2 -> { // SALIDA
                 boolean permiteSinStock = Boolean.TRUE.equals(articulo.getPermitirVentaSinExistencia());
 
-                // Validar disponibilidad si NO permite ventas sin existencia
-                if (!permiteSinStock && stockAnterior.compareTo(cantidad) < 0) {
-                    
+                // Validar disponibilidad si NO permite ventas sin existencia.
+                // El stock se guarda en unidad base: se compara contra la
+                // misma cantidad que se descuenta (cantidadEmpaque = unidades
+                // base), no contra la cantidad del documento (cajas, fardos...).
+                if (!permiteSinStock && stockAnterior.compareTo(cantidadEmpaque) < 0) {
+
                     throw new IllegalStateException("Stock insuficiente para '" + articulo.getDescripcion()
                             + "' en el almacén " + almacen.getNombre()
-                            + ". Existencia actual: " + stockAnterior + ", Cantidad requerida: " + cantidad);
+                            + ". Existencia actual: " + stockAnterior.stripTrailingZeros().toPlainString()
+                            + " (unidad base), cantidad requerida: "
+                            + cantidadEmpaque.stripTrailingZeros().toPlainString() + " (unidad base)."
+                            + " Si este artículo puede venderse en negativo, active"
+                            + " 'Permitir venta sin existencia' en su ficha.");
                 }
 
                 stockNuevo = stockAnterior.subtract(cantidadEmpaque);
@@ -129,10 +139,13 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         artiAlm.setExistencia(stockNuevo);
         this.articuloAlmacenService.guardar(artiAlm);
 
-        // 5. Actualizar existencia general acumulada en el Artículo (Suma total de almacenes)
-        BigDecimal existenciaTotalGlobal = (articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO)
-                .add(stockNuevo.subtract(stockAnterior));
-        
+        // 5. Existencia general del Artículo = suma real de sus almacenes. Se recalcula
+        // (no se acumula la diferencia) para que un descuadre previo no se arrastre.
+        BigDecimal existenciaTotalGlobal = this.articuloAlmacenRepo.sumarExistencia(articulo.getCodigo());
+        if (existenciaTotalGlobal == null) {
+            existenciaTotalGlobal = BigDecimal.ZERO;
+        }
+
         articulo.setExistencia(existenciaTotalGlobal);
         this.articuloRepo.save(articulo);
 

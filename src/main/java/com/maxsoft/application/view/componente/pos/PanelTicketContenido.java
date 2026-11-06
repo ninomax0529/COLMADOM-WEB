@@ -107,9 +107,14 @@ public class PanelTicketContenido extends VerticalLayout {
         // =========================================================
         HorizontalLayout actionButtons = new HorizontalLayout();
         actionButtons.setWidthFull();
+        actionButtons.setAlignItems(FlexComponent.Alignment.STRETCH);
 
+        // Mismo alto que COBRAR y FIAR (LUMO_LARGE) y con fondo suave de error,
+        // para que la fila de acciones quede alineada. Sigue siendo menos
+        // llamativo que los botones principales.
         Button cancelTicketBtn = new Button("Cancelar [Alt+C]", VaadinIcon.CLOSE.create());
-        cancelTicketBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+        cancelTicketBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_LARGE);
+        cancelTicketBtn.setTabIndex(-1);
         cancelTicketBtn.addClickListener(e -> {
             if (onCancelarTicket != null) {
                 onCancelarTicket.accept(ticket);

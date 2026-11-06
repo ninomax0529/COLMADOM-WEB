@@ -16,8 +16,6 @@ import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoMovimientoService;
-import com.maxsoft.application.util.ClaseUtil;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -66,14 +64,14 @@ public class InventarioServiceImpl implements InventarioService {
                         almacen,
                         empaque,
                         item.getFactorConversion(),
-                        item.getCantidadEmpaque(),
+                        item.getCantidadBase(),
                         item.getSubTotal(),
                         item.getItbis(),
                         item.getTotal(),
                         tipoSalida,
                         tipoFactura,
                         event.getNumeroFactura() != null ? event.getNumeroFactura() : String.valueOf(event.getIdFactura()),
-                        item.getCantidadBase(),
+                        item.getCantidadEmpaque(),
                         event.getUsuario() != null ? event.getUsuario() : "SISTEMA_POS",
                         event.getObservacion() != null ? event.getObservacion() : "Venta POS automatizada"
                 );
@@ -110,14 +108,14 @@ public class InventarioServiceImpl implements InventarioService {
                         almacen,
                         empaque,
                         item.getFactorConversion(),
-                        item.getCantidadEmpaque(),
+                        item.getCantidadBase(),
                         item.getSubTotal(),
                         item.getItbis(),
                         item.getTotal(),
                         tipoEntrada,
                         tipoAnulacion,
                         numDoc,
-                        item.getCantidadBase(),
+                        item.getCantidadEmpaque(),
                         event.getUsuario() != null ? event.getUsuario() : "SISTEMA",
                         obs
                 );
@@ -234,14 +232,14 @@ public class InventarioServiceImpl implements InventarioService {
                         almacen,
                         empaque,
                         item.getFactorConversion(),
-                        item.getCantidadEmpaque(),
+                        item.getCantidadBase(),
                         item.getSubTotal(),
                         item.getItbis(),
                         item.getTotal(),
                         tipoMovimiento,
                         tipoDocAjuste,
                         numDoc,
-                        item.getCantidadBase(),
+                        item.getCantidadEmpaque(),
                         event.getUsuario(),
                         "Ajuste #" + event.getIdAjuste() + ". " + (event.getObservacion() != null ? event.getObservacion() : "")
                 );
@@ -269,9 +267,11 @@ public class InventarioServiceImpl implements InventarioService {
         BigDecimal existencia = articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
         BigDecimal req = BigDecimal.valueOf(cantidad);
 
+        // cantidad viene en UNIDAD BASE (cantidad del empaque x factor de conversión)
         if (existencia.compareTo(req) < 0) {
-            ClaseUtil.mostrarNotificacion("Existencia insuficiente para: " + articulo.getDescripcion()
-                    + ". Disponible: " + existencia + ", Solicitado: " + cantidad, NotificationVariant.LUMO_WARNING);
+            throw new IllegalStateException("Existencia insuficiente para '" + articulo.getDescripcion()
+                    + "'. Disponible: " + existencia.stripTrailingZeros().toPlainString()
+                    + ", solicitado: " + req.stripTrailingZeros().toPlainString() + " (unidad base).");
         }
     }
 

@@ -504,7 +504,10 @@ public class RegistroReciboDeIngresoView extends VerticalLayout {
 
 //            recibo.setDetalleReciboDeIngresoCollection(detalles);
             
-              ReciboDeIngreso guardado =this.reciboService.procesarReciboDeIngreso(recibo, detalles);
+            // En efectivo el dinero entra a la gaveta (requiere caja abierta);
+            // cheque o transferencia solo rebajan la deuda.
+            ReciboDeIngreso guardado = this.reciboService.registrarCobroCliente(recibo, detalles,
+                    FORMA_EFECTIVO.equals(cbFormaPago.getValue()), "Admin");
 
 //            ReciboDeIngreso guardado = this.reciboService.guardar(recibo);
 

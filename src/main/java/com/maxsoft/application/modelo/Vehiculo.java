@@ -32,12 +32,6 @@ import java.util.Date;
     @NamedQuery(name = "Vehiculo.findAll", query = "SELECT v FROM Vehiculo v")})
 public class Vehiculo implements Serializable {
 
-    private static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Basic(optional = false)
-    @Column(name = "codigo")
-    private Integer codigo;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 85)
@@ -52,6 +46,13 @@ public class Vehiculo implements Serializable {
     @NotNull
     @Column(name = "habilitado")
     private boolean habilitado;
+
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "codigo")
+    private Integer codigo;
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
@@ -80,29 +81,6 @@ public class Vehiculo implements Serializable {
         this.codigo = codigo;
     }
 
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getPlaca() {
-        return placa;
-    }
-
-    public void setPlaca(String placa) {
-        this.placa = placa;
-    }
-
-    public boolean getHabilitado() {
-        return habilitado;
-    }
-
-    public void setHabilitado(boolean habilitado) {
-        this.habilitado = habilitado;
-    }
 
     public Date getFechaCreacion() {
         return fechaCreacion;
@@ -143,6 +121,30 @@ public class Vehiculo implements Serializable {
     @Override
     public String toString() {
         return nombre;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getPlaca() {
+        return placa;
+    }
+
+    public void setPlaca(String placa) {
+        this.placa = placa;
+    }
+
+    public boolean getHabilitado() {
+        return habilitado;
+    }
+
+    public void setHabilitado(boolean habilitado) {
+        this.habilitado = habilitado;
     }
     
 }

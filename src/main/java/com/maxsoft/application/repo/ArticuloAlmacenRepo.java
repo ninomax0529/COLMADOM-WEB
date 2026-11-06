@@ -17,6 +17,10 @@ import org.springframework.data.repository.query.Param;
  */
 public interface ArticuloAlmacenRepo extends JpaRepository<ArticuloAlmacen, Integer> {
 
+    /** Existencia total del artículo: suma de todos sus almacenes (unidad base). */
+    @Query("SELECT COALESCE(SUM(a.existencia), 0) FROM ArticuloAlmacen a WHERE a.articulo.codigo = :idArticulo")
+    java.math.BigDecimal sumarExistencia(@Param("idArticulo") Integer idArticulo);
+
     // Opción A: Con consulta JPQL explícita (Recomendada para mayor claridad)
     @Query("SELECT a FROM ArticuloAlmacen a WHERE a.articulo.codigo = :idArticulo AND a.almacen.codigo = :idAlmacen")
     Optional<ArticuloAlmacen> buscarPorArticuloYAlmacen(@Param("idArticulo") Integer idArticulo,

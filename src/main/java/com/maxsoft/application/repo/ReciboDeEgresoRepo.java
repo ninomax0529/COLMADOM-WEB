@@ -24,4 +24,13 @@ public interface ReciboDeEgresoRepo extends JpaRepository<ReciboDeEgreso, Intege
     
     @Query(value = "SELECT PAGO_FACT_COMPRA(:fact)", nativeQuery = true)
     Double getPagoFacturaCompra(@Param("fact") int fact);
+
+    /** Recibos de egreso vigentes (no anulados) que pagaron algo de esta factura de compra. */
+    @Query("SELECT DISTINCT d.reciboEgreso FROM DetalleReciboDeEgreso d "
+            + "WHERE d.factura.codigo = :factura AND (d.reciboEgreso.anulado = false OR d.reciboEgreso.anulado IS NULL)")
+    List<ReciboDeEgreso> findVigentesPorFactura(@Param("factura") Integer factura);
+
+    /** Cuántas líneas del recibo pagan facturas distintas a la indicada. */
+    @Query("SELECT COUNT(d) FROM DetalleReciboDeEgreso d WHERE d.reciboEgreso.codigo = :recibo AND d.factura.codigo <> :factura")
+    long contarOtrasFacturas(@Param("recibo") Integer recibo, @Param("factura") Integer factura);
 }

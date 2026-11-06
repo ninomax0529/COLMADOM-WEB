@@ -18,6 +18,7 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Date;
 
@@ -59,6 +60,8 @@ public class Cliente implements Serializable {
     @Column(name = "apodo")
     private String apodo;
     @OneToMany(mappedBy = "cliente")
+    private Collection<DetalleLiquidacionDelivery> detalleLiquidacionDeliveryCollection;
+    @OneToMany(mappedBy = "cliente")
     private Collection<ReciboDeIngreso> reciboDeIngresoCollection;
     private static final long serialVersionUID = 1L;
     @Id
@@ -76,7 +79,13 @@ public class Cliente implements Serializable {
     private Boolean habilitado;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "limite_credito")
-    private Double limiteCredito;
+    private BigDecimal limiteCredito;
+    /**
+     * Balance actual del estado de cuenta (cuenta_por_cobrar). Solo lo
+     * modifica CuentaPorCobrarService; el formulario de cliente no lo pisa.
+     */
+    @Column(name = "balance", insertable = false, updatable = false)
+    private BigDecimal balance;
     @OneToMany(mappedBy = "cliente")
     private Collection<FacturaDeVenta> facturaDeVentaCollection;
 
@@ -145,11 +154,19 @@ public class Cliente implements Serializable {
         this.habilitado = habilitado;
     }
 
-    public Double getLimiteCredito() {
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
+    }
+
+    public BigDecimal getLimiteCredito() {
         return limiteCredito;
     }
 
-    public void setLimiteCredito(Double limiteCredito) {
+    public void setLimiteCredito(BigDecimal limiteCredito) {
         this.limiteCredito = limiteCredito;
     }
 
@@ -239,6 +256,14 @@ public class Cliente implements Serializable {
 
     public void setApodo(String apodo) {
         this.apodo = apodo;
+    }
+
+    public Collection<DetalleLiquidacionDelivery> getDetalleLiquidacionDeliveryCollection() {
+        return detalleLiquidacionDeliveryCollection;
+    }
+
+    public void setDetalleLiquidacionDeliveryCollection(Collection<DetalleLiquidacionDelivery> detalleLiquidacionDeliveryCollection) {
+        this.detalleLiquidacionDeliveryCollection = detalleLiquidacionDeliveryCollection;
     }
     
 }

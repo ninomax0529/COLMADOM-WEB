@@ -110,6 +110,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -128,7 +129,8 @@ public class TarjetaProductoCompo extends VerticalLayout {
      */
     private static final boolean MOSTRAR_IMAGEN = false;
 
-    private static final DecimalFormat FORMATO_PRECIO = new DecimalFormat("#,##0.00");
+    // DecimalFormat no es thread-safe: instancia propia, no estática compartida
+    private final DecimalFormat FORMATO_PRECIO = new DecimalFormat("#,##0.00");
 
     private final ArticuloEmpaque articulo;
 
@@ -192,12 +194,29 @@ public class TarjetaProductoCompo extends VerticalLayout {
                 .set("-webkit-box-orient", "vertical")
                 .set("overflow", "hidden");
 
-        // Presentación: así se distinguen los empaques del mismo artículo
+        // Presentación: así se distinguen los empaques del mismo artículo.
+        // Las presentaciones de varias unidades (caja, fardo, paquete...) se
+        // resaltan en azul con ícono y la tarjeta lleva un borde de color, para
+        // no confundir "ACEITE CRISOL Unidad" con "ACEITE CRISOL Caja x10".
+        boolean esEmpaqueMultiple = esEmpaqueMultiple(articulo);
+
         Span presentacionLabel = new Span(textoPresentacion(articulo));
-        presentacionLabel.getElement().getThemeList().add("badge contrast");
         presentacionLabel.getStyle()
                 .set("font-size", "0.7rem")
                 .set("margin-top", "0.25rem");
+
+        if (esEmpaqueMultiple) {
+            Icon iconoEmpaque = VaadinIcon.PACKAGE.create();
+            iconoEmpaque.getStyle().set("padding", "0 0.2em 0 0");
+            presentacionLabel.addComponentAsFirst(iconoEmpaque);
+            presentacionLabel.getElement().getThemeList().add("badge");
+            presentacionLabel.getStyle().set("font-weight", "700");
+
+            getStyle().set("border", "1px solid var(--lumo-primary-color-50pct)");
+            getStyle().set("border-top", "4px solid var(--lumo-primary-color)");
+        } else {
+            presentacionLabel.getElement().getThemeList().add("badge contrast");
+        }
 
         // Precio en RD$
         BigDecimal precio = articulo.getPrecioVenta() != null ? articulo.getPrecioVenta() : BigDecimal.ZERO;
@@ -262,6 +281,15 @@ public class TarjetaProductoCompo extends VerticalLayout {
         info.getStyle().set("margin-bottom", "0.5rem");
 
         add(info, controls);
+    }
+
+    /**
+     * true si la presentación agrupa varias unidades base (factor mayor que 1).
+     */
+    private boolean esEmpaqueMultiple(ArticuloEmpaque ae) {
+
+        BigDecimal factor = ae.getFactorConversion();
+        return factor != null && factor.compareTo(BigDecimal.ONE) > 0;
     }
 
     /**

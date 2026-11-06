@@ -86,6 +86,7 @@ public class FacturaDeVentaView extends VerticalLayout {
     private Grid.Column<DetalleFacturaDeVenta> colItbis;
     private Grid.Column<DetalleFacturaDeVenta> colTotal;
     private Grid.Column<FacturaDeVenta> colTotalPendienteFactura;
+    private Grid.Column<FacturaDeVenta> colTotalPagadoFactura;
 
     @Autowired
     public FacturaDeVentaView(FacturaDeVentaService entradaServiceArg) {
@@ -235,9 +236,14 @@ public class FacturaDeVentaView extends VerticalLayout {
         BigDecimal total = visibles.stream()
                 .map(f -> f.getTotal() != null ? f.getTotal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-  
+        
+            BigDecimal totalPagado = visibles.stream()
+                .map(f -> f.getTotalPagado()!= null ? f.getTotalPagado(): BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         colCodigo.setFooter("TOTAL FACTURAS: " + visibles.size());
         colTotalFactura.setFooter(moneda(total));
+
     }
 
     private void cargarDetalle(FacturaDeVenta factura) {
@@ -329,6 +335,20 @@ public class FacturaDeVentaView extends VerticalLayout {
                 .setKey("total")
                 .setComparator(Comparator.comparing(
                         (FacturaDeVenta f) -> f.getTotal(),
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+
+        colTotalFactura = grid.addColumn(f -> moneda(f.getTotalPendiente()))
+                .setHeader("Total Pagado")
+                .setKey("totalpag")
+                .setComparator(Comparator.comparing(
+                        (FacturaDeVenta f) -> f.getTotalPagado(),
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+
+        colTotalFactura = grid.addColumn(f -> moneda(f.getTotalPagado()))
+                .setHeader("Total Pendiente")
+                .setKey("totalpend")
+                .setComparator(Comparator.comparing(
+                        (FacturaDeVenta f) -> f.getTotalPendiente(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
         grid.getColumns().forEach(col -> {

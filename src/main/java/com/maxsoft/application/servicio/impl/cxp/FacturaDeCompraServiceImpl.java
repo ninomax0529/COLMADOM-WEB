@@ -39,6 +39,9 @@ public class FacturaDeCompraServiceImpl implements FacturaDeCompraService {
     @Autowired
     private CajaService cajaService;
 
+    @Autowired
+    private com.maxsoft.application.repo.ReciboDeEgresoRepo reciboDeEgresoRepo;
+
     @Override
     public FacturaDeCompra guardar(FacturaDeCompra obj) {
         return repo.save(obj);
@@ -136,9 +139,40 @@ public class FacturaDeCompraServiceImpl implements FacturaDeCompraService {
         return repo.getDetalle(obj);
     }
 
+    /**
+     * Anula la factura de compra. Debe estar sin pagos vigentes: los recibos de
+     * egreso se anulan antes (así se reversa también la caja).
+     */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public FacturaDeCompra anularFactura(Integer idFactura, String motivoAnulacion) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+
+        FacturaDeCompra factura = repo.findById(idFactura)
+                .orElseThrow(() -> new IllegalArgumentException("La factura de compra #" + idFactura + " no existe."));
+        if (Boolean.TRUE.equals(factura.getAnulada())) {
+            throw new IllegalStateException("La factura de compra #" + idFactura + " ya está anulada.");
+        }
+        Double pagado = reciboDeEgresoRepo.getPagoFacturaCompra(idFactura);
+        if (pagado != null && pagado > 0) {
+            throw new IllegalStateException("La factura de compra #" + idFactura + " tiene pagos vigentes por RD$ "
+                    + String.format("%,.2f", pagado) + ". Anule primero sus recibos de egreso.");
+        }
+
+        factura.setAnulada(true);
+        factura.setFechaAnulada(new Date());
+        factura.setFechaActualizacion(java.time.LocalDateTime.now());
+        factura.setNombreEstado("ANULADA");
+        factura.setTotalPagado(BigDecimal.ZERO);
+        factura.setTotalPendiente(BigDecimal.ZERO);
+        String nota = "ANULADA" + (motivoAnulacion != null && !motivoAnulacion.isBlank() ? ": " + motivoAnulacion.trim() : "");
+        factura.setConcepto(factura.getConcepto() != null ? factura.getConcepto() + " | " + nota : nota);
+        return repo.save(factura);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FacturaDeCompra> getFacturasDeRecepcion(Integer recepcion) {
+        return repo.findByRecepcionMercanciaCodigo(recepcion);
     }
 
     @Override
@@ -217,26 +251,9 @@ public class FacturaDeCompraServiceImpl implements FacturaDeCompraService {
 
         FacturaDeCompra factDb = repo.save(factura);
 
-        Optional<CajaTurno> cajaAbiertaOpt = cajaService.obtenerCajaAbierta();
-
-        if (cajaAbiertaOpt.isEmpty()) {
-
-            Notification.show("Debe abrir una caja antes de registrar movimientos de POS", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-
-        }
-
-        CajaTurno turnoActual = cajaAbiertaOpt.get();
-
-        // Llamada al servicio para guardar en la base de datos
-        cajaService.registrarMovimientoPos(
-                turnoActual.getId().intValue(),
-                "SALIDA DE DINERO",
-                montoTotal,
-                "Pago a proveedor informal: " + proveedor.getNombre() + " - " + codigoInformal,
-                factDb.getNombreUsaurio()
-        );
-
+        // La salida de efectivo la registra el Recibo de Egreso que genera
+        // RecepcionMercanciaServiceImpl (condición de pago contado). Registrarla
+        // también aquí la contaba dos veces en la caja.
         return factDb;
 
     }

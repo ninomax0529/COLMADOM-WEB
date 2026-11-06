@@ -54,6 +54,7 @@ public class Delivery implements Serializable {
     @NotNull
     @Column(name = "fecha")
 //    @Temporal(TemporalTypeTemporalType.DATE)
+    @Temporal(TemporalType.DATE)
     private Date fecha;
     @Size(max = 15)
     @Column(name = "cedula")
@@ -129,7 +130,7 @@ public class Delivery implements Serializable {
 
     @Override
     public String toString() {
-        return "com.maxsoft.application.modelo.Delivery[ codigo=" + codigo + " ]";
+        return nombre;
     }
 
 
@@ -147,6 +148,12 @@ public class Delivery implements Serializable {
 
     public void setFacturaDeVentaCollection(Collection<FacturaDeVenta> facturaDeVentaCollection) {
         this.facturaDeVentaCollection = facturaDeVentaCollection;
+    }
+    public Vehiculo getVehiculo() {
+        return vehiculo;
+    }
+    public void setVehiculo(Vehiculo vehiculo) {
+        this.vehiculo = vehiculo;
     }
 
     public String getNombre() {
@@ -187,14 +194,6 @@ public class Delivery implements Serializable {
 
     public void setCedula(String cedula) {
         this.cedula = cedula;
-    }
-
-    public Vehiculo getVehiculo() {
-        return vehiculo;
-    }
-
-    public void setVehiculo(Vehiculo vehiculo) {
-        this.vehiculo = vehiculo;
     }
     
 }

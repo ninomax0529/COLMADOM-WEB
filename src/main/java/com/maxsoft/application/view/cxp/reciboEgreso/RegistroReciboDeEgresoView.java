@@ -488,10 +488,13 @@ public class RegistroReciboDeEgresoView extends VerticalLayout {
 
             ReciboDeEgreso recibo = new ReciboDeEgreso();
             recibo.setProveedor(cbProveedor.getValue());
+            recibo.setNombreProveedor(cbProveedor.getValue().getNombre());
             recibo.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
-//            recibo.setFormaPago(cbFormaPago.getValue());
-//            recibo.setReferencia(txtReferencia.getValue() != null ? txtReferencia.getValue().trim() : null);
-            recibo.setConcepto(txtObservacion.getValue());
+            // El recibo no tiene columnas de forma de pago/referencia: se dejan en el concepto
+            String referencia = txtReferencia.getValue() != null ? txtReferencia.getValue().trim() : "";
+            String observacion = txtObservacion.getValue() != null ? txtObservacion.getValue().trim() : "";
+            String formaPago = cbFormaPago.getValue() + (referencia.isEmpty() ? "" : " #" + referencia);
+            recibo.setConcepto(observacion.isEmpty() ? formaPago : observacion + " | " + formaPago);
             recibo.setTotalPagado(totalAPagar());
             recibo.setFechaCreacion(new Date());
             recibo.setUsuario(new Usuario(1));
@@ -514,7 +517,8 @@ public class RegistroReciboDeEgresoView extends VerticalLayout {
 
             recibo.setDetalleReciboDeEgresoCollection(detalles);
 
-            ReciboDeEgreso guardado = this.reciboService.procesarReciboDeEgreso(recibo, detalles);
+            ReciboDeEgreso guardado = this.reciboService.registrarPagoProveedor(recibo, detalles,
+                    FORMA_EFECTIVO.equals(cbFormaPago.getValue()), "Admin");
 
             ClaseUtil.mostrarNotificacion("Recibo de egreso #" + guardado.getCodigo() + " guradado exitosamente", NotificationVariant.LUMO_SUCCESS, 3000);
 
