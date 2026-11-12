@@ -10,7 +10,9 @@ import com.maxsoft.application.modelo.Proveedor;
 import com.maxsoft.application.modelo.RecepcionMercancia;
 import com.maxsoft.application.servicio.interfaces.compra.ProveedorService;
 import com.maxsoft.application.servicio.interfaces.compra.RecepcionMercanciaService;
+import com.maxsoft.application.view.componente.EstiloConsulta;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
+import com.vaadin.flow.component.html.Div;
 
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
@@ -62,7 +64,10 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
     private final TextField txtBuscar = new TextField();
     private final ComboBox<Proveedor> cbSuplidor = new ComboBox<>("Suplidor / Proveedor");
     private final ComboBox<String> cbTipoOrigen = new ComboBox<>("Origen");
-    private final ComboBox<EstadoDocumento> cbEstado = new ComboBox<>("Estado");
+    private final ComboBox<String> cbEstado = new ComboBox<>("Estado");
+    private static final String TODOS = "TODOS";
+    private static final String VIGENTE = "VIGENTE";
+    private static final String ANULADA = "ANULADA";
     private final DatePicker dtDesde = new DatePicker("Fecha Desde");
     private final DatePicker dtHasta = new DatePicker("Fecha Hasta");
 
@@ -70,6 +75,8 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
     private final Button btnLimpiar = new Button("Limpiar", VaadinIcon.REFRESH.create());
 
     private final TabSheet tabs = new TabSheet();
+    private final Div cabeceraDetalle = new Div();
+    private final Div tarjetasDetalle = new Div();
 
     List<RecepcionMercancia> listaRecepciones = new ArrayList<>();
     List<DetalleRecepcionMercancia> listDet = new ArrayList<>();
@@ -98,35 +105,29 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
         setSpacing(false);
 
         tabs.setSizeFull();
-
-        tabs.add("Recepciones de Mercancía", grid);
-        tabs.add("Detalle", gridDetalle);
-
-        botonera.getNuevo().addClickListener(e -> {
-            // lógica de nuevo
-
-            UI.getCurrent().navigate(RecepcionMercanciaView.class);
-
-        });
-
-        grid.addItemDoubleClickListener(c -> {
-
-            if (c.getItem() == null) {
-                return;
-            }
-
-            cargarDetalle(c.getItem());
-            tabs.setSelectedIndex(1);
-
-        });
+        EstiloConsulta.aplicarVista(this, tabs);
 
         configurarFiltros();
         configurarGrid();
         configurarGridDetalle();
 
-        add(botonera,
-                new H2("Recepcion de Mercancia"),
-                crearBarraFiltros(), tabs);
+        tabs.add(EstiloConsulta.etiquetaTab(VaadinIcon.LIST, "Recepciones de Mercancía"), grid);
+        tabs.add(EstiloConsulta.etiquetaTab(VaadinIcon.FILE_TEXT_O, "Detalle"),
+                EstiloConsulta.panelDetalle(cabeceraDetalle, tarjetasDetalle, gridDetalle));
+
+        botonera.getNuevo().addClickListener(e -> UI.getCurrent().navigate(RecepcionMercanciaView.class));
+
+        grid.addItemDoubleClickListener(c -> {
+            if (c.getItem() != null) {
+                verDetalle(c.getItem());
+            }
+        });
+
+        H2 titulo = new H2("Recepciones de Mercancía");
+        titulo.addClassName("fv-titulo");
+
+        add(botonera, titulo, crearBarraFiltros(), tabs);
+        setFlexGrow(1, tabs);
 
         aplicarFiltros(); // Carga inicial
     }
@@ -152,10 +153,10 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
         cbTipoOrigen.setValue("TODOS");
         cbTipoOrigen.setAllowCustomValue(false);
 
-//        cbEstado.setItems(EstadoDocumento.values());
-        cbEstado.setItemLabelGenerator(EstadoDocumento::getNombre);
-        cbEstado.setClearButtonVisible(true);
-        cbEstado.setPlaceholder("Todos");
+        // (Antes el combo de estado estaba vacío y el filtro no hacía nada)
+        cbEstado.setItems(TODOS, VIGENTE, ANULADA);
+        cbEstado.setValue(TODOS);
+        cbEstado.setAllowCustomValue(false);
 
         // Rango de fechas por defecto: Primer día del mes actual hasta la fecha actual
         dtDesde.setValue(LocalDate.now().withDayOfMonth(1));
@@ -173,7 +174,8 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
     private HorizontalLayout crearBarraFiltros() {
 
         HorizontalLayout barra = new HorizontalLayout(
-                dtDesde, dtHasta, cbSuplidor, cbTipoOrigen, cbEstado, txtBuscar, btnFiltrar, btnLimpiar);
+                dtDesde, dtHasta, cbSuplidor, cbTipoOrigen, cbEstado, txtBuscar, btnFiltrar, btnLimpiar,
+                EstiloConsulta.ayuda("Doble clic en una recepción para ver su detalle"));
         barra.setAlignItems(Alignment.BASELINE);
         barra.setWidthFull();
         // Permite que los filtros pasen a otra línea en pantallas angostas
@@ -186,7 +188,7 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
         txtBuscar.clear();
         cbSuplidor.clear();
         cbTipoOrigen.setValue("TODOS");
-        cbEstado.clear();
+        cbEstado.setValue(TODOS);
         dtDesde.setValue(LocalDate.now().withDayOfMonth(1));
         dtHasta.setValue(LocalDate.now());
         aplicarFiltros();
@@ -206,7 +208,7 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
         try {
             Proveedor suplidorSel = cbSuplidor.getValue();
             String tipoOrigenSel = cbTipoOrigen.getValue();
-            EstadoDocumento estadoSel = cbEstado.getValue();
+            String estadoSel = cbEstado.getValue() != null ? cbEstado.getValue() : TODOS;
 
             // Filtrado dinámico en memoria sobre el listado del servicio
             List<RecepcionMercancia> resultado = recepcionService.getLista().stream().filter(rec -> {
@@ -222,7 +224,11 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
                         && rec.getTipoDocumento().getNombre().equalsIgnoreCase(tipoOrigenSel));
 
                 // Filtro Estado
-                boolean coincideEstado = estadoSel == null || rec.getEstadoDocumento() == estadoSel;
+                boolean coincideEstado = switch (estadoSel) {
+                    case VIGENTE -> !esAnulada(rec);
+                    case ANULADA -> esAnulada(rec);
+                    default -> true;
+                };
 
                 // Filtro Fechas
                 boolean coincideFecha = dentroDeRango(aLocalDate(rec.getFecha()));
@@ -267,7 +273,9 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
             boolean matchTipo = r.getTipoDocumento() != null && r.getTipoDocumento().getNombre() != null
                     && r.getTipoDocumento().getNombre().toLowerCase().contains(term);
             boolean matchCom = r.getComentario() != null && r.getComentario().toLowerCase().contains(term);
-            return matchNum || matchTipo || matchCom;
+            boolean matchSup = r.getProveedor() != null && r.getProveedor().getNombre() != null
+                    && r.getProveedor().getNombre().toLowerCase().contains(term);
+            return matchNum || matchTipo || matchCom || matchSup;
         });
 
         actualizarTotalesRecepciones();
@@ -285,7 +293,7 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
                 .filter(r -> !esAnulada(r))
                 .toList();
 
-        colNumero.setFooter("TOTAL RECEPCIONES: " + visibles.size());
+        colNumero.setFooter("RECEPCIONES: " + visibles.size());
         colSubtotal.setFooter(moneda(vigentes.stream()
                 .map(r -> r.getSubtotal() != null ? r.getSubtotal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)));
@@ -297,6 +305,11 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)));
     }
 
+    private void verDetalle(RecepcionMercancia rec) {
+        cargarDetalle(rec);
+        tabs.setSelectedIndex(1);
+    }
+
     private void cargarDetalle(RecepcionMercancia rec) {
 
         Collection<DetalleRecepcionMercancia> detalles = this.recepcionService.getDetalle(rec.getCodigo());
@@ -304,7 +317,22 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
         listDet = detalles != null ? new ArrayList<>(detalles) : new ArrayList<>();
         gridDetalle.setItems(listDet);
 
-        tabs.getTabAt(1).setLabel("Detalle( Recepción -> " + rec.getNumeroDocumento() + " )");
+        String numero = rec.getNumeroDocumento() != null ? rec.getNumeroDocumento() : String.valueOf(rec.getCodigo());
+        EstiloConsulta.renombrarTab(tabs, 1, VaadinIcon.FILE_TEXT_O, "Detalle · Recepción " + numero);
+
+        EstiloConsulta.cabecera(cabeceraDetalle,
+                "Recepción " + numero,
+                (rec.getProveedor() != null ? rec.getProveedor().getNombre() : "-")
+                + (rec.getFecha() != null ? "  ·  " + df.format(rec.getFecha()) : "")
+                + (rec.getTipoDocumento() != null ? "  ·  " + rec.getTipoDocumento().getNombre() : "")
+                + (rec.getComentario() != null && !rec.getComentario().isBlank() ? "  ·  " + rec.getComentario() : ""),
+                chipEstado(rec));
+
+        tarjetasDetalle.removeAll();
+        tarjetasDetalle.add(
+                EstiloConsulta.tarjeta("SubTotal", rec.getSubtotal(), "fv-tarjeta-total", VaadinIcon.CART),
+                EstiloConsulta.tarjeta("ITBIS", rec.getTotalItbis(), "fv-tarjeta-total", VaadinIcon.INVOICE),
+                EstiloConsulta.tarjeta("Total", rec.getTotal(), "fv-tarjeta-pagado", VaadinIcon.MONEY));
 
         actualizarTotalesDetalle();
     }
@@ -313,15 +341,18 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
 
         listDet = new ArrayList<>();
         gridDetalle.setItems(listDet);
-        tabs.getTabAt(1).setLabel("Detalle");
+        EstiloConsulta.renombrarTab(tabs, 1, VaadinIcon.FILE_TEXT_O, "Detalle");
         tabs.setSelectedIndex(0);
+        EstiloConsulta.cabeceraVacia(cabeceraDetalle,
+                "Haga doble clic en una recepción de la pestaña \"Recepciones de Mercancía\" para ver su detalle.");
+        tarjetasDetalle.removeAll();
 
         actualizarTotalesDetalle();
     }
 
     private void actualizarTotalesDetalle() {
 
-        colDescripcion.setFooter("TOTAL ARTÍCULOS: " + listDet.size());
+        colDescripcion.setFooter("ARTÍCULOS: " + listDet.size());
         colDetSubtotal.setFooter(moneda(listDet.stream()
                 .map(d -> d.getSubTotal() != null ? d.getSubTotal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)));
@@ -338,12 +369,13 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
     // ============================================================
     private void configurarGrid() {
 
-        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_COMPACT, GridVariant.LUMO_COLUMN_BORDERS);
+        EstiloConsulta.aplicarGrid(grid);
+        grid.setPartNameGenerator(r -> esAnulada(r) ? "fv-fila-anulada" : null);
 
         colNumero = grid.addColumn(RecepcionMercancia::getNumeroDocumento)
                 .setHeader("N° Recepción")
                 .setKey("numero")
-                .setFooter("TOTAL RECEPCIONES:");
+                .setFooter("RECEPCIONES:");
 
         grid.addColumn(r -> r.getTipoDocumento() != null ? r.getTipoDocumento().getNombre() : "-")
                 .setHeader("Tipo Origen")
@@ -362,32 +394,23 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
                         (RecepcionMercancia r) -> r.getFecha(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        // Columna Estado usando la configuración del Enum EstadoDocumento
-        grid.addColumn(new ComponentRenderer<>(rec -> {
-            EstadoDocumento est = rec.getEstadoDocumento();
-            if (est == null) {
-                return new Span("-");
-            }
-            Span badge = new Span(est.getNombre());
-            badge.getElement().getThemeList().add("badge " + est.getColorBadge());
-            return badge;
-        })).setHeader("Estado").setKey("estado");
+        grid.addComponentColumn(this::chipEstado).setHeader("Estado").setKey("estado");
 
-        colSubtotal = grid.addColumn(r -> moneda(r.getSubtotal()))
+        colSubtotal = EstiloConsulta.monto(grid.addColumn(r -> moneda(r.getSubtotal())))
                 .setHeader("SubTotal")
                 .setKey("subtotal")
                 .setComparator(Comparator.comparing(
                         (RecepcionMercancia r) -> r.getSubtotal(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colItbis = grid.addColumn(r -> moneda(r.getTotalItbis()))
+        colItbis = EstiloConsulta.monto(grid.addColumn(r -> moneda(r.getTotalItbis())))
                 .setHeader("ITBIS")
                 .setKey("itbis")
                 .setComparator(Comparator.comparing(
                         (RecepcionMercancia r) -> r.getTotalItbis(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colTotal = grid.addColumn(r -> moneda(r.getTotal()))
+        colTotal = EstiloConsulta.monto(grid.addColumn(r -> moneda(r.getTotal())))
                 .setHeader("Total")
                 .setKey("total")
                 .setComparator(Comparator.comparing(
@@ -398,18 +421,15 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
         grid.addColumn(new ComponentRenderer<>(rec -> {
             HorizontalLayout acciones = new HorizontalLayout();
 
-            // Ver Detalle
-            Button btnVer = new Button(VaadinIcon.EYE.create(), e -> {
-                getUI().ifPresent(ui -> ui.navigate("recepcion-mercancia/detalle/" + rec.getCodigo()));
-            });
+            // (Antes navegaba a una ruta inexistente)
+            Button btnVer = new Button(VaadinIcon.EYE.create(), e -> verDetalle(rec));
             btnVer.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-            btnVer.setTooltipText("Ver Detalle / Documento");
+            btnVer.setTooltipText("Ver detalle de la recepción");
 
-            // Anular Recepción
             Button btnAnular = new Button(VaadinIcon.BAN.create(), e -> confirmarAnulacion(rec));
             btnAnular.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
-            btnAnular.setTooltipText("Anular Recepción");
-//            btnAnular.setEnabled(rec.getEstadoDocumento()!= EstadoDocumento.ANULADA);
+            btnAnular.setTooltipText("Anular recepción");
+            btnAnular.setEnabled(!esAnulada(rec));
 
             acciones.add(btnVer, btnAnular);
             return acciones;
@@ -423,8 +443,10 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
 
     private void configurarGridDetalle() {
 
-        gridDetalle.setHeight("620px");
+        EstiloConsulta.aplicarGrid(gridDetalle);
         gridDetalle.setWidthFull();
+        gridDetalle.setMinHeight("300px");
+        gridDetalle.setHeight("50vh");
 
         // ASUNCIÓN: DetalleRecepcionMercancia expone estos getters (mismo patrón
         // que los demás detalles). Ajustar nombres si difieren.
@@ -441,28 +463,28 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
                 .setHeader("Cantidad Recibida")
                 .setKey("cantidad");
 
-        gridDetalle.addColumn(d -> moneda(d.getPrecioUnitario()))
+        EstiloConsulta.monto(gridDetalle.addColumn(d -> moneda(d.getPrecioUnitario())))
                 .setHeader("Precio Compra")
                 .setKey("precio")
                 .setComparator(Comparator.comparing(
                         (DetalleRecepcionMercancia d) -> d.getPrecioUnitario(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colDetSubtotal = gridDetalle.addColumn(d -> moneda(d.getSubTotal()))
+        colDetSubtotal = EstiloConsulta.monto(gridDetalle.addColumn(d -> moneda(d.getSubTotal())))
                 .setHeader("SubTotal")
                 .setKey("subtotal")
                 .setComparator(Comparator.comparing(
                         (DetalleRecepcionMercancia d) -> d.getSubTotal(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colDetItbis = gridDetalle.addColumn(d -> moneda(d.getItbis()))
+        colDetItbis = EstiloConsulta.monto(gridDetalle.addColumn(d -> moneda(d.getItbis())))
                 .setHeader("ITBIS")
                 .setKey("itbis")
                 .setComparator(Comparator.comparing(
                         (DetalleRecepcionMercancia d) -> d.getItbis(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colDetTotal = gridDetalle.addColumn(d -> moneda(d.getTotal()))
+        colDetTotal = EstiloConsulta.monto(gridDetalle.addColumn(d -> moneda(d.getTotal())))
                 .setHeader("Total")
                 .setKey("total")
                 .setComparator(Comparator.comparing(
@@ -556,6 +578,15 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
         }
         return "ANULADA".equalsIgnoreCase(e.getNombre())
                 || (e.getNombre() != null && e.getNombre().toLowerCase().contains("anul"));
+    }
+
+    private Span chipEstado(RecepcionMercancia r) {
+        if (esAnulada(r)) {
+            return EstiloConsulta.chipAnulada();
+        }
+        EstadoDocumento e = r.getEstadoDocumento();
+        return EstiloConsulta.chip(e != null && e.getNombre() != null ? e.getNombre().toUpperCase() : "RECIBIDA",
+                "fv-chip-pagada");
     }
 
     private boolean dentroDeRango(LocalDate fecha) {

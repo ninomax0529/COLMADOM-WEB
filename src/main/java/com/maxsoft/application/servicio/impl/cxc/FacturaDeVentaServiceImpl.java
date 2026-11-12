@@ -375,6 +375,9 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             turnoActual = cajaService.obtenerCajaAbierta()
                     .orElseThrow(() -> new IllegalStateException("Debe abrir una caja: se reembolsarán RD$ "
                     + String.format("%,.2f", reembolsoEfectivo) + " en efectivo."));
+            // No se puede devolver más efectivo del que hay en la gaveta
+            cajaService.validarEfectivoDisponible(turnoActual.getId().intValue(), reembolsoEfectivo,
+                    "reembolsar la devolución de la factura #" + factura.getCodigo());
         }
 
         boolean esDevolucionTotal = listaDetFactura.stream()

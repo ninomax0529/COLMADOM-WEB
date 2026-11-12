@@ -17,6 +17,12 @@ public interface LiquidacionDeliveryService {
      */
     List<PedidoDeliveryDTO> getPedidosPendientes(Integer codigoDelivery);
 
+    /** Código de motorista -> pedidos y monto pendientes de liquidar (solo los que tienen). */
+    Map<Integer, com.maxsoft.application.dto.PendientesMotoristaDTO> getPendientesPorMotorista();
+
+    /** Ticket (HTML de 80 mm) del comprobante de una liquidación, listo para imprimir. */
+    String generarComprobanteHtml(Integer codigoLiquidacion);
+
     /**
      * Deliveries realizados en un rango de fechas con su estado: PENDIENTE
      * (sin liquidar), LIQUIDADO o ANULADO.

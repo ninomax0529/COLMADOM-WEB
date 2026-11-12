@@ -40,6 +40,13 @@ public interface CuentaPorCobrarService {
      * (rebaja la deuda del cliente). El monto no puede exceder el saldo de la
      * factura en el estado de cuenta.
      */
+    /**
+     * Reversa en el estado de cuenta lo que un recibo anulado le había
+     * acreditado a una factura (débito: la deuda vuelve). Devuelve null si el
+     * recibo no tenía movimiento en el estado de cuenta.
+     */
+    CuentaPorCobrar registrarAnulacionRecibo(ReciboDeIngreso recibo, FacturaDeVenta factura, String motivo, String usuario);
+
     CuentaPorCobrar registrarDevolucion(FacturaDeVenta factura, BigDecimal monto, String motivo, String usuario);
 
     /** Lo que queda pendiente de una factura según el estado de cuenta (débitos - créditos). */

@@ -427,6 +427,11 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
                 marcarCajaAbierta(true);
 
+                // Respaldo: mostrar el POS aunque el callback del diálogo no
+                // llegue (antes quedaba oculto y había que refrescar).
+                setVisible(true);
+                enfocarBuscador();
+
                 return;
             }
 

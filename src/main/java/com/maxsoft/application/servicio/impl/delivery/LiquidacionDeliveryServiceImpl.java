@@ -2,7 +2,11 @@ package com.maxsoft.application.servicio.impl.delivery;
 
 import com.maxsoft.application.dto.DeliveryRealizadoDTO;
 import com.maxsoft.application.dto.PedidoDeliveryDTO;
+import com.maxsoft.application.dto.PendientesMotoristaDTO;
 import com.maxsoft.application.modelo.CajaTurno;
+import com.maxsoft.application.modelo.Empresa;
+import com.maxsoft.application.repo.EmpresaRepo;
+import java.text.SimpleDateFormat;
 import com.maxsoft.application.modelo.Cliente;
 import com.maxsoft.application.modelo.Delivery;
 import com.maxsoft.application.modelo.DetalleLiquidacionDelivery;
@@ -36,18 +40,21 @@ public class LiquidacionDeliveryServiceImpl implements LiquidacionDeliveryServic
     private final ReciboDeIngresoService reciboDeIngresoService;
     private final CajaService cajaService;
     private final CuentaPorCobrarService cuentaPorCobrarService;
+    private final EmpresaRepo empresaRepo;
 
     public LiquidacionDeliveryServiceImpl(LiquidacionDeliveryRepo liquidacionRepo,
             TipoVentaService tipoVentaService,
             ReciboDeIngresoService reciboDeIngresoService,
             CajaService cajaService,
-            CuentaPorCobrarService cuentaPorCobrarService
+            CuentaPorCobrarService cuentaPorCobrarService,
+            EmpresaRepo empresaRepo
     ) {
         this.liquidacionRepo = liquidacionRepo;
         this.tipoVentaService = tipoVentaService;
         this.reciboDeIngresoService = reciboDeIngresoService;
         this.cajaService = cajaService;
         this.cuentaPorCobrarService = cuentaPorCobrarService;
+        this.empresaRepo = empresaRepo;
     }
 
     // ============================================================
@@ -115,8 +122,98 @@ public class LiquidacionDeliveryServiceImpl implements LiquidacionDeliveryServic
                 f.getNombreCliente(),
                 esFiado(f) ? PedidoDeliveryDTO.FIADO : PedidoDeliveryDTO.CONTADO,
                 netoFactura(f),
-                f.getCliente()
+                f.getCliente(),
+                f.getFechaCreacion() // con hora; "fecha" es solo el día
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Integer, PendientesMotoristaDTO> getPendientesPorMotorista() {
+
+        Map<Integer, PendientesMotoristaDTO> resumen = new LinkedHashMap<>();
+        for (FacturaDeVenta f : liquidacionRepo.findPendientesTodos(ESTADO_FACTURA_DELIVERY)) {
+            Integer motorista = f.getDelivery().getCodigo();
+            PendientesMotoristaDTO actual = resumen.getOrDefault(motorista, PendientesMotoristaDTO.VACIO);
+            resumen.put(motorista, new PendientesMotoristaDTO(actual.pedidos() + 1,
+                    actual.monto().add(netoFactura(f))));
+        }
+        return resumen;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String generarComprobanteHtml(Integer codigoLiquidacion) {
+
+        LiquidacionDelivery l = liquidacionRepo.findById(codigoLiquidacion)
+                .orElseThrow(() -> new IllegalArgumentException("Liquidación #" + codigoLiquidacion + " no encontrada."));
+        Empresa empresa = empresaRepo.findFirstByOrderByCodigoAsc().orElse(null);
+        SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy hh:mm a");
+
+        StringBuilder h = new StringBuilder();
+        h.append("<!doctype html><html><head><meta charset='utf-8'><title>Liquidación delivery #").append(l.getCodigo())
+                .append("</title><style>@page{size:80mm auto;margin:3mm}body{font-family:'Courier New',monospace;font-size:12px;width:72mm;margin:0}")
+                .append(".c{text-align:center}.b{font-weight:bold}.g{font-size:15px}hr{border:0;border-top:1px dashed #000;margin:6px 0}")
+                .append("table{width:100%;border-collapse:collapse}td{padding:1px 0;vertical-align:top}td.r{text-align:right}")
+                .append(".f{margin-top:36px;border-top:1px solid #000;text-align:center;padding-top:2px}</style></head><body>");
+        if (empresa != null) {
+            h.append("<div class='c b'>").append(esc(empresa.getNombre())).append("</div>")
+                    .append("<div class='c'>").append(esc(empresa.getDiereccion())).append("</div>")
+                    .append("<div class='c'>Tel: ").append(esc(empresa.getTelefono()))
+                    .append(" &nbsp;RNC: ").append(esc(empresa.getRnc())).append("</div>");
+        }
+        h.append("<hr><div class='c b'>LIQUIDACIÓN DE DELIVERY</div><hr><table>")
+                .append("<tr><td>No.:</td><td class='r b'>").append(l.getCodigo()).append("</td></tr>")
+                .append("<tr><td>Fecha:</td><td class='r'>").append(l.getFecha() != null ? df.format(l.getFecha()) : "").append("</td></tr>")
+                .append("<tr><td>Motorista:</td><td class='r b'>").append(esc(l.getDelivery() != null ? l.getDelivery().getNombre() : "")).append("</td></tr>")
+                .append("<tr><td>Cajero:</td><td class='r'>").append(esc(l.getNombreUsuario())).append("</td></tr>")
+                .append("</table><hr><table>")
+                .append("<tr><td class='b'>Factura</td><td class='b'>Pago</td><td class='r b'>Monto</td></tr>");
+
+        List<DetalleLiquidacionDelivery> detalles = l.getDetalleLiquidacionDeliveryCollection() != null
+                ? new ArrayList<>(l.getDetalleLiquidacionDeliveryCollection()) : new ArrayList<>();
+        for (DetalleLiquidacionDelivery d : detalles) {
+            boolean aCredito = d.getCliente() != null;
+            h.append("<tr><td>#").append(d.getFactura() != null ? d.getFactura().getCodigo() : "").append("</td><td>")
+                    .append(aCredito ? "CRÉDITO" : esc(d.getTipoPago())).append("</td><td class='r'>")
+                    .append(String.format("%,.2f", valor(d.getMonto()))).append("</td></tr>");
+            if (aCredito) {
+                h.append("<tr><td colspan='3'>&nbsp;&nbsp;a nombre de ").append(esc(d.getCliente().getNombre())).append("</td></tr>");
+            }
+        }
+
+        BigDecimal diferencia = valor(l.getDiferencia());
+        h.append("</table><hr><table>")
+                .append(fila("Pedidos:", String.valueOf(detalles.size()), false))
+                .append(fila("Total liquidado:", "RD$ " + String.format("%,.2f", valor(l.getTotalLiquidado())), false))
+                .append(fila("Fiado / crédito:", "RD$ " + String.format("%,.2f", valor(l.getTotalFiado())), false))
+                .append(fila("Efectivo esperado:", "RD$ " + String.format("%,.2f", valor(l.getEfectivoEsperado())), true))
+                .append(fila("Efectivo recibido:", "RD$ " + String.format("%,.2f", valor(l.getEfectivoRecibido())), true))
+                .append(fila(diferencia.signum() == 0 ? "Diferencia:" : diferencia.signum() > 0 ? "SOBRANTE:" : "FALTANTE:",
+                        "RD$ " + String.format("%,.2f", diferencia.abs()), true))
+                .append("</table>");
+        if (l.getObservacion() != null && !l.getObservacion().isBlank()) {
+            h.append("<hr><div>Observación:</div><div>").append(esc(l.getObservacion())).append("</div>");
+        }
+        h.append("<hr><div class='f'>Firma del motorista</div><div class='f'>Recibido por (cajero)</div></body></html>");
+        return h.toString();
+    }
+
+    private static String fila(String etiqueta, String valor, boolean resaltar) {
+        String c = resaltar ? " class='b'" : "";
+        return "<tr><td" + c + ">" + etiqueta + "</td><td class='r" + (resaltar ? " b" : "") + "'>" + valor + "</td></tr>";
+    }
+
+    private static BigDecimal valor(BigDecimal v) {
+        return v != null ? v : BigDecimal.ZERO;
+    }
+
+    private static String esc(String s) {
+        if (s == null) {
+            return "";
+        }
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#39;");
     }
 
     /** Total menos lo devuelto antes de liquidar: es lo que el motorista debe entregar. */

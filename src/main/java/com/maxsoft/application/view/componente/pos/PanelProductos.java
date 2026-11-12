@@ -106,7 +106,8 @@ public class PanelProductos extends VerticalLayout {
         });
         btnAbrirCaja.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_SUCCESS);
 
-        btnMovimientoPos = new Button("Movimiento POS", VaadinIcon.CREDIT_CARD.create(), e -> {
+        // Tarjeta/datáfono y entradas de efectivo (fondo extra)
+        btnMovimientoPos = new Button("Movimiento de Caja", VaadinIcon.CREDIT_CARD.create(), e -> {
             try {
                 if (onAbrirMovimientoPos != null) {
                     onAbrirMovimientoPos.run();
@@ -118,7 +119,7 @@ public class PanelProductos extends VerticalLayout {
 
         btnMovimientoPos.addThemeVariants(ButtonVariant.LUMO_SMALL);
 
-        // Mismo estilo que "Movimiento POS": antes era negro sólido y resaltaba
+        // Mismo estilo que "Movimiento de Caja": antes era negro sólido y resaltaba
         // más que cualquier otra acción de la pantalla.
         Button btnDevolucion = new Button("Devolución", new Icon(VaadinIcon.ARROW_BACKWARD));
         btnDevolucion.addThemeVariants(ButtonVariant.LUMO_SMALL);

@@ -32,6 +32,8 @@ public class CuentaPorCobrar implements Serializable {
     public static final String RECIBO = "RECIBO";
     public static final String ANULACION_FACTURA = "ANULACION_FACTURA";
     public static final String DEVOLUCION = "DEVOLUCION";
+    /** Reverso de un recibo de ingreso anulado: la deuda vuelve (débito). */
+    public static final String ANULACION_RECIBO = "ANULACION_RECIBO";
     public static final String AJUSTE_DEBITO = "AJUSTE_DEBITO";
     public static final String AJUSTE_CREDITO = "AJUSTE_CREDITO";
 

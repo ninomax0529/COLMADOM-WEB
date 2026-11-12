@@ -5,10 +5,12 @@
 package com.maxsoft.application.view.cxp.reciboEgreso;
 
 import com.maxsoft.application.modelo.DetalleReciboDeEgreso;
+import com.maxsoft.application.modelo.FacturaDeCompra;
 import com.maxsoft.application.modelo.Proveedor;
 import com.maxsoft.application.modelo.ReciboDeEgreso;
 import com.maxsoft.application.servicio.interfaces.compra.ProveedorService;
 import com.maxsoft.application.servicio.interfaces.cxp.ReciboDeEgresoService;
+import com.maxsoft.application.view.componente.EstiloConsulta;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
 
 import com.vaadin.flow.component.Key;
@@ -16,12 +18,14 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -29,6 +33,7 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
@@ -49,6 +54,10 @@ import java.util.List;
 @PageTitle("Consulta Recibo de Egreso")
 public class ReciboDeEgresoView extends VerticalLayout {
 
+    private static final String TODOS = "TODOS";
+    private static final String VIGENTE = "VIGENTE";
+    private static final String ANULADO = "ANULADO";
+
     private final ReciboDeEgresoService reciboDeEgresoService;
     private final ProveedorService proveedorService;
 
@@ -67,23 +76,21 @@ public class ReciboDeEgresoView extends VerticalLayout {
     private final Button btnLimpiar = new Button("Limpiar", VaadinIcon.REFRESH.create());
 
     private final TabSheet tabs = new TabSheet();
+    private final Div cabeceraDetalle = new Div();
+    private final Div tarjetasDetalle = new Div();
 
-    List<ReciboDeEgreso> listaOrdenes = new ArrayList<>();
+    List<ReciboDeEgreso> listaRecibos = new ArrayList<>();
     List<DetalleReciboDeEgreso> listDet = new ArrayList<>();
 
-    private GridListDataView<ReciboDeEgreso> dataViewOrdenes;
+    private GridListDataView<ReciboDeEgreso> dataViewRecibos;
 
     private final SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
 
     // Columnas con pie (totales)
     private Grid.Column<ReciboDeEgreso> colNumero;
-    private Grid.Column<ReciboDeEgreso> colSubtotal;
-    private Grid.Column<ReciboDeEgreso> colItbis;
     private Grid.Column<ReciboDeEgreso> colTotal;
 
     private Grid.Column<DetalleReciboDeEgreso> colDescripcion;
-    private Grid.Column<DetalleReciboDeEgreso> colDetSubtotal;
-    private Grid.Column<DetalleReciboDeEgreso> colDetItbis;
     private Grid.Column<DetalleReciboDeEgreso> colDetTotal;
 
     public ReciboDeEgresoView(ReciboDeEgresoService reciboDeEgresoService,
@@ -95,37 +102,29 @@ public class ReciboDeEgresoView extends VerticalLayout {
         setSpacing(false);
 
         tabs.setSizeFull();
-
-        tabs.add("Recibo de Egreso", grid);
-        tabs.add("Detalle", gridDetalle);
-
-        botonera.getNuevo().addClickListener(e -> {
-            // lógica de nuevo
-
-            UI.getCurrent().navigate(RegistroReciboDeEgresoView.class);
-
-        });
-
-        grid.addItemDoubleClickListener(c -> {
-
-            if (c.getItem() == null) {
-                return;
-            }
-
-            cargarDetalle(c.getItem());
-            tabs.setSelectedIndex(1);
-
-        });
+        EstiloConsulta.aplicarVista(this, tabs);
 
         configurarFiltros();
         configurarGrid();
         configurarGridDetalle();
 
-        add(
-                botonera,
-                new H2("Recibo de Egreso"),
-                crearBarraFiltros(),
-                tabs);
+        tabs.add(EstiloConsulta.etiquetaTab(VaadinIcon.LIST, "Recibos de Egreso"), grid);
+        tabs.add(EstiloConsulta.etiquetaTab(VaadinIcon.FILE_TEXT_O, "Detalle"),
+                EstiloConsulta.panelDetalle(cabeceraDetalle, tarjetasDetalle, gridDetalle));
+
+        botonera.getNuevo().addClickListener(e -> UI.getCurrent().navigate(RegistroReciboDeEgresoView.class));
+
+        grid.addItemDoubleClickListener(c -> {
+            if (c.getItem() != null) {
+                verDetalle(c.getItem());
+            }
+        });
+
+        H2 titulo = new H2("Recibos de Egreso");
+        titulo.addClassName("fv-titulo");
+
+        add(botonera, titulo, crearBarraFiltros(), tabs);
+        setFlexGrow(1, tabs);
 
         aplicarFiltros(); // Carga inicial
     }
@@ -136,7 +135,7 @@ public class ReciboDeEgresoView extends VerticalLayout {
     private void configurarFiltros() {
 
         txtBuscar.setWidth("260px");
-        txtBuscar.setPlaceholder("Filtrar por número u observación...");
+        txtBuscar.setPlaceholder("Filtrar por número, suplidor o concepto...");
         txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
         txtBuscar.setClearButtonVisible(true);
         txtBuscar.setValueChangeMode(ValueChangeMode.LAZY);
@@ -147,8 +146,8 @@ public class ReciboDeEgresoView extends VerticalLayout {
         cbSuplidor.setPlaceholder("Todos los suplidores");
         cbSuplidor.setClearButtonVisible(true);
 
-        cbEstado.setItems("TODOS", "PENDIENTE", "COMPLETADA", "ANULADA");
-        cbEstado.setValue("TODOS");
+        cbEstado.setItems(TODOS, VIGENTE, ANULADO);
+        cbEstado.setValue(TODOS);
         cbEstado.setAllowCustomValue(false);
 
         // Rango por defecto (Primer día del mes actual hasta hoy)
@@ -167,7 +166,8 @@ public class ReciboDeEgresoView extends VerticalLayout {
     private HorizontalLayout crearBarraFiltros() {
 
         HorizontalLayout barra = new HorizontalLayout(
-                dtDesde, dtHasta, cbSuplidor, cbEstado, txtBuscar, btnFiltrar, btnLimpiar);
+                dtDesde, dtHasta, cbSuplidor, cbEstado, txtBuscar, btnFiltrar, btnLimpiar,
+                EstiloConsulta.ayuda("Doble clic en un recibo para ver su detalle"));
         barra.setAlignItems(Alignment.BASELINE);
         barra.setWidthFull();
         // Permite que los filtros pasen a otra línea en pantallas angostas
@@ -179,7 +179,7 @@ public class ReciboDeEgresoView extends VerticalLayout {
 
         txtBuscar.clear();
         cbSuplidor.clear();
-        cbEstado.setValue("TODOS");
+        cbEstado.setValue(TODOS);
         dtDesde.setValue(LocalDate.now().withDayOfMonth(1));
         dtHasta.setValue(LocalDate.now());
         aplicarFiltros();
@@ -199,41 +199,30 @@ public class ReciboDeEgresoView extends VerticalLayout {
         try {
 
             Proveedor suplidorSel = cbSuplidor.getValue();
-            String estadoSel = cbEstado.getValue();
+            String estadoSel = cbEstado.getValue() != null ? cbEstado.getValue() : TODOS;
 
-            // Filtrado en memoria sobre el listado del servicio
-            List<ReciboDeEgreso> resultado = reciboDeEgresoService.getLista().stream().filter(reciboEgreso -> {
+            List<ReciboDeEgreso> resultado = reciboDeEgresoService.getLista().stream().filter(r -> {
 
-                // Filtro Suplidor
                 boolean coincideSuplidor = suplidorSel == null
-                        || (reciboEgreso.getProveedor() != null
-                        && reciboEgreso.getProveedor().getCodigo().equals(suplidorSel.getCodigo()));
+                        || (r.getProveedor() != null
+                        && r.getProveedor().getCodigo().equals(suplidorSel.getCodigo()));
 
-                // Filtro Estado
-                boolean anulada = reciboEgreso.getAnulado() != null && reciboEgreso.getAnulado();
-//                boolean completada = "SI".equalsIgnoreCase(orden.getCompletada());
+                // (Antes el filtro de estado no hacía nada)
+                boolean coincideEstado = switch (estadoSel) {
+                    case VIGENTE -> !esAnulado(r);
+                    case ANULADO -> esAnulado(r);
+                    default -> true;
+                };
 
-                boolean coincideEstado = true;
-
-//                if ("PENDIENTE".equals(estadoSel)) {
-//                    coincideEstado = !anulada && !completada;
-//                } else if ("COMPLETADA".equals(estadoSel)) {
-//                    coincideEstado = completada && !anulada;
-//                } else if ("ANULADA".equals(estadoSel)) {
-//                    coincideEstado = anulada;
-//                }
-                // Filtro Rango Fechas
-                boolean coincideFecha = dentroDeRango(aLocalDate(reciboEgreso.getFecha()));
-
-                return coincideSuplidor && coincideEstado && coincideFecha;
+                return coincideSuplidor && coincideEstado && dentroDeRango(aLocalDate(r.getFecha()));
             })
                     .sorted(Comparator.comparing(
                             (ReciboDeEgreso o) -> aLocalDate(o.getFecha()),
                             Comparator.nullsLast(Comparator.reverseOrder())))
                     .toList();
 
-            listaOrdenes.clear();
-            listaOrdenes.addAll(resultado);
+            listaRecibos.clear();
+            listaRecibos.addAll(resultado);
             grid.getDataProvider().refreshAll();
 
             aplicarFiltroTexto();
@@ -242,7 +231,7 @@ public class ReciboDeEgresoView extends VerticalLayout {
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            mostrarNotificacion("Error consultando órdenes: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
+            mostrarNotificacion("Error consultando recibos: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }
 
@@ -251,48 +240,40 @@ public class ReciboDeEgresoView extends VerticalLayout {
      */
     private void aplicarFiltroTexto() {
 
-        if (dataViewOrdenes == null) {
+        if (dataViewRecibos == null) {
             return;
         }
 
         String term = txtBuscar.getValue() == null ? "" : txtBuscar.getValue().trim().toLowerCase();
 
-        dataViewOrdenes.setFilter(o -> {
+        dataViewRecibos.setFilter(o -> {
             if (term.isEmpty()) {
                 return true;
             }
-            boolean matchNum = o.getCodigo()!= null && o.getCodigo().toString().toLowerCase().contains(term);
-            boolean matchCom = o.getConcepto()!= null && o.getConcepto().toLowerCase().contains(term);
-            return matchNum || matchCom;
+            boolean matchNum = o.getCodigo() != null && o.getCodigo().toString().contains(term);
+            boolean matchCom = o.getConcepto() != null && o.getConcepto().toLowerCase().contains(term);
+            boolean matchSup = nombreSuplidor(o).toLowerCase().contains(term);
+            return matchNum || matchCom || matchSup;
         });
 
-        actualizarTotalesOrdenes();
+        actualizarTotales();
     }
 
-    /**
-     * Totales del pie sobre lo que se está viendo (excluye anuladas de los
-     * montos, igual que el resumen original).
-     */
-    private void actualizarTotalesOrdenes() {
+    /** Totales del pie sobre lo visible (los anulados no suman). */
+    private void actualizarTotales() {
 
-        List<ReciboDeEgreso> visibles = dataViewOrdenes.getItems().toList();
+        List<ReciboDeEgreso> visibles = dataViewRecibos.getItems().toList();
 
-        List<ReciboDeEgreso> vigentes = visibles.stream()
-                .filter(o -> o.getAnulado() == null || !o.getAnulado())
-                .toList();
+        colNumero.setFooter("RECIBOS: " + visibles.size());
+        colTotal.setFooter(EstiloConsulta.moneda(visibles.stream()
+                .filter(o -> !esAnulado(o))
+                .map(o -> o.getTotalPagado() != null ? o.getTotalPagado() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)));
+    }
 
-        colNumero.setFooter("TOTAL ÓRDENES: " + visibles.size());
-        
-        colSubtotal.setFooter(moneda(vigentes.stream()
-                .map(o -> o.getTotalPagado()!= null ? o.getTotalPagado() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)));
-        colItbis.setFooter(moneda(vigentes.stream()
-                .map(o -> o.getBalancePendienteAntes()!= null ? o.getBalancePendienteAntes() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)));
-        
-        colTotal.setFooter(moneda(vigentes.stream()
-                .map(o -> o.getBalancePendienteDespues()!= null ? o.getBalancePendienteDespues() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)));
+    private void verDetalle(ReciboDeEgreso recibo) {
+        cargarDetalle(recibo);
+        tabs.setSelectedIndex(1);
     }
 
     private void cargarDetalle(ReciboDeEgreso recibo) {
@@ -302,7 +283,23 @@ public class ReciboDeEgresoView extends VerticalLayout {
         listDet = detalles != null ? new ArrayList<>(detalles) : new ArrayList<>();
         gridDetalle.setItems(listDet);
 
-        tabs.getTabAt(1).setLabel("Detalle( Recibo -> " + recibo.getCodigo() + " )");
+        EstiloConsulta.renombrarTab(tabs, 1, VaadinIcon.FILE_TEXT_O, "Detalle · Recibo #" + recibo.getCodigo());
+
+        EstiloConsulta.cabecera(cabeceraDetalle,
+                "Recibo de egreso #" + recibo.getCodigo(),
+                nombreSuplidor(recibo)
+                + (recibo.getFecha() != null ? "  ·  " + df.format(recibo.getFecha()) : "")
+                + (recibo.getConcepto() != null && !recibo.getConcepto().isBlank() ? "  ·  " + recibo.getConcepto() : ""),
+                chipEstado(recibo), chipOrigen(recibo));
+
+        BigDecimal antes = listDet.stream().map(d -> valor(d.getBalancePendienteAntes())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal despues = listDet.stream().map(d -> valor(d.getBalancePendienteDespues())).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        tarjetasDetalle.removeAll();
+        tarjetasDetalle.add(
+                EstiloConsulta.tarjeta("Total pagado", recibo.getTotalPagado(), "fv-tarjeta-pagado", VaadinIcon.CHECK_CIRCLE),
+                EstiloConsulta.tarjeta("Debía antes", antes, "fv-tarjeta-total", VaadinIcon.MONEY),
+                EstiloConsulta.tarjetaPendiente("Queda pendiente", despues));
 
         actualizarTotalesDetalle();
     }
@@ -311,27 +308,20 @@ public class ReciboDeEgresoView extends VerticalLayout {
 
         listDet = new ArrayList<>();
         gridDetalle.setItems(listDet);
-        tabs.getTabAt(1).setLabel("Detalle");
+        EstiloConsulta.renombrarTab(tabs, 1, VaadinIcon.FILE_TEXT_O, "Detalle");
         tabs.setSelectedIndex(0);
+        EstiloConsulta.cabeceraVacia(cabeceraDetalle,
+                "Haga doble clic en un recibo de la pestaña \"Recibos de Egreso\" para ver su detalle.");
+        tarjetasDetalle.removeAll();
 
         actualizarTotalesDetalle();
     }
 
     private void actualizarTotalesDetalle() {
 
-        colDescripcion.setFooter("TOTAL ARTÍCULOS: " + listDet.size());
-        
-        colDetSubtotal.setFooter(moneda(listDet.stream()
-                .map(d -> d.getTotal()!= null ? d.getTotal() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)));
-        
-        colDetItbis.setFooter(moneda(listDet.stream()
-                .map(d -> d.getBalancePendienteAntes()!= null ? d.getBalancePendienteAntes() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)));
-        
-        colDetTotal.setFooter(moneda(listDet.stream()
-                
-                .map(d -> d.getBalancePendienteDespues()!= null ? d.getBalancePendienteDespues() : BigDecimal.ZERO)
+        colDescripcion.setFooter("FACTURAS: " + listDet.size());
+        colDetTotal.setFooter(EstiloConsulta.moneda(listDet.stream()
+                .map(d -> valor(d.getTotal()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add)));
     }
 
@@ -340,14 +330,15 @@ public class ReciboDeEgresoView extends VerticalLayout {
     // ============================================================
     private void configurarGrid() {
 
-        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_COMPACT, GridVariant.LUMO_COLUMN_BORDERS);
+        EstiloConsulta.aplicarGrid(grid);
+        grid.setPartNameGenerator(r -> esAnulado(r) ? "fv-fila-anulada" : null);
 
         colNumero = grid.addColumn(ReciboDeEgreso::getCodigo)
                 .setHeader("Número")
                 .setKey("numero")
-                .setFooter("TOTAL RECIBO:");
+                .setFooter("RECIBOS:");
 
-        grid.addColumn(o -> o.getProveedor() != null ? o.getProveedor().getNombre() : "-")
+        grid.addColumn(this::nombreSuplidor)
                 .setHeader("Proveedor")
                 .setKey("proveedor")
                 .setFlexGrow(2);
@@ -359,120 +350,85 @@ public class ReciboDeEgresoView extends VerticalLayout {
                         (ReciboDeEgreso o) -> o.getFecha(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        // Columna Estado con Badge de Color
-//        grid.addColumn(new ComponentRenderer<>(orden -> {
-//            
-//            Span badge = new Span(orden.getEstado() != null ? orden.getEstado() : "PENDIENTE");
-//            String estado = orden.getEstado() != null ? orden.getEstado().toUpperCase() : "";
-//
-//            if (orden.getAnulada() != null && orden.getAnulada()) {
-//                badge.setText("ANULADA");
-//                badge.getElement().getThemeList().add("badge error");
-//            } else if ("COMPLETADA".equals(estado) || "SI".equalsIgnoreCase(orden.getCompletada())) {
-//                badge.setText("COMPLETADA");
-//                badge.getElement().getThemeList().add("badge success");
-//            } else {
-//                badge.setText("PENDIENTE");
-//                badge.getElement().getThemeList().add("badge warning");
-//            }
-//            return badge;
-//        })).setHeader("Estado").setKey("estado");
+        grid.addColumn(o -> o.getConcepto() != null ? o.getConcepto() : "")
+                .setHeader("Concepto")
+                .setKey("concepto")
+                .setFlexGrow(2);
 
-        colSubtotal = grid.addColumn(o -> moneda(o.getTotalPagado()))
-                .setHeader("Total")
+        grid.addComponentColumn(this::chipOrigen)
+                .setHeader("Pago")
+                .setKey("origen");
+
+        grid.addComponentColumn(this::chipEstado)
+                .setHeader("Estado")
+                .setKey("estado");
+
+        colTotal = EstiloConsulta.monto(grid.addColumn(o -> EstiloConsulta.moneda(o.getTotalPagado())))
+                .setHeader("Total pagado")
                 .setKey("total")
                 .setComparator(Comparator.comparing(
                         (ReciboDeEgreso o) -> o.getTotalPagado(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colItbis = grid.addColumn(o -> moneda(o.getBalancePendienteAntes()))
-                .setHeader("BalancePendienteAntes")
-                .setKey("bant")
-                .setComparator(Comparator.comparing(
-                        (ReciboDeEgreso o) -> o.getBalancePendienteAntes(),
-                        Comparator.nullsLast(Comparator.naturalOrder())));
-
-        colTotal = grid.addColumn(o -> moneda(o.getBalancePendienteDespues()))
-                .setHeader("BalancePendienteDespues")
-                .setKey("bdespues")
-                .setComparator(Comparator.comparing(
-                        (ReciboDeEgreso o) -> o.getBalancePendienteDespues(),
-                        Comparator.nullsLast(Comparator.naturalOrder())));
-
-        // Columna Botones de Acción
-        grid.addColumn(new ComponentRenderer<>(orden -> {
+        // Acciones
+        grid.addColumn(new ComponentRenderer<>(recibo -> {
             HorizontalLayout acciones = new HorizontalLayout();
 
-            // Ver / Editar
-            Button btnEditar = new Button(VaadinIcon.EYE.create(), e -> {
-                getUI().ifPresent(ui -> ui.navigate("ordenes-compra/detalle/" + orden.getCodigo()));
-            });
-            btnEditar.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-            btnEditar.setTooltipText("Ver detalle u Recibo");
+            // (Antes navegaba a una ruta inexistente)
+            Button btnVer = new Button(VaadinIcon.EYE.create(), e -> verDetalle(recibo));
+            btnVer.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+            btnVer.setTooltipText("Ver detalle del recibo");
 
-            // Anular
-            Button btnAnular = new Button(VaadinIcon.BAN.create(), e -> confirmarAnulacion(orden));
+            Button btnAnular = new Button(VaadinIcon.BAN.create(), e -> confirmarAnulacion(recibo));
             btnAnular.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
-            btnAnular.setTooltipText("Anular Recibo");
-            btnAnular.setEnabled(orden.getAnulado() == null || !orden.getAnulado());
+            btnAnular.setTooltipText("Anular recibo");
+            btnAnular.setEnabled(!esAnulado(recibo));
 
-            acciones.add(btnEditar, btnAnular);
+            acciones.add(btnVer, btnAnular);
             return acciones;
         })).setHeader("Acciones").setKey("acciones").setSortable(false);
 
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
 
-        dataViewOrdenes = grid.setItems(listaOrdenes);
+        dataViewRecibos = grid.setItems(listaRecibos);
         grid.setSizeFull();
     }
 
     private void configurarGridDetalle() {
 
-        gridDetalle.setHeight("620px");
+        EstiloConsulta.aplicarGrid(gridDetalle);
         gridDetalle.setWidthFull();
+        gridDetalle.setMinHeight("300px");
+        gridDetalle.setHeight("50vh");
 
-        // ASUNCIÓN: DetalleOrdenDeCompra expone estos getters (mismo patrón que
-        // los demás detalles de inventario). Ajustar nombres si difieren.
-        colDescripcion = gridDetalle.addColumn(DetalleReciboDeEgreso::getFactura)
-                .setHeader("Factura")
+        // (Antes mostraba el objeto factura completo como texto)
+        colDescripcion = gridDetalle.addColumn(d -> {
+            FacturaDeCompra f = d.getFactura();
+            if (f == null) {
+                return "";
+            }
+            return "#" + f.getCodigo() + (f.getNumeroFactura() != null ? "  (N° " + f.getNumeroFactura() + ")" : "");
+        })
+                .setHeader("Factura de compra")
                 .setKey("factura")
-                .setFooter("TOTAL:");
-//
-//        gridDetalle.addColumn(DetalleReciboDeEgreso::getTotal)
-//                .setHeader("Unidad")
-//                .setKey("unidad");
-//
-//        gridDetalle.addColumn(DetalleReciboDeEgreso::getBalancePendienteAntes)
-//                .setHeader("BalancePendienteAntes")
-//                .setKey("bant");
-//
-//        gridDetalle.addColumn(d -> moneda(d.getBalancePendienteDespues()))
-//                .setHeader("BalancePendienteDespues")
-//                .setKey("bdesp")
-//                .setComparator(Comparator.comparing(
-//                        (DetalleReciboDeEgreso d) -> d.getBalancePendienteDespues(),
-//                        Comparator.nullsLast(Comparator.naturalOrder())));
+                .setFooter("FACTURAS:");
 
-        colDetSubtotal = gridDetalle.addColumn(d -> moneda(d.getTotal()))
-                .setHeader("Total")
+        EstiloConsulta.monto(gridDetalle.addColumn(d -> EstiloConsulta.moneda(d.getBalancePendienteAntes())))
+                .setHeader("Debía antes")
+                .setKey("bant")
+                .setComparator(Comparator.comparing(
+                        (DetalleReciboDeEgreso d) -> valor(d.getBalancePendienteAntes())));
+
+        colDetTotal = EstiloConsulta.monto(gridDetalle.addColumn(d -> EstiloConsulta.moneda(d.getTotal())))
+                .setHeader("Pagado")
                 .setKey("total")
-                .setComparator(Comparator.comparing(
-                        (DetalleReciboDeEgreso d) -> d.getTotal(),
-                        Comparator.nullsLast(Comparator.naturalOrder())));
+                .setComparator(Comparator.comparing((DetalleReciboDeEgreso d) -> valor(d.getTotal())));
 
-        colDetItbis = gridDetalle.addColumn(d -> moneda(d.getBalancePendienteAntes()))
-                .setHeader("BalancePendienteAntes")
-                .setKey("apant")
-                .setComparator(Comparator.comparing(
-                        (DetalleReciboDeEgreso d) -> d.getBalancePendienteDespues(),
-                        Comparator.nullsLast(Comparator.naturalOrder())));
-
-        colDetTotal = gridDetalle.addColumn(d -> moneda(d.getBalancePendienteDespues()))
-                .setHeader("BalancePendienteDespues")
+        gridDetalle.addComponentColumn(d -> EstiloConsulta.pendiente(d.getBalancePendienteDespues(), false))
+                .setHeader("Queda pendiente")
                 .setKey("bpdes")
-                .setComparator(Comparator.comparing(
-                        (DetalleReciboDeEgreso d) -> d.getBalancePendienteDespues(),
-                        Comparator.nullsLast(Comparator.naturalOrder())));
+                .setTextAlign(ColumnTextAlign.END)
+                .setComparator(Comparator.comparing((DetalleReciboDeEgreso d) -> valor(d.getBalancePendienteDespues())));
 
         gridDetalle.getColumns().forEach(col -> {
             col.setAutoWidth(true);
@@ -483,39 +439,79 @@ public class ReciboDeEgresoView extends VerticalLayout {
     // ============================================================
     // ANULACIÓN
     // ============================================================
+    /**
+     * Anula con el servicio completo: devuelve a cada factura lo que el recibo
+     * le había pagado y, si salió de la caja, reingresa el efectivo. Antes
+     * solo marcaba el recibo como anulado y las facturas quedaban como pagadas.
+     */
     private void confirmarAnulacion(ReciboDeEgreso recibo) {
-        ConfirmDialog dialog = new ConfirmDialog();
-        dialog.setHeader("Anular Orden de Compra");
-        dialog.setText("¿Está seguro de que desea anular el Recibo de egreso N° " + recibo.getNumero() + "? Esta acción no se puede deshacer.");
 
-        dialog.setCancelable(true);
-        dialog.setCancelText("Cancelar");
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Anular recibo de egreso #" + recibo.getCodigo());
+        dialog.setWidth("460px");
 
-        dialog.setConfirmText("Sí, Anular");
-        dialog.setConfirmButtonTheme("error primary");
+        Span texto = new Span("Se devolverá a cada factura lo que este recibo le pagó (RD$ "
+                + String.format("%,.2f", valor(recibo.getTotalPagado())) + ")"
+                + (recibo.getCajaChica() != null ? " y el efectivo regresará a la caja abierta." : ".")
+                + " Esta acción no se puede deshacer.");
+        TextArea motivo = new TextArea("Motivo de la anulación");
+        motivo.setWidthFull();
+        motivo.setRequired(true);
+        dialog.add(new VerticalLayout(texto, motivo));
 
-        dialog.addConfirmListener(e -> {
+        Button cancelar = new Button("Cancelar", e -> dialog.close());
+        Button anular = new Button("Sí, anular", VaadinIcon.BAN.create(), e -> {
+            if (motivo.isEmpty() || motivo.getValue().isBlank()) {
+                motivo.setInvalid(true);
+                motivo.setErrorMessage("Indique el motivo");
+                return;
+            }
             try {
-                recibo.setAnulado(true);
-//                recibo.setAnulado("ANULADA");
-                reciboDeEgresoService.guardar(recibo); // O método de actualización correspondiente
-
-                Notification.show("Orden de Compra anulada con éxito.", 3000, Notification.Position.BOTTOM_END)
+                reciboDeEgresoService.anularReciboDeEgreso(recibo.getCodigo(), motivo.getValue().trim(), "Admin");
+                Notification.show("Recibo #" + recibo.getCodigo() + " anulado.", 3000, Notification.Position.BOTTOM_END)
                         .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-
+                dialog.close();
                 aplicarFiltros();
             } catch (Exception ex) {
-                Notification.show("Error al anular El Recibo: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
+                Notification.show("No se pudo anular el recibo: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
         });
-
+        anular.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        dialog.getFooter().add(cancelar, anular);
         dialog.open();
+        motivo.focus();
     }
 
     // ============================================================
     // UTILIDADES
     // ============================================================
+    private boolean esAnulado(ReciboDeEgreso r) {
+        return Boolean.TRUE.equals(r.getAnulado());
+    }
+
+    private Span chipEstado(ReciboDeEgreso r) {
+        return esAnulado(r) ? EstiloConsulta.chipAnulada() : EstiloConsulta.chip("VIGENTE", "fv-chip-pagada");
+    }
+
+    /** Efectivo (salió de la caja) u otra forma (cheque/transferencia). */
+    private Span chipOrigen(ReciboDeEgreso r) {
+        return r.getCajaChica() != null
+                ? EstiloConsulta.chip("EFECTIVO", "fv-chip-contado")
+                : EstiloConsulta.chip("CHEQUE / TRANSF.", "fv-chip-delivery");
+    }
+
+    private String nombreSuplidor(ReciboDeEgreso r) {
+        if (r.getProveedor() != null) {
+            return r.getProveedor().getNombre();
+        }
+        return r.getNombreProveedor() != null ? r.getNombreProveedor() : "-";
+    }
+
+    private BigDecimal valor(BigDecimal v) {
+        return v != null ? v : BigDecimal.ZERO;
+    }
+
     private boolean dentroDeRango(LocalDate fecha) {
 
         if (fecha == null) {
@@ -534,11 +530,6 @@ public class ReciboDeEgresoView extends VerticalLayout {
         }
         // new Date(getTime()) evita problemas si llega un java.sql.Date
         return new Date(fecha.getTime()).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-    }
-
-    private String moneda(BigDecimal valor) {
-
-        return String.format("RD$ %,.2f", valor != null ? valor : BigDecimal.ZERO);
     }
 
     private void mostrarNotificacion(String mensaje, NotificationVariant variante) {

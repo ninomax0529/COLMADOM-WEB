@@ -107,6 +107,27 @@ public class CuentaPorCobrarServiceImpl implements CuentaPorCobrarService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public CuentaPorCobrar registrarAnulacionRecibo(ReciboDeIngreso recibo, FacturaDeVenta factura, String motivo, String usuario) {
+
+        BigDecimal acreditado = nz(repo.creditoDeRecibo(recibo.getCodigo(), factura.getCodigo()));
+        if (acreditado.signum() <= 0) {
+            return null; // ese pago no estaba en el estado de cuenta (p. ej. factura de contado)
+        }
+        Integer clienteId = factura.getCliente() != null ? factura.getCliente().getCodigo()
+                : recibo.getCliente() != null ? recibo.getCliente().getCodigo() : null;
+        if (clienteId == null) {
+            throw new IllegalStateException("La factura #" + factura.getCodigo() + " no tiene cliente.");
+        }
+        BigDecimal balance = bloquear(clienteId);
+        String concepto = "Anulación recibo #" + recibo.getCodigo() + " (pago a factura #" + factura.getCodigo() + ")"
+                + (motivo != null && !motivo.isBlank() ? ". Motivo: " + motivo.trim() : "");
+        return registrar(clienteId, balance, CuentaPorCobrar.ANULACION_RECIBO, factura, recibo,
+                "ANU-RI-" + recibo.getCodigo(), concepto,
+                acreditado, BigDecimal.ZERO, usuario, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public CuentaPorCobrar registrarDevolucion(FacturaDeVenta factura, BigDecimal monto, String motivo, String usuario) {
 
         if (monto == null || monto.signum() <= 0) {

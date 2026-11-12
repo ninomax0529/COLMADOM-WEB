@@ -14,4 +14,8 @@ public interface CajaTurnoRepo extends JpaRepository<CajaTurno, Integer> {
     
     // Buscar si hay una caja actualmente abierta
     Optional<CajaTurno> findByEstado(String estado);
+
+    // Turnos abiertos en un rango de fechas, del más reciente al más antiguo
+    java.util.List<CajaTurno> findByFechaAperturaBetweenOrderByFechaAperturaDesc(
+            java.time.LocalDateTime desde, java.time.LocalDateTime hasta);
 }

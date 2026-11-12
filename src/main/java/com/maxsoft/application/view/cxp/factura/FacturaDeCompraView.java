@@ -5,7 +5,10 @@ import com.maxsoft.application.modelo.FacturaDeCompra;
 import com.maxsoft.application.modelo.Proveedor;
 import com.maxsoft.application.servicio.interfaces.compra.ProveedorService;
 import com.maxsoft.application.servicio.interfaces.cxp.FacturaDeCompraService;
+import com.maxsoft.application.view.componente.EstiloConsulta;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -71,6 +74,8 @@ public class FacturaDeCompraView extends VerticalLayout {
     private Button btnLimpiar;
 
     private final TabSheet tabs = new TabSheet();
+    private final Div cabeceraDetalle = new Div();
+    private final Div tarjetasDetalle = new Div();
 
     List<FacturaDeCompra> listaFacturas = new ArrayList<>();
     List<DetalleFacturaDeCompra> listDet = new ArrayList<>();
@@ -104,9 +109,11 @@ public class FacturaDeCompraView extends VerticalLayout {
         setSpacing(false);
 
         tabs.setSizeFull();
+        EstiloConsulta.aplicarVista(this, tabs);
 
-        tabs.add("Factura de Compra", grid);
-        tabs.add("Detalle", gridDetalle);
+        tabs.add(EstiloConsulta.etiquetaTab(VaadinIcon.LIST, "Facturas de Compra"), grid);
+        tabs.add(EstiloConsulta.etiquetaTab(VaadinIcon.FILE_TEXT_O, "Detalle"),
+                EstiloConsulta.panelDetalle(cabeceraDetalle, tarjetasDetalle, gridDetalle));
 
         botonera.getNuevo().addClickListener(e -> {
             // lógica de nuevo
@@ -131,6 +138,7 @@ public class FacturaDeCompraView extends VerticalLayout {
         configurarGridDetalle();
 
         add(botonera, crearBarraFiltros(), tabs);
+        setFlexGrow(1, tabs);
 
         cargarProveedores();
         buscar();
@@ -169,7 +177,8 @@ public class FacturaDeCompraView extends VerticalLayout {
     private HorizontalLayout crearBarraFiltros() {
 
         HorizontalLayout barra = new HorizontalLayout(
-                dpDesde, dpHasta, cbProveedor, txtBuscar, btnBuscar, btnLimpiar);
+                dpDesde, dpHasta, cbProveedor, txtBuscar, btnBuscar, btnLimpiar,
+                EstiloConsulta.ayuda("Doble clic en una factura para ver su detalle"));
         barra.setAlignItems(Alignment.BASELINE);
         barra.setWidthFull();
         // Permite que los filtros pasen a otra línea en pantallas angostas
@@ -259,9 +268,11 @@ public class FacturaDeCompraView extends VerticalLayout {
      */
     private void actualizarTotalesFacturas() {
 
-        List<FacturaDeCompra> visibles = dataViewFacturas.getItems().toList();
+        List<FacturaDeCompra> todas = dataViewFacturas.getItems().toList();
+        // Las anuladas no suman en los totales
+        List<FacturaDeCompra> visibles = todas.stream().filter(f -> !esAnulada(f)).toList();
 
-        colCodigo.setFooter("TOTAL FACTURAS: " + visibles.size());
+        colCodigo.setFooter("FACTURAS: " + todas.size());
         colSubTotalFactura.setFooter(moneda(visibles.stream()
                 .map(f -> valor(f.getSubTotal())).reduce(BigDecimal.ZERO, BigDecimal::add)));
         colItbisFactura.setFooter(moneda(visibles.stream()
@@ -270,8 +281,9 @@ public class FacturaDeCompraView extends VerticalLayout {
         colTotalFactura.setFooter(moneda(visibles.stream()
                 .map(f -> valor(f.getTotal())).reduce(BigDecimal.ZERO, BigDecimal::add)));
 
+        // (Antes sumaba el total, no el pendiente)
         colTotalPendienteFactura.setFooter(moneda(visibles.stream()
-                .map(f -> valor(f.getTotal())).reduce(BigDecimal.ZERO, BigDecimal::add)));
+                .map(this::pendienteDe).reduce(BigDecimal.ZERO, BigDecimal::add)));
                 
         colTotalPagadoFactura.setFooter(moneda(visibles.stream()
                 .map(f -> valor(f.getTotalPagado())).reduce(BigDecimal.ZERO, BigDecimal::add)));
@@ -284,7 +296,23 @@ public class FacturaDeCompraView extends VerticalLayout {
         listDet = detalles != null ? new ArrayList<>(detalles) : new ArrayList<>();
         gridDetalle.setItems(listDet);
 
-        tabs.getTabAt(1).setLabel("Detalle( Factura -> " + factura.getCodigo() + " )");
+        EstiloConsulta.renombrarTab(tabs, 1, VaadinIcon.FILE_TEXT_O, "Detalle · Factura #" + factura.getCodigo());
+
+        LocalDate fecha = aLocalDate(factura.getFecha());
+        String suplidor = factura.getProveedor() != null ? factura.getProveedor().getNombre() : factura.getNombreProveedor();
+        EstiloConsulta.cabecera(cabeceraDetalle,
+                "Factura de compra #" + factura.getCodigo()
+                + (factura.getNumeroFactura() != null ? "  (N° " + factura.getNumeroFactura() + ")" : ""),
+                (suplidor != null ? suplidor : "")
+                + (fecha != null ? "  ·  " + fecha.format(FORMATO_FECHA) : "")
+                + (factura.getNcf() != null ? "  ·  NCF " + factura.getNcf() : ""),
+                chipEstado(factura), chipCondicion(factura));
+
+        tarjetasDetalle.removeAll();
+        tarjetasDetalle.add(
+                EstiloConsulta.tarjeta("Total", factura.getTotal(), "fv-tarjeta-total", VaadinIcon.MONEY),
+                EstiloConsulta.tarjeta("Pagado", factura.getTotalPagado(), "fv-tarjeta-pagado", VaadinIcon.CHECK_CIRCLE),
+                EstiloConsulta.tarjetaPendiente("Pendiente", esAnulada(factura) ? BigDecimal.ZERO : pendienteDe(factura)));
 
         actualizarTotalesDetalle();
     }
@@ -293,10 +321,35 @@ public class FacturaDeCompraView extends VerticalLayout {
 
         listDet = new ArrayList<>();
         gridDetalle.setItems(listDet);
-        tabs.getTabAt(1).setLabel("Detalle");
+        EstiloConsulta.renombrarTab(tabs, 1, VaadinIcon.FILE_TEXT_O, "Detalle");
         tabs.setSelectedIndex(0);
+        EstiloConsulta.cabeceraVacia(cabeceraDetalle,
+                "Haga doble clic en una factura de la pestaña \"Facturas de Compra\" para ver su detalle.");
+        tarjetasDetalle.removeAll();
 
         actualizarTotalesDetalle();
+    }
+
+    // ---------- Estado ----------
+    private boolean esAnulada(FacturaDeCompra f) {
+        return Boolean.TRUE.equals(f.getAnulada());
+    }
+
+    private BigDecimal pendienteDe(FacturaDeCompra f) {
+        return valor(f.getTotalPendiente()).max(BigDecimal.ZERO);
+    }
+
+    private Span chipEstado(FacturaDeCompra f) {
+        if (esAnulada(f)) {
+            return EstiloConsulta.chipAnulada();
+        }
+        return EstiloConsulta.tieneSaldo(pendienteDe(f)) ? EstiloConsulta.chipPendiente() : EstiloConsulta.chipPagada();
+    }
+
+    private Span chipCondicion(FacturaDeCompra f) {
+        // Condición de pago 1 = contado; el resto es a crédito
+        boolean contado = f.getCondicionPago() != null && Integer.valueOf(1).equals(f.getCondicionPago().getCodigo());
+        return contado ? EstiloConsulta.chipContado() : EstiloConsulta.chipCredito();
     }
 
     private void actualizarTotalesDetalle() {
@@ -322,9 +375,12 @@ public class FacturaDeCompraView extends VerticalLayout {
     // ============================================================
     private void configurarGrid() {
 
+        EstiloConsulta.aplicarGrid(grid);
+        grid.setPartNameGenerator(f -> esAnulada(f) ? "fv-fila-anulada" : null);
+
         colCodigo = grid.addColumn(FacturaDeCompra::getCodigo)
-                .setHeader("Codigo")
-                .setFooter("TOTAL FACTURAS:");
+                .setHeader("Código")
+                .setFooter("FACTURAS:");
 
         grid.addColumn(FacturaDeCompra::getNumeroFactura)
                 .setHeader("N° Factura")
@@ -363,40 +419,48 @@ public class FacturaDeCompraView extends VerticalLayout {
                 .setHeader("Usuario")
                 .setKey("usuario");
 
-        colSubTotalFactura = grid.addColumn(f -> moneda(f.getSubTotal()))
+        grid.addComponentColumn(this::chipCondicion)
+                .setHeader("Condición")
+                .setKey("condicion");
+
+        grid.addComponentColumn(this::chipEstado)
+                .setHeader("Estado")
+                .setKey("estado");
+
+        colSubTotalFactura = EstiloConsulta.monto(grid.addColumn(f -> moneda(f.getSubTotal())))
                 .setHeader("SubTotal")
                 .setKey("subtotal")
                 .setComparator(Comparator.comparing(
                         (FacturaDeCompra f) -> f.getSubTotal(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colItbisFactura = grid.addColumn(f -> moneda(f.getTotalItbis()))
+        colItbisFactura = EstiloConsulta.monto(grid.addColumn(f -> moneda(f.getTotalItbis())))
                 .setHeader("ITBIS")
                 .setKey("itbis")
                 .setComparator(Comparator.comparing(
                         (FacturaDeCompra f) -> f.getTotalItbis(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colTotalFactura = grid.addColumn(f -> moneda(f.getTotal()))
+        colTotalFactura = EstiloConsulta.monto(grid.addColumn(f -> moneda(f.getTotal())))
                 .setHeader("Total")
                 .setKey("total")
                 .setComparator(Comparator.comparing(
                         (FacturaDeCompra f) -> f.getTotal(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colTotalPendienteFactura = grid.addColumn(f -> moneda(f.getTotalPendiente()))
-                .setHeader("Balance Pendiente")
-                .setKey("balpendiente")
-                .setComparator(Comparator.comparing(
-                        (FacturaDeCompra f) -> f.getTotalPendiente(),
-                        Comparator.nullsLast(Comparator.naturalOrder())));
-
-        colTotalPagadoFactura = grid.addColumn(f -> moneda(f.getTotalAPagar()))
-                .setHeader("Total Pagado")
+        // (Antes "Total Pagado" mostraba el total a pagar, no lo pagado)
+        colTotalPagadoFactura = EstiloConsulta.monto(grid.addColumn(f -> moneda(f.getTotalPagado())))
+                .setHeader("Pagado")
                 .setKey("totalpagado")
                 .setComparator(Comparator.comparing(
-                        (FacturaDeCompra f) -> f.getTotalAPagar(),
+                        (FacturaDeCompra f) -> f.getTotalPagado(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
+
+        colTotalPendienteFactura = grid.addComponentColumn(f -> EstiloConsulta.pendiente(pendienteDe(f), esAnulada(f)))
+                .setHeader("Pendiente")
+                .setKey("balpendiente")
+                .setTextAlign(com.vaadin.flow.component.grid.ColumnTextAlign.END)
+                .setComparator(Comparator.comparing(this::pendienteDe));
 
         grid.getColumns().forEach(col -> {
             col.setAutoWidth(true);
@@ -409,17 +473,20 @@ public class FacturaDeCompraView extends VerticalLayout {
 
     private void configurarGridDetalle() {
 
-        gridDetalle.setHeight("620px");
+        EstiloConsulta.aplicarGrid(gridDetalle);
         gridDetalle.setWidthFull();
+        gridDetalle.setMinHeight("360px");
+        gridDetalle.setHeight("55vh");
 
         colDescripcion = gridDetalle.addColumn(DetalleFacturaDeCompra::getDescripcionArticulo)
-                .setHeader("Descripcion")
+                .setHeader("Descripción")
                 .setKey("descripcion")
-                .setFooter("TOTAL:");
+                .setFooter("ARTÍCULOS:");
 
+        // (Antes fallaba con NullPointerException si la línea no tenía empaque)
         gridDetalle.addColumn(d -> d.getArticuloEmpaque() != null && d.getArticuloEmpaque().getUnidadEmpaque() != null
                 ? d.getArticuloEmpaque().getUnidadEmpaque().getDescripcion()
-                : d.getArticuloEmpaque().getUnidadEmpaque())
+                : "")
                 .setHeader("Empaque / Unidad")
                 .setKey("unidad");
 
@@ -484,6 +551,13 @@ public class FacturaDeCompraView extends VerticalLayout {
             col.setAutoWidth(true);
             col.setSortable(true);
         });
+        // Montos del detalle alineados (precio, descuento, subtotal, ITBIS, total)
+        for (String k : new String[]{"precio", "descuento", "subTotal", "itbis", "total"}) {
+            EstiloConsulta.monto(gridDetalle.getColumnByKey(k));
+        }
+        for (String k : new String[]{"cantidad", "factor", "entradaBase"}) {
+            gridDetalle.getColumnByKey(k).setTextAlign(com.vaadin.flow.component.grid.ColumnTextAlign.END);
+        }
     }
 
     // ============================================================

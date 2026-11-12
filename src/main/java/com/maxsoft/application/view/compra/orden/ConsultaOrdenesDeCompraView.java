@@ -9,7 +9,9 @@ import com.maxsoft.application.modelo.OrdenDeCompra;
 import com.maxsoft.application.modelo.Proveedor;
 import com.maxsoft.application.servicio.interfaces.compra.OrdenDeCompraService;
 import com.maxsoft.application.servicio.interfaces.compra.ProveedorService;
+import com.maxsoft.application.view.componente.EstiloConsulta;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
+import com.vaadin.flow.component.html.Div;
 
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
@@ -68,6 +70,8 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
     private final Button btnLimpiar = new Button("Limpiar", VaadinIcon.REFRESH.create());
 
     private final TabSheet tabs = new TabSheet();
+    private final Div cabeceraDetalle = new Div();
+    private final Div tarjetasDetalle = new Div();
 
     List<OrdenDeCompra> listaOrdenes = new ArrayList<>();
     List<DetalleOrdendeDeCompra> listDet = new ArrayList<>();
@@ -96,37 +100,29 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
         setSpacing(false);
 
         tabs.setSizeFull();
-
-        tabs.add("Órdenes de Compra", grid);
-        tabs.add("Detalle", gridDetalle);
-
-        botonera.getNuevo().addClickListener(e -> {
-            // lógica de nuevo
-
-            UI.getCurrent().navigate(OrdenDeCompraView.class);
-
-        });
-
-        grid.addItemDoubleClickListener(c -> {
-
-            if (c.getItem() == null) {
-                return;
-            }
-
-            cargarDetalle(c.getItem());
-            tabs.setSelectedIndex(1);
-
-        });
+        EstiloConsulta.aplicarVista(this, tabs);
 
         configurarFiltros();
         configurarGrid();
         configurarGridDetalle();
 
-        add(
-                botonera,
-                new H2("Orden de Compra"),
-                crearBarraFiltros(),
-                tabs);
+        tabs.add(EstiloConsulta.etiquetaTab(VaadinIcon.LIST, "Órdenes de Compra"), grid);
+        tabs.add(EstiloConsulta.etiquetaTab(VaadinIcon.FILE_TEXT_O, "Detalle"),
+                EstiloConsulta.panelDetalle(cabeceraDetalle, tarjetasDetalle, gridDetalle));
+
+        botonera.getNuevo().addClickListener(e -> UI.getCurrent().navigate(OrdenDeCompraView.class));
+
+        grid.addItemDoubleClickListener(c -> {
+            if (c.getItem() != null) {
+                verDetalle(c.getItem());
+            }
+        });
+
+        H2 titulo = new H2("Órdenes de Compra");
+        titulo.addClassName("fv-titulo");
+
+        add(botonera, titulo, crearBarraFiltros(), tabs);
+        setFlexGrow(1, tabs);
 
         aplicarFiltros(); // Carga inicial
     }
@@ -168,7 +164,8 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
     private HorizontalLayout crearBarraFiltros() {
 
         HorizontalLayout barra = new HorizontalLayout(
-                dtDesde, dtHasta, cbSuplidor, cbEstado, txtBuscar, btnFiltrar, btnLimpiar);
+                dtDesde, dtHasta, cbSuplidor, cbEstado, txtBuscar, btnFiltrar, btnLimpiar,
+                EstiloConsulta.ayuda("Doble clic en una orden para ver su detalle"));
         barra.setAlignItems(Alignment.BASELINE);
         barra.setWidthFull();
         // Permite que los filtros pasen a otra línea en pantallas angostas
@@ -210,8 +207,8 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
                         && orden.getProveedor().getCodigo().equals(suplidorSel.getCodigo()));
 
                 // Filtro Estado
-                boolean anulada = orden.getAnulada() != null && orden.getAnulada();
-                boolean completada = "SI".equalsIgnoreCase(orden.getCompletada());
+                boolean anulada = esAnulada(orden);
+                boolean completada = esCompletada(orden);
 
                 boolean coincideEstado = true;
                 if ("PENDIENTE".equals(estadoSel)) {
@@ -263,7 +260,9 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
             }
             boolean matchNum = o.getNumero() != null && o.getNumero().toLowerCase().contains(term);
             boolean matchCom = o.getComentario() != null && o.getComentario().toLowerCase().contains(term);
-            return matchNum || matchCom;
+            boolean matchSup = o.getProveedor() != null && o.getProveedor().getNombre() != null
+                    && o.getProveedor().getNombre().toLowerCase().contains(term);
+            return matchNum || matchCom || matchSup;
         });
 
         actualizarTotalesOrdenes();
@@ -278,10 +277,10 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
         List<OrdenDeCompra> visibles = dataViewOrdenes.getItems().toList();
 
         List<OrdenDeCompra> vigentes = visibles.stream()
-                .filter(o -> o.getAnulada() == null || !o.getAnulada())
+                .filter(o -> !esAnulada(o))
                 .toList();
 
-        colNumero.setFooter("TOTAL ÓRDENES: " + visibles.size());
+        colNumero.setFooter("ÓRDENES: " + visibles.size());
         colSubtotal.setFooter(moneda(vigentes.stream()
                 .map(o -> o.getSubtotal() != null ? o.getSubtotal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)));
@@ -293,6 +292,11 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)));
     }
 
+    private void verDetalle(OrdenDeCompra orden) {
+        cargarDetalle(orden);
+        tabs.setSelectedIndex(1);
+    }
+
     private void cargarDetalle(OrdenDeCompra orden) {
 
         Collection<DetalleOrdendeDeCompra> detalles = this.ordenCompraService.getDetalle(orden.getCodigo());
@@ -300,7 +304,22 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
         listDet = detalles != null ? new ArrayList<>(detalles) : new ArrayList<>();
         gridDetalle.setItems(listDet);
 
-        tabs.getTabAt(1).setLabel("Detalle( Orden -> " + orden.getNumero() + " )");
+        String numero = orden.getNumero() != null ? orden.getNumero() : String.valueOf(orden.getCodigo());
+        EstiloConsulta.renombrarTab(tabs, 1, VaadinIcon.FILE_TEXT_O, "Detalle · Orden " + numero);
+
+        EstiloConsulta.cabecera(cabeceraDetalle,
+                "Orden de compra " + numero,
+                (orden.getProveedor() != null ? orden.getProveedor().getNombre() : "-")
+                + (orden.getFecha() != null ? "  ·  " + df.format(orden.getFecha()) : "")
+                + (orden.getFechaDeEntrega() != null ? "  ·  Entrega: " + df.format(orden.getFechaDeEntrega()) : "")
+                + (orden.getComentario() != null && !orden.getComentario().isBlank() ? "  ·  " + orden.getComentario() : ""),
+                chipEstado(orden));
+
+        tarjetasDetalle.removeAll();
+        tarjetasDetalle.add(
+                EstiloConsulta.tarjeta("SubTotal", orden.getSubtotal(), "fv-tarjeta-total", VaadinIcon.CART),
+                EstiloConsulta.tarjeta("ITBIS", orden.getTotalItbis(), "fv-tarjeta-total", VaadinIcon.INVOICE),
+                EstiloConsulta.tarjeta("Total", orden.getTotal(), "fv-tarjeta-pagado", VaadinIcon.MONEY));
 
         actualizarTotalesDetalle();
     }
@@ -309,15 +328,18 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
 
         listDet = new ArrayList<>();
         gridDetalle.setItems(listDet);
-        tabs.getTabAt(1).setLabel("Detalle");
+        EstiloConsulta.renombrarTab(tabs, 1, VaadinIcon.FILE_TEXT_O, "Detalle");
         tabs.setSelectedIndex(0);
+        EstiloConsulta.cabeceraVacia(cabeceraDetalle,
+                "Haga doble clic en una orden de la pestaña \"Órdenes de Compra\" para ver su detalle.");
+        tarjetasDetalle.removeAll();
 
         actualizarTotalesDetalle();
     }
 
     private void actualizarTotalesDetalle() {
 
-        colDescripcion.setFooter("TOTAL ARTÍCULOS: " + listDet.size());
+        colDescripcion.setFooter("ARTÍCULOS: " + listDet.size());
         colDetSubtotal.setFooter(moneda(listDet.stream()
                 .map(d -> d.getSubTotal() != null ? d.getSubTotal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)));
@@ -334,12 +356,13 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
     // ============================================================
     private void configurarGrid() {
 
-        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_COMPACT, GridVariant.LUMO_COLUMN_BORDERS);
+        EstiloConsulta.aplicarGrid(grid);
+        grid.setPartNameGenerator(o -> esAnulada(o) ? "fv-fila-anulada" : null);
 
         colNumero = grid.addColumn(OrdenDeCompra::getNumero)
                 .setHeader("Número")
                 .setKey("numero")
-                .setFooter("TOTAL ÓRDENES:");
+                .setFooter("ÓRDENES:");
 
         grid.addColumn(o -> o.getProveedor() != null ? o.getProveedor().getNombre() : "-")
                 .setHeader("Suplidor")
@@ -360,39 +383,23 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
                         (OrdenDeCompra o) -> o.getFechaDeEntrega(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        // Columna Estado con Badge de Color
-        grid.addColumn(new ComponentRenderer<>(orden -> {
-            Span badge = new Span(orden.getEstado() != null ? orden.getEstado() : "PENDIENTE");
-            String estado = orden.getEstado() != null ? orden.getEstado().toUpperCase() : "";
+        grid.addComponentColumn(this::chipEstado).setHeader("Estado").setKey("estado");
 
-            if (orden.getAnulada() != null && orden.getAnulada()) {
-                badge.setText("ANULADA");
-                badge.getElement().getThemeList().add("badge error");
-            } else if ("COMPLETADA".equals(estado) || "SI".equalsIgnoreCase(orden.getCompletada())) {
-                badge.setText("COMPLETADA");
-                badge.getElement().getThemeList().add("badge success");
-            } else {
-                badge.setText("PENDIENTE");
-                badge.getElement().getThemeList().add("badge warning");
-            }
-            return badge;
-        })).setHeader("Estado").setKey("estado");
-
-        colSubtotal = grid.addColumn(o -> moneda(o.getSubtotal()))
+        colSubtotal = EstiloConsulta.monto(grid.addColumn(o -> moneda(o.getSubtotal())))
                 .setHeader("SubTotal")
                 .setKey("subtotal")
                 .setComparator(Comparator.comparing(
                         (OrdenDeCompra o) -> o.getSubtotal(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colItbis = grid.addColumn(o -> moneda(o.getTotalItbis()))
+        colItbis = EstiloConsulta.monto(grid.addColumn(o -> moneda(o.getTotalItbis())))
                 .setHeader("ITBIS")
                 .setKey("itbis")
                 .setComparator(Comparator.comparing(
                         (OrdenDeCompra o) -> o.getTotalItbis(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colTotal = grid.addColumn(o -> moneda(o.getTotal()))
+        colTotal = EstiloConsulta.monto(grid.addColumn(o -> moneda(o.getTotal())))
                 .setHeader("Total")
                 .setKey("total")
                 .setComparator(Comparator.comparing(
@@ -403,18 +410,18 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
         grid.addColumn(new ComponentRenderer<>(orden -> {
             HorizontalLayout acciones = new HorizontalLayout();
 
-            // Ver / Editar
-            Button btnEditar = new Button(VaadinIcon.EYE.create(), e -> {
-                getUI().ifPresent(ui -> ui.navigate("ordenes-compra/detalle/" + orden.getCodigo()));
-            });
+            // (Antes navegaba a una ruta inexistente)
+            Button btnEditar = new Button(VaadinIcon.EYE.create(), e -> verDetalle(orden));
             btnEditar.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-            btnEditar.setTooltipText("Ver detalle u Orden");
+            btnEditar.setTooltipText("Ver detalle de la orden");
 
-            // Anular
+            // Anular: una orden ya recibida (completada) no se anula aquí
             Button btnAnular = new Button(VaadinIcon.BAN.create(), e -> confirmarAnulacion(orden));
             btnAnular.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
-            btnAnular.setTooltipText("Anular Orden");
-            btnAnular.setEnabled(orden.getAnulada() == null || !orden.getAnulada());
+            btnAnular.setEnabled(!esAnulada(orden) && !esCompletada(orden));
+            btnAnular.setTooltipText(esCompletada(orden)
+                    ? "La orden ya fue recibida: anule la recepción de mercancía"
+                    : "Anular orden");
 
             acciones.add(btnEditar, btnAnular);
             return acciones;
@@ -428,8 +435,10 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
 
     private void configurarGridDetalle() {
 
-        gridDetalle.setHeight("620px");
+        EstiloConsulta.aplicarGrid(gridDetalle);
         gridDetalle.setWidthFull();
+        gridDetalle.setMinHeight("300px");
+        gridDetalle.setHeight("50vh");
 
         // ASUNCIÓN: DetalleOrdenDeCompra expone estos getters (mismo patrón que
         // los demás detalles de inventario). Ajustar nombres si difieren.
@@ -446,28 +455,28 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
                 .setHeader("Cantidad")
                 .setKey("cantidad");
 
-        gridDetalle.addColumn(d -> moneda(d.getPrecioUnitario()))
+        EstiloConsulta.monto(gridDetalle.addColumn(d -> moneda(d.getPrecioUnitario())))
                 .setHeader("Precio Compra")
                 .setKey("precio")
                 .setComparator(Comparator.comparing(
                         (DetalleOrdendeDeCompra d) -> d.getPrecioUnitario(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colDetSubtotal = gridDetalle.addColumn(d -> moneda(d.getSubTotal()))
+        colDetSubtotal = EstiloConsulta.monto(gridDetalle.addColumn(d -> moneda(d.getSubTotal())))
                 .setHeader("SubTotal")
                 .setKey("subtotal")
                 .setComparator(Comparator.comparing(
                         (DetalleOrdendeDeCompra d) -> d.getSubTotal(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colDetItbis = gridDetalle.addColumn(d -> moneda(d.getItbis()))
+        colDetItbis = EstiloConsulta.monto(gridDetalle.addColumn(d -> moneda(d.getItbis())))
                 .setHeader("ITBIS")
                 .setKey("itbis")
                 .setComparator(Comparator.comparing(
                         (DetalleOrdendeDeCompra d) -> d.getItbis(),
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
-        colDetTotal = gridDetalle.addColumn(d -> moneda(d.getTotal()))
+        colDetTotal = EstiloConsulta.monto(gridDetalle.addColumn(d -> moneda(d.getTotal())))
                 .setHeader("Total")
                 .setKey("total")
                 .setComparator(Comparator.comparing(
@@ -516,6 +525,24 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
     // ============================================================
     // UTILIDADES
     // ============================================================
+    private boolean esAnulada(OrdenDeCompra o) {
+        return Boolean.TRUE.equals(o.getAnulada());
+    }
+
+    private boolean esCompletada(OrdenDeCompra o) {
+        return "SI".equalsIgnoreCase(o.getCompletada())
+                || (o.getEstado() != null && "COMPLETADA".equalsIgnoreCase(o.getEstado()));
+    }
+
+    private Span chipEstado(OrdenDeCompra o) {
+        if (esAnulada(o)) {
+            return EstiloConsulta.chipAnulada();
+        }
+        return esCompletada(o)
+                ? EstiloConsulta.chip("COMPLETADA", "fv-chip-pagada")
+                : EstiloConsulta.chip("PENDIENTE", "fv-chip-pendiente");
+    }
+
     private boolean dentroDeRango(LocalDate fecha) {
 
         if (fecha == null) {

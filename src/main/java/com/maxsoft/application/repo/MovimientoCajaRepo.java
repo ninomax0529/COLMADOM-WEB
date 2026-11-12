@@ -16,4 +16,10 @@ public interface MovimientoCajaRepo extends JpaRepository<MovimientosCaja, Integ
     
     // Listar todos los movimientos de un turno específico
     List<MovimientosCaja> findByCajaTurno(CajaTurno cajaTurnoId);
+
+    // El id de la entidad es Long (el repositorio se declaró con Integer): consulta con el tipo real
+    java.util.Optional<MovimientosCaja> findOneById(Long id);
+
+    // Movimientos de un turno en orden cronológico
+    List<MovimientosCaja> findByCajaTurnoOrderByFechaHoraAscIdAsc(CajaTurno cajaTurno);
 }

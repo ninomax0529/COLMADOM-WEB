@@ -1,0 +1,383 @@
+/* =====================================================================
+   Diálogos de caja del POS (apertura, cierre/arqueo, movimientos)
+   Estilo "dinero": verdes de billete, dorado y montos grandes legibles.
+   La clase dc-dialogo se aplica al overlay del diálogo.
+   ===================================================================== */
+vaadin-dialog-overlay.dc-dialogo {
+    --dc-verde-oscuro: #0b4d2c;
+    --dc-verde: #13804a;
+    --dc-verde-claro: #e8f5ec;
+    --dc-menta: #c9ead5;
+    --dc-dorado: #c9a227;
+    --dc-dorado-claro: #f6e7b0;
+    --dc-rojo: #b3261e;
+    --dc-rojo-claro: #fdecea;
+    --lumo-primary-color: var(--dc-verde);
+    --lumo-primary-color-50pct: rgba(19, 128, 74, 0.5);
+    --lumo-primary-text-color: var(--dc-verde-oscuro);
+}
+vaadin-dialog-overlay.dc-dialogo::part(overlay) {
+    border-radius: 16px;
+    border-top: 5px solid var(--dc-dorado);
+    box-shadow: 0 18px 50px rgba(11, 77, 44, 0.35);
+}
+vaadin-dialog-overlay.dc-dialogo::part(header) {
+    background: linear-gradient(120deg, var(--dc-verde-oscuro), var(--dc-verde));
+    color: #ffffff;
+}
+vaadin-dialog-overlay.dc-dialogo::part(title) {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+}
+vaadin-dialog-overlay.dc-dialogo::part(content) {
+    background: linear-gradient(180deg, #f7fcf8, #ffffff 40%);
+}
+vaadin-dialog-overlay.dc-dialogo::part(footer) {
+    background: #f4faf6;
+    border-top: 1px solid var(--dc-menta);
+}
+
+.dc-cuerpo {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+}
+.dc-vacio {
+    padding: 24px;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+/* ---------- Banda informativa ---------- */
+.dc-banda {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: var(--dc-verde-claro);
+    border: 1px solid var(--dc-menta);
+}
+.dc-banda-moneda {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 35% 30%, #fff6cf, var(--dc-dorado) 72%);
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.55), 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+.dc-banda-icono {
+    color: var(--dc-verde-oscuro);
+    width: 24px;
+    height: 24px;
+}
+.dc-banda-textos {
+    display: flex;
+    flex-direction: column;
+}
+.dc-banda-titulo {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--dc-verde-oscuro);
+}
+.dc-banda-subtitulo {
+    font-size: 0.95rem;
+    color: #3f5f4c;
+}
+
+/* ---------- Billete grande ---------- */
+.dc-billete {
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    background:
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.06) 0 8px, transparent 8px 16px),
+        linear-gradient(120deg, var(--dc-verde-oscuro), var(--dc-verde));
+    border: 2px solid var(--dc-dorado);
+    box-shadow: 0 8px 20px rgba(11, 77, 44, 0.30);
+}
+.dc-billete::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px dashed rgba(246, 231, 176, 0.55);
+    border-radius: 10px;
+    pointer-events: none;
+}
+.dc-billete-sello {
+    position: absolute;
+    right: -18px;
+    top: -18px;
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--dc-dorado-claro), rgba(201, 162, 39, 0.45));
+    color: rgba(11, 77, 44, 0.75);
+    font-weight: 900;
+    font-size: 14px;
+    display: flex;
+    align-items: flex-end;
+    padding: 0 0 20px 20px;
+    box-sizing: border-box;
+}
+.dc-billete-etiqueta {
+    color: var(--dc-dorado-claro);
+    font-size: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.dc-billete-valor {
+    color: #ffffff;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 2.3rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+/* ---------- Columnas entradas / salidas ---------- */
+.dc-columnas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.dc-col {
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid var(--dc-menta);
+}
+.dc-col-titulo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-bottom: 6px;
+    margin-bottom: 4px;
+    border-bottom: 2px solid currentColor;
+}
+.dc-col-entradas .dc-col-titulo { color: var(--dc-verde); }
+.dc-col-salidas .dc-col-titulo { color: var(--dc-rojo); }
+
+.dc-fila {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px dashed #e3ece6;
+}
+.dc-fila:last-child { border-bottom: none; }
+.dc-fila-etiqueta {
+    flex: 1;
+    font-size: 1rem;
+    color: #2d3b33;
+}
+.dc-fila-cero { opacity: 0.55; }
+.dc-icono {
+    width: 18px;
+    height: 18px;
+    color: var(--dc-verde);
+    flex-shrink: 0;
+}
+.dc-col-salidas .dc-icono { color: var(--dc-rojo); }
+.dc-monto {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--dc-verde-oscuro);
+    white-space: nowrap;
+}
+.dc-monto.dc-negativo { color: var(--dc-rojo); }
+.dc-monto-ref { color: #3b4a63; }
+
+.dc-tarjeta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #f1f4fa;
+    border: 1px solid #d6deec;
+    color: #3b4a63;
+    font-size: 0.95rem;
+}
+.dc-tarjeta > span:nth-child(2) { flex: 1; }
+.dc-tarjeta .dc-icono { color: #3b4a63; }
+
+/* ---------- Campo de monto grande ---------- */
+.dc-campo-grande::part(label) {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--dc-verde-oscuro);
+}
+.dc-campo-grande::part(input-field) {
+    min-height: 58px;
+    background: #ffffff;
+    border: 2px solid var(--dc-menta);
+    border-radius: 10px;
+}
+.dc-campo-grande[focused]::part(input-field) {
+    border-color: var(--dc-verde);
+    box-shadow: 0 0 0 3px rgba(19, 128, 74, 0.18);
+}
+.dc-campo-grande > input {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--dc-verde-oscuro);
+    text-align: right;
+}
+.dc-campo-grande > span[slot="prefix"] {
+    font-weight: 900;
+    font-size: 1.1rem;
+    color: var(--dc-dorado);
+    padding-left: 4px;
+}
+.dc-combo::part(input-field) {
+    min-height: 46px;
+    border-radius: 10px;
+}
+.dc-combo > input {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+/* ---------- Conteo y diferencia ---------- */
+.dc-conteo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: end;
+}
+.dc-diferencia {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    min-height: 58px;
+    box-sizing: border-box;
+    background: #f3f5f4;
+    border: 2px solid #dde3e0;
+    color: #4a5a52;
+    transition: background 0.2s, border-color 0.2s;
+}
+.dc-diferencia > vaadin-icon { width: 26px; height: 26px; flex-shrink: 0; }
+.dc-diferencia > div { flex: 1; display: flex; flex-direction: column; }
+.dc-dif-etiqueta { font-weight: 800; font-size: 0.95rem; text-transform: uppercase; }
+.dc-dif-nota { font-size: 0.85rem; }
+.dc-dif-valor {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 1.45rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.dc-dif-cuadre { background: var(--dc-verde-claro); border-color: var(--dc-verde); color: var(--dc-verde-oscuro); }
+.dc-dif-sobrante { background: #fff9e3; border-color: var(--dc-dorado); color: #7a5d00; }
+.dc-dif-faltante { background: var(--dc-rojo-claro); border-color: var(--dc-rojo); color: var(--dc-rojo); }
+
+/* ---------- Montos rápidos (apertura) ---------- */
+.dc-rapidos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.dc-rapido {
+    margin: 0;
+    height: 44px;
+    border-radius: 10px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--dc-verde-oscuro);
+    background:
+        repeating-linear-gradient(45deg, rgba(19, 128, 74, 0.06) 0 6px, transparent 6px 12px),
+        linear-gradient(135deg, #f7fcf8, var(--dc-verde-claro));
+    border: 1px solid var(--dc-menta);
+    cursor: pointer;
+}
+.dc-rapido:hover { border-color: var(--dc-dorado); background: var(--dc-dorado-claro); }
+
+/* ---------- Botones del pie ---------- */
+.dc-btn-cerrar,
+.dc-btn-abrir {
+    height: 46px;
+    padding: 0 20px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    border-radius: 10px;
+    border: 1px solid var(--dc-dorado);
+}
+.dc-btn-abrir {
+    background: linear-gradient(180deg, #1c9a58, var(--dc-verde-oscuro));
+    color: #ffffff;
+}
+.dc-btn-cerrar {
+    background: linear-gradient(180deg, #c8463d, #8e1d16);
+    color: #ffffff;
+}
+.dc-btn-secundario {
+    height: 46px;
+    font-size: 1rem;
+    border-radius: 10px;
+}
+
+/* ---------- Confirmación "¿Está seguro?" ---------- */
+vaadin-confirm-dialog-overlay.dc-dialogo::part(header) {
+    color: var(--dc-verde-oscuro);
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+.dc-confirma {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 300px;
+}
+.dc-confirma-resumen {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.dc-confirma-linea {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #f4faf6;
+    border: 1px solid #c9ead5;
+    font-size: 1rem;
+    color: #2d3b33;
+}
+.dc-confirma-linea .dc-monto { font-size: 1.15rem; }
+.dc-confirma-linea.dc-dif-cuadre { background: #e8f5ec; border: 2px solid #13804a; color: #0b4d2c; }
+.dc-confirma-linea.dc-dif-sobrante { background: #fff9e3; border: 2px solid #c9a227; color: #7a5d00; }
+.dc-confirma-linea.dc-dif-faltante { background: #fdecea; border: 2px solid #b3261e; color: #b3261e; }
+.dc-confirma-linea.dc-dif-sobrante .dc-monto { color: #7a5d00; }
+.dc-confirma-linea.dc-dif-faltante .dc-monto { color: #b3261e; }
+.dc-confirma-aviso {
+    font-size: 0.9rem;
+    color: #5b6b63;
+}
+
+/* ---------- Pantallas angostas ---------- */
+@media (max-width: 620px) {
+    .dc-columnas,
+    .dc-conteo { grid-template-columns: 1fr; }
+    .dc-billete-valor { font-size: 1.9rem; }
+    .dc-rapidos { grid-template-columns: repeat(2, 1fr); }
+}

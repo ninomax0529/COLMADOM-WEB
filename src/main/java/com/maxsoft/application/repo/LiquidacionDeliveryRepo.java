@@ -24,6 +24,14 @@ public interface LiquidacionDeliveryRepo extends JpaRepository<LiquidacionDelive
             + "order by f.codigo")
     List<FacturaDeVenta> findPendientes(@Param("delivery") Integer codigoDelivery,
             @Param("estado") Integer codigoEstadoDelivery);
+
+    /** Igual que {@link #findPendientes} pero de todos los motoristas. */
+    @Query("select f from FacturaDeVenta f "
+            + "where f.delivery is not null "
+            + "and f.estadoFactura.codigo = :estado "
+            + "and (f.anulada is null or f.anulada = false) "
+            + "and not exists (select 1 from DetalleLiquidacionDelivery d where d.factura = f)")
+    List<FacturaDeVenta> findPendientesTodos(@Param("estado") Integer codigoEstadoDelivery);
     
         /**
      * Facturas con motorista en un rango de fechas ([desde, hasta) ), cada una

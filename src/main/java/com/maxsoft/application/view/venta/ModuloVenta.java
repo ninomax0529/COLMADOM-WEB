@@ -43,6 +43,8 @@ public class ModuloVenta extends AppLayout {
 
         RouterLink linkCliente = createLink(VaadinIcon.DASHBOARD, "Cliente", ClienteView.class);
         RouterLink linkFacturaVenta = createLink(VaadinIcon.FILE_TABLE, "Factura Venta", FacturaDeVentaView.class);
+        RouterLink linkCajaDiaria = createLink(VaadinIcon.MONEY, "Caja Diaria",
+                com.maxsoft.application.view.venta.cajaChica.CajaDiariaView.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
 ////
@@ -50,7 +52,7 @@ public class ModuloVenta extends AppLayout {
         VerticalLayout menuLayout = new VerticalLayout(
                 linkCliente,
                 linkFacturaVenta,
-//                linkCajaChica,
+                linkCajaDiaria,
                 linkModulo);
 
         menuLayout.setPadding(false);

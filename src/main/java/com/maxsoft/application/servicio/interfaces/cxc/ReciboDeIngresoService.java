@@ -48,7 +48,12 @@ public interface ReciboDeIngresoService {
 
     List<DetalleReciboDeIngreso> getDetalle(int obj);
 
-    ReciboDeEgreso anularReciboDeIngreso(Integer id);
+    /**
+     * Anula un recibo de ingreso: devuelve a cada factura lo que el recibo le
+     * pagó, reversa el estado de cuenta del cliente y, si el cobro entró a la
+     * caja, saca ese efectivo de la caja abierta.
+     */
+    ReciboDeIngreso anularReciboDeIngreso(Integer id, String motivo, String usuario);
 
     Double getPagoFacturaVenta(int fact);
 

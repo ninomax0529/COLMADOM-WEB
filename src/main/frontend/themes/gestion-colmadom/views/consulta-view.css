@@ -1,0 +1,227 @@
+/* =====================================================================
+   Facturas de Venta — estilo sobrio de trabajo (toma de la Caja Diaria solo
+   lo que ayuda a leer): montos alineados, encabezados verdes, pestañas con
+   línea dorada, etiquetas de estado y tarjetas de resumen sin decoración.
+   ===================================================================== */
+.fv-vista {
+    --fv-verde-oscuro: #0b4d2c;
+    --fv-verde: #13804a;
+    --fv-verde-claro: #e8f5ec;
+    --fv-menta: #c9ead5;
+    --fv-dorado: #c9a227;
+    /* Pendiente: rojo suave */
+    --fv-rojo-suave-fondo: #fdecec;
+    --fv-rojo-suave-borde: #f3c4c4;
+    --fv-rojo-suave-texto: #b54a4a;
+    --fv-rojo: #b3261e;
+}
+.fv-vista .fv-titulo {
+    margin: 0 0 4px 0;
+    color: var(--fv-verde-oscuro);
+}
+.fv-vista .fv-ayuda {
+    margin-left: auto;
+    font-size: var(--lumo-font-size-s);
+    color: var(--fv-verde);
+    font-style: italic;
+}
+
+/* ---------- Pestañas ---------- */
+.fv-vista .fv-tabs vaadin-tab {
+    font-weight: 600;
+    color: var(--lumo-secondary-text-color);
+}
+.fv-vista .fv-tabs vaadin-tab[selected] {
+    color: var(--fv-verde-oscuro);
+}
+.fv-vista .fv-tabs vaadin-tab[selected]::before {
+    background-color: var(--fv-dorado);
+    height: 3px;
+}
+.fv-vista .fv-tabs vaadin-tab vaadin-icon {
+    color: var(--fv-verde);
+}
+
+/* ---------- Tablas ---------- */
+.fv-vista .fv-grid {
+    border: 1px solid var(--fv-menta);
+    border-radius: 10px;
+    --lumo-primary-color: var(--fv-verde);
+    --lumo-primary-color-10pct: rgba(19, 128, 74, 0.12);
+}
+.fv-vista .fv-grid::part(header-cell) {
+    background: var(--fv-verde-oscuro);
+    color: #ffffff;
+    font-weight: 600;
+}
+.fv-vista .fv-grid::part(footer-cell) {
+    background: var(--fv-verde-claro);
+    font-weight: 700;
+    color: var(--fv-verde-oscuro);
+}
+.fv-vista .fv-grid::part(fv-monto),
+.fv-vista .fv-pendiente,
+.fv-vista .fv-saldado {
+    font-family: "Consolas", "Courier New", monospace;
+    font-weight: 600;
+}
+.fv-vista .fv-grid::part(fv-fila-anulada) {
+    color: var(--lumo-disabled-text-color);
+    text-decoration: line-through;
+}
+
+/* Pendiente en rojo suave; saldado discreto */
+.fv-vista .fv-pendiente {
+    color: var(--fv-rojo-suave-texto);
+    background: var(--fv-rojo-suave-fondo);
+    border: 1px solid var(--fv-rojo-suave-borde);
+    border-radius: 6px;
+    padding: 1px 8px;
+}
+.fv-vista .fv-saldado {
+    color: var(--lumo-secondary-text-color);
+}
+
+/* ---------- Etiquetas (chips) ---------- */
+.fv-vista .fv-chip {
+    display: inline-block;
+    padding: 1px 9px;
+    border-radius: 999px;
+    font-size: var(--lumo-font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.fv-vista .fv-chip-pagada { background: var(--fv-verde-claro); color: var(--fv-verde-oscuro); border: 1px solid var(--fv-menta); }
+.fv-vista .fv-chip-pendiente { background: var(--fv-rojo-suave-fondo); color: var(--fv-rojo-suave-texto); border: 1px solid var(--fv-rojo-suave-borde); }
+.fv-vista .fv-chip-anulada { background: var(--fv-rojo); color: #ffffff; }
+.fv-vista .fv-chip-credito { background: #fff6dc; color: #7a5d00; border: 1px solid #ecd9a0; }
+.fv-vista .fv-chip-contado { background: #eef1f6; color: #3b4a63; border: 1px solid #d6deec; }
+.fv-vista .fv-chip-delivery { background: #e7f0fb; color: #1f4f8a; border: 1px solid #c4d7f0; }
+.fv-vista .fv-chip-devuelto { background: #fff1e6; color: #a2531c; border: 1px solid #f0cfb3; }
+
+/* ---------- Detalle ---------- */
+.fv-vista .fv-detalle {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    padding: 4px 2px 8px 2px;
+    box-sizing: border-box;
+}
+.fv-vista .fv-detalle > * {
+    flex-shrink: 0;
+}
+.fv-vista .fv-detalle-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.fv-vista .fv-detalle-cabecera > div:first-child {
+    display: flex;
+    flex-direction: column;
+}
+.fv-vista .fv-detalle-numero {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--fv-verde-oscuro);
+}
+.fv-vista .fv-detalle-datos {
+    color: var(--lumo-secondary-text-color);
+}
+.fv-vista .fv-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.fv-vista .fv-chips .fv-chip {
+    font-size: var(--lumo-font-size-s);
+    padding: 3px 12px;
+}
+.fv-vista .fv-vacio {
+    color: var(--lumo-secondary-text-color);
+    font-style: italic;
+}
+
+/* ---------- Tarjetas de resumen (sobrias) ---------- */
+.fv-vista .fv-tarjetas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 10px;
+}
+.fv-vista .fv-tarjeta {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #e1e7e3;
+    border-left: 5px solid var(--fv-verde);
+}
+.fv-vista .fv-tarjeta-icono {
+    grid-row: span 2;
+    width: 22px;
+    height: 22px;
+    color: var(--fv-verde);
+}
+.fv-vista .fv-tarjeta-etiqueta {
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+    font-weight: 600;
+}
+.fv-vista .fv-tarjeta-valor {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--fv-verde-oscuro);
+}
+.fv-vista .fv-tarjeta-pagado { border-left-color: #2e9d62; }
+.fv-vista .fv-tarjeta-saldada { border-left-color: #9fb3a7; }
+.fv-vista .fv-tarjeta-saldada .fv-tarjeta-icono { color: #9fb3a7; }
+.fv-vista .fv-tarjeta-pendiente {
+    border-left-color: var(--fv-rojo-suave-texto);
+    background: var(--fv-rojo-suave-fondo);
+    border-color: var(--fv-rojo-suave-borde);
+}
+.fv-vista .fv-tarjeta-pendiente .fv-tarjeta-icono,
+.fv-vista .fv-tarjeta-pendiente .fv-tarjeta-valor { color: var(--fv-rojo-suave-texto); }
+.fv-vista .fv-tarjeta-devuelto { border-left-color: #d0874f; }
+.fv-vista .fv-tarjeta-devuelto .fv-tarjeta-icono,
+.fv-vista .fv-tarjeta-devuelto .fv-tarjeta-valor { color: #a2531c; }
+
+/* ---------- Tarjetas en una sola fila compacta (deja espacio a la tabla) ---------- */
+.fv-vista .fv-tarjetas.fv-tarjetas-fila {
+    display: flex;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    width: 100%;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 0 6px;
+    box-sizing: border-box;
+}
+.fv-vista .fv-tarjetas-fila .fv-tarjeta {
+    flex: 1 1 0;
+    min-width: 130px;
+    padding: 6px 10px;
+    border-left-width: 4px;
+    column-gap: 8px;
+}
+.fv-vista .fv-tarjetas-fila .fv-tarjeta-icono {
+    width: 16px;
+    height: 16px;
+}
+.fv-vista .fv-tarjetas-fila .fv-tarjeta-etiqueta {
+    font-size: var(--lumo-font-size-xs);
+    white-space: nowrap;
+}
+.fv-vista .fv-tarjetas-fila .fv-tarjeta-valor {
+    font-size: 1rem;
+    white-space: nowrap;
+}

@@ -1,3 +1,6 @@
-@import url('./main-layout.css');
+﻿@import url('./main-layout.css');
 @import url('./views/venta-view.css');
 @import url('./views/inventario-view.css');
+@import url('./views/caja-diaria-view.css');
+@import url('./views/dialogo-caja.css');
+@import url('./views/consulta-view.css');

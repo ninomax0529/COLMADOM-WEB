@@ -85,16 +85,23 @@ public class DialogoDevolucionVenta extends Dialog {
 
         // Cargar Ítems disponibles de la factura
         List<ItemDevolucionModel> itemsModel = new ArrayList<>();
-        factura.getDetalleFacturaDeVentaCollection().forEach(det -> {
-            
+        // El detalle se consulta al servicio: la colección de la factura es perezosa y
+        // fuera de la transacción lanza LazyInitializationException.
+        facturaService.getDetalle(factura.getCodigo()).forEach(det -> {
+
             BigDecimal devuelto = det.getCantidadDevuelta() != null ? det.getCantidadDevuelta() : BigDecimal.ZERO;
             BigDecimal disponible = det.getCantidad().subtract(devuelto);
-            
-            if (disponible.doubleValue() > 0) {
-                
-                BigDecimal precio = det.getPrecioVenta() != null ? det.getPrecioVenta() : det.getPrecioVenta();
-                
-                itemsModel.add(new ItemDevolucionModel(det.getCodigo(), det.getArticulo().getDescripcion(),
+
+            if (disponible.signum() > 0) {
+
+                // Mismo precio que usa el servicio: lo realmente cobrado por unidad (con descuentos)
+                BigDecimal precio = det.getTotal() != null && det.getCantidad().signum() > 0
+                        ? det.getTotal().divide(det.getCantidad(), 4, java.math.RoundingMode.HALF_UP)
+                        : (det.getPrecioVenta() != null ? det.getPrecioVenta() : BigDecimal.ZERO);
+                String descripcion = det.getDescripcionArticulo() != null ? det.getDescripcionArticulo()
+                        : (det.getArticulo() != null ? det.getArticulo().getDescripcion() : "");
+
+                itemsModel.add(new ItemDevolucionModel(det.getCodigo(), descripcion,
                         det.getCantidad().doubleValue(), disponible.doubleValue(), precio.doubleValue()));
             }
         });

@@ -4,17 +4,17 @@ import com.maxsoft.application.dto.DeliveryRealizadoDTO;
 import com.maxsoft.application.dto.PedidoDeliveryDTO;
 import com.maxsoft.application.modelo.Delivery;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
+import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.servicio.interfaces.cxc.FacturaDeVentaService;
 import com.maxsoft.application.servicio.interfaces.delivery.DeliveryService;
 import com.maxsoft.application.servicio.interfaces.delivery.LiquidacionDeliveryService;
+import com.maxsoft.application.view.componente.EstiloConsulta;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
@@ -41,12 +41,13 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
 /**
  * Consulta de deliveries realizados con su estado (PENDIENTE de liquidar,
- * LIQUIDADO o ANULADO). Doble clic sobre un delivery muestra el detalle de la
+ * LIQUIDADO o ANULADO). Doble clic (o el ojo) sobre un delivery muestra la
  * factura en la pestaña "Detalle".
  */
 @PermitAll
@@ -55,8 +56,8 @@ import java.util.List;
 public class ConsultaDeliveryRealizadoView extends VerticalLayout {
 
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final DateTimeFormatter FORMATO_FECHA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final DecimalFormat FORMATO_NUMERO = new DecimalFormat("#,##0.00");
+    private static final DateTimeFormatter FORMATO_FECHA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a");
+    private static final DecimalFormat FORMATO_NUMERO = new DecimalFormat("#,##0.##");
 
     private static final String TODOS = "Todos";
 
@@ -70,28 +71,26 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
     private final ComboBox<Delivery> cbMotorista = new ComboBox<>("Motorista");
     private final ComboBox<String> cbEstado = new ComboBox<>("Estado");
     private final ComboBox<String> cbTipoPago = new ComboBox<>("Tipo de pago");
-    private final TextField txtBuscar = new TextField("Factura / Cliente");
+    private final TextField txtBuscar = new TextField();
 
     // Resumen (tarjetas)
     private final Div resumen = new Div();
-    private final Span kpiTotal = new Span("0");
-    private final Span kpiPendientes = new Span("0");
-    private final Span kpiLiquidados = new Span("0");
-    private final Span kpiAnulados = new Span("0");
-    private final Span kpiContado = new Span("RD$ 0.00");
-    private final Span kpiFiado = new Span("RD$ 0.00");
-    private final Span kpiPorLiquidar = new Span("RD$ 0.00");
 
     // Grids
     private final Grid<DeliveryRealizadoDTO> grid = new Grid<>(DeliveryRealizadoDTO.class, false);
     private final Grid<DetalleFacturaDeVenta> gridDetalle = new Grid<>(DetalleFacturaDeVenta.class, false);
     private final TabSheet tabs = new TabSheet();
+    private final Div cabeceraDetalle = new Div();
+    private final Div tarjetasDetalle = new Div();
     private GridListDataView<DeliveryRealizadoDTO> dataView;
     private final List<DeliveryRealizadoDTO> lista = new ArrayList<>();
+    private List<DetalleFacturaDeVenta> listDet = new ArrayList<>();
 
     private Grid.Column<DeliveryRealizadoDTO> colCodigo;
     private Grid.Column<DeliveryRealizadoDTO> colMonto;
-    private Grid.Column<DeliveryRealizadoDTO> colEstado;
+    private Grid.Column<DetalleFacturaDeVenta> colDetDescripcion;
+    private Grid.Column<DetalleFacturaDeVenta> colDetItbis;
+    private Grid.Column<DetalleFacturaDeVenta> colDetTotal;
 
     @Autowired
     public ConsultaDeliveryRealizadoView(LiquidacionDeliveryService liquidacionService,
@@ -105,26 +104,34 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
         setSizeFull();
         setSpacing(false);
 
+        tabs.setSizeFull();
+        EstiloConsulta.aplicarVista(this, tabs);
+
         configurarGrid();
         configurarGridDetalle();
 
-        tabs.setSizeFull();
-        tabs.add("Deliveries", grid);
-        tabs.add("Detalle", gridDetalle);
+        tabs.add(EstiloConsulta.etiquetaTab(VaadinIcon.TRUCK, "Deliveries"), grid);
+        tabs.add(EstiloConsulta.etiquetaTab(VaadinIcon.FILE_TEXT_O, "Detalle"),
+                EstiloConsulta.panelDetalle(cabeceraDetalle, tarjetasDetalle, gridDetalle));
 
-        configurarResumen();
+        // Una sola fila compacta: deja el alto de la pantalla a la tabla
+        resumen.addClassNames("fv-tarjetas", "fv-tarjetas-fila");
 
-        add(new H2("Deliveries Realizados"), crearFiltros(), resumen, tabs);
+        H2 titulo = new H2("Deliveries Realizados");
+        titulo.addClassName("fv-titulo");
+
+        add(titulo, crearFiltros(), resumen, tabs);
         setFlexGrow(1, tabs);
 
         cargarMotoristas();
+        limpiarDetalle();
         buscar();
     }
 
     // ============================================================
     // FILTROS
     // ============================================================
-    private VerticalLayout crearFiltros() {
+    private HorizontalLayout crearFiltros() {
 
         dpDesde.setValue(LocalDate.now().minusDays(30));
         dpHasta.setValue(LocalDate.now());
@@ -142,7 +149,8 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
         cbTipoPago.setAllowCustomValue(false);
         cbTipoPago.setValue(TODOS);
 
-        txtBuscar.setPlaceholder("Filtrar resultados...");
+        txtBuscar.setWidth("260px");
+        txtBuscar.setPlaceholder("Filtrar por factura, cliente o motorista...");
         txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
         txtBuscar.setClearButtonVisible(true);
         txtBuscar.setValueChangeMode(ValueChangeMode.LAZY);
@@ -152,22 +160,19 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
         cbTipoPago.addValueChangeListener(e -> aplicarFiltros());
         txtBuscar.addValueChangeListener(e -> aplicarFiltros());
 
-        FormLayout form = new FormLayout(dpDesde, dpHasta, cbMotorista, cbEstado, cbTipoPago, txtBuscar);
-        form.setResponsiveSteps(
-                new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("600px", 6)
-        );
-
         Button btnBuscar = new Button("Buscar", VaadinIcon.SEARCH.create(), e -> buscar());
         btnBuscar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btnBuscar.addClickShortcut(Key.ENTER);
 
-        Button btnLimpiar = new Button("Limpiar filtros", VaadinIcon.REFRESH.create(), e -> limpiarFiltros());
+        Button btnLimpiar = new Button("Limpiar", VaadinIcon.REFRESH.create(), e -> limpiarFiltros());
 
-        VerticalLayout contenedor = new VerticalLayout(form, new HorizontalLayout(btnBuscar, btnLimpiar));
-        contenedor.setPadding(false);
-        contenedor.setSpacing(true);
-        return contenedor;
+        HorizontalLayout barra = new HorizontalLayout(dpDesde, dpHasta, cbMotorista, cbEstado, cbTipoPago,
+                txtBuscar, btnBuscar, btnLimpiar,
+                EstiloConsulta.ayuda("Doble clic en un delivery para ver su factura"));
+        barra.setAlignItems(Alignment.BASELINE);
+        barra.setWidthFull();
+        barra.getStyle().set("flex-wrap", "wrap");
+        return barra;
     }
 
     private void cargarMotoristas() {
@@ -189,79 +194,84 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
     // ============================================================
     private void configurarGrid() {
 
+        EstiloConsulta.aplicarGrid(grid);
         grid.setSizeFull();
-        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_COMPACT);
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
+        grid.setPartNameGenerator(d -> esAnulado(d) ? "fv-fila-anulada" : null);
         dataView = grid.setItems(lista);
 
-        colCodigo = grid.addColumn(DeliveryRealizadoDTO::getCodigoFactura)
-                .setHeader("N° Factura").setAutoWidth(true).setSortable(true);
+        colCodigo = grid.addColumn(d -> "#" + d.getCodigoFactura())
+                .setHeader("Factura").setAutoWidth(true)
+                .setComparator(Comparator.comparing(DeliveryRealizadoDTO::getCodigoFactura));
 
         grid.addColumn(d -> fecha(d.getFecha(), FORMATO_FECHA))
                 .setHeader("Fecha").setAutoWidth(true)
                 .setComparator((a, b) -> compararFechas(a.getFecha(), b.getFecha()));
 
-        grid.addColumn(DeliveryRealizadoDTO::getCliente).setHeader("Cliente").setAutoWidth(true).setSortable(true);
+        grid.addColumn(DeliveryRealizadoDTO::getCliente).setHeader("Cliente").setAutoWidth(true)
+                .setFlexGrow(2).setSortable(true);
         grid.addColumn(DeliveryRealizadoDTO::getMotorista).setHeader("Motorista").setAutoWidth(true).setSortable(true);
 
-        grid.addColumn(new ComponentRenderer<>(d -> {
-            Span s = new Span(d.getTipoPago());
-            s.getElement().getThemeList().add("badge " + (PedidoDeliveryDTO.FIADO.equals(d.getTipoPago()) ? "error" : "contrast"));
-            return s;
-        })).setHeader("Tipo de pago").setAutoWidth(true)
-                .setComparator((a, b) -> a.getTipoPago().compareTo(b.getTipoPago()));
+        grid.addComponentColumn(this::chipTipoPago)
+                .setHeader("Pago").setAutoWidth(true)
+                .setComparator(Comparator.comparing(d -> texto(d.getTipoPago())));
 
-        colMonto = grid.addColumn(d -> numero(d.getMontoTotal()))
+        grid.addComponentColumn(this::chipEstado)
+                .setHeader("Estado").setAutoWidth(true)
+                .setComparator(Comparator.comparing(d -> texto(d.getEstado())));
+
+        colMonto = EstiloConsulta.monto(grid.addColumn(d -> EstiloConsulta.moneda(d.getMontoTotal())))
                 .setHeader("Monto").setAutoWidth(true)
-                .setComparator((a, b) -> a.getMontoTotal().compareTo(b.getMontoTotal()));
+                .setComparator(Comparator.comparing(d -> valor(d.getMontoTotal())));
 
-        colEstado = grid.addColumn(new ComponentRenderer<>(d -> {
-            Span s = new Span(d.getEstado());
-            s.getElement().getThemeList().add("badge " + colorEstado(d.getEstado()));
-            return s;
-        })).setHeader("Estado").setAutoWidth(true)
-                .setComparator((a, b) -> a.getEstado().compareTo(b.getEstado()));
-
-        grid.addColumn(d -> d.getCodigoLiquidacion() != null ? "#" + d.getCodigoLiquidacion() : "")
+        grid.addColumn(d -> d.getCodigoLiquidacion() != null ? "#" + d.getCodigoLiquidacion() : "—")
                 .setHeader("Liquidación").setAutoWidth(true);
 
         grid.addColumn(d -> fecha(d.getFechaLiquidacion(), FORMATO_FECHA_HORA))
-                .setHeader("Fecha liquidación").setAutoWidth(true);
+                .setHeader("Fecha liquidación").setAutoWidth(true)
+                .setComparator((a, b) -> compararFechas(a.getFechaLiquidacion(), b.getFechaLiquidacion()));
 
         // Facturas de contado que el cliente se quedó a crédito al liquidar
-        grid.addColumn(d -> d.isConvertidoACredito() ? "A crédito: " + d.getClienteCredito() : "")
-                .setHeader("Observación").setAutoWidth(true).setFlexGrow(1);
+        grid.addComponentColumn(d -> d.isConvertidoACredito()
+                ? EstiloConsulta.chip("A CRÉDITO: " + texto(d.getClienteCredito()), "fv-chip-credito")
+                : new Span(""))
+                .setHeader("Observación").setAutoWidth(true);
 
-        grid.addItemDoubleClickListener(e -> mostrarDetalle(e.getItem()));
-    }
+        grid.addColumn(new ComponentRenderer<>(d -> {
+            Button btnVer = new Button(VaadinIcon.EYE.create(), e -> mostrarDetalle(d));
+            btnVer.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+            btnVer.setTooltipText("Ver la factura del delivery");
+            return btnVer;
+        })).setHeader("Ver").setAutoWidth(true).setSortable(false);
 
-    private String colorEstado(String estado) {
-        if (DeliveryRealizadoDTO.LIQUIDADO.equals(estado)) {
-            return "success";
-        }
-        if (DeliveryRealizadoDTO.ANULADO.equals(estado)) {
-            return "error";
-        }
-        return "warning"; // PENDIENTE
+        grid.addItemDoubleClickListener(e -> {
+            if (e.getItem() != null) {
+                mostrarDetalle(e.getItem());
+            }
+        });
     }
 
     // ============================================================
-    // GRID DETALLE (líneas de la factura)
+    // DETALLE (factura del delivery)
     // ============================================================
     private void configurarGridDetalle() {
 
-        gridDetalle.setSizeFull();
-        gridDetalle.addThemeVariants(GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_COMPACT);
+        EstiloConsulta.aplicarGrid(gridDetalle);
+        gridDetalle.setWidthFull();
+        gridDetalle.setMinHeight("300px");
+        gridDetalle.setHeight("50vh");
 
-        gridDetalle.addColumn(DetalleFacturaDeVenta::getDescripcionArticulo)
-                .setHeader("Descripción").setFlexGrow(1)
-                .setFooter("TOTAL:");
+        colDetDescripcion = gridDetalle.addColumn(DetalleFacturaDeVenta::getDescripcionArticulo)
+                .setHeader("Descripción").setFlexGrow(2)
+                .setFooter("ARTÍCULOS:");
         gridDetalle.addColumn(DetalleFacturaDeVenta::getNombreUnidad).setHeader("Unidad");
-        gridDetalle.addColumn(d -> numero(d.getCantidad())).setHeader("Cantidad");
-        gridDetalle.addColumn(d -> numero(d.getPrecioVenta())).setHeader("Precio");
-        gridDetalle.addColumn(d -> numero(d.getSubTotal())).setHeader("Sub Total");
-        gridDetalle.addColumn(d -> numero(d.getTotalItbis())).setHeader("ITBIS");
-        gridDetalle.addColumn(d -> numero(d.getTotal())).setHeader("Total");
+        EstiloConsulta.monto(gridDetalle.addColumn(d -> numero(d.getCantidad()))).setHeader("Cantidad");
+        EstiloConsulta.monto(gridDetalle.addColumn(d -> EstiloConsulta.moneda(d.getPrecioVenta()))).setHeader("Precio");
+        EstiloConsulta.monto(gridDetalle.addColumn(d -> EstiloConsulta.moneda(d.getSubTotal()))).setHeader("Sub Total");
+        colDetItbis = EstiloConsulta.monto(gridDetalle.addColumn(d -> EstiloConsulta.moneda(d.getTotalItbis())))
+                .setHeader("ITBIS");
+        colDetTotal = EstiloConsulta.monto(gridDetalle.addColumn(d -> EstiloConsulta.moneda(d.getTotal())))
+                .setHeader("Total");
 
         gridDetalle.getColumns().forEach(c -> {
             c.setAutoWidth(true);
@@ -273,73 +283,83 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
 
         try {
             Collection<DetalleFacturaDeVenta> detalles = facturaService.getDetalle(d.getCodigoFactura());
-            gridDetalle.setItems(detalles != null ? detalles : List.of());
+            listDet = detalles != null ? new ArrayList<>(detalles) : new ArrayList<>();
+            gridDetalle.setItems(listDet);
+
+            EstiloConsulta.renombrarTab(tabs, 1, VaadinIcon.FILE_TEXT_O, "Detalle · Factura #" + d.getCodigoFactura());
+
+            EstiloConsulta.cabecera(cabeceraDetalle,
+                    "Factura #" + d.getCodigoFactura(),
+                    texto(d.getCliente())
+                    + (d.getFecha() != null ? "  ·  " + fecha(d.getFecha(), FORMATO_FECHA) : "")
+                    + (d.getMotorista() != null ? "  ·  Motorista: " + d.getMotorista() : "")
+                    + (d.getCodigoLiquidacion() != null
+                    ? "  ·  Liquidación #" + d.getCodigoLiquidacion()
+                    + (d.getFechaLiquidacion() != null ? " (" + fecha(d.getFechaLiquidacion(), FORMATO_FECHA_HORA) + ")" : "")
+                    : ""),
+                    chipEstado(d), chipTipoPago(d));
+
+            tarjetasDetalle.removeAll();
+            tarjetasDetalle.add(EstiloConsulta.tarjeta("Monto", d.getMontoTotal(), "fv-tarjeta-total", VaadinIcon.MONEY));
+
+            // Pagado / pendiente / devuelto reales de la factura
+            FacturaDeVenta f = facturaService.getFactura(d.getCodigoFactura());
+            if (f != null) {
+                boolean anulada = Boolean.TRUE.equals(f.getAnulada());
+                tarjetasDetalle.add(
+                        EstiloConsulta.tarjeta("Pagado", f.getTotalPagado(), "fv-tarjeta-pagado", VaadinIcon.CHECK_CIRCLE),
+                        EstiloConsulta.tarjetaPendiente("Pendiente", anulada ? BigDecimal.ZERO : f.getTotalPendiente()));
+                if (valor(f.getTotalDevuelto()).signum() > 0) {
+                    tarjetasDetalle.add(EstiloConsulta.tarjeta("Devuelto", f.getTotalDevuelto(),
+                            "fv-tarjeta-devuelto", VaadinIcon.ARROW_BACKWARD));
+                }
+            }
+
+            actualizarTotalesDetalle();
             tabs.setSelectedIndex(1);
-            tabs.getTabAt(1).setLabel("Detalle( Factura -> " + d.getCodigoFactura() + " )");
+
         } catch (RuntimeException ex) {
             ex.printStackTrace();
             notificar("No se pudo cargar el detalle: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }
 
+    private void limpiarDetalle() {
+
+        listDet = new ArrayList<>();
+        gridDetalle.setItems(listDet);
+        EstiloConsulta.renombrarTab(tabs, 1, VaadinIcon.FILE_TEXT_O, "Detalle");
+        tabs.setSelectedIndex(0);
+        EstiloConsulta.cabeceraVacia(cabeceraDetalle,
+                "Haga doble clic en un delivery de la pestaña \"Deliveries\" para ver su factura.");
+        tarjetasDetalle.removeAll();
+
+        actualizarTotalesDetalle();
+    }
+
+    private void actualizarTotalesDetalle() {
+
+        colDetDescripcion.setFooter("ARTÍCULOS: " + listDet.size());
+        colDetItbis.setFooter(EstiloConsulta.moneda(listDet.stream()
+                .map(x -> valor(x.getTotalItbis())).reduce(BigDecimal.ZERO, BigDecimal::add)));
+        colDetTotal.setFooter(EstiloConsulta.moneda(listDet.stream()
+                .map(x -> valor(x.getTotal())).reduce(BigDecimal.ZERO, BigDecimal::add)));
+    }
+
     // ============================================================
     // RESUMEN (tarjetas)
     // ============================================================
-    private void configurarResumen() {
-
-        resumen.setWidthFull();
-        resumen.getStyle()
-                .set("display", "grid")
-                .set("grid-template-columns", "repeat(auto-fit, minmax(150px, 1fr))")
-                .set("gap", "var(--lumo-space-m)")
-                .set("margin-bottom", "var(--lumo-space-m)");
-
-        resumen.add(
-                crearTarjeta("Deliveries", kpiTotal, "var(--lumo-primary-color)", VaadinIcon.TRUCK),
-                crearTarjeta("Pendientes", kpiPendientes, "var(--lumo-warning-text-color)", VaadinIcon.CLOCK),
-                crearTarjeta("Liquidados", kpiLiquidados, "var(--lumo-success-text-color)", VaadinIcon.CHECK_CIRCLE),
-                crearTarjeta("Anulados", kpiAnulados, "var(--lumo-error-text-color)", VaadinIcon.BAN),
-                crearTarjeta("Contado", kpiContado, "var(--lumo-success-text-color)", VaadinIcon.MONEY),
-                crearTarjeta("Fiado", kpiFiado, "var(--lumo-error-text-color)", VaadinIcon.BOOK),
-                crearTarjeta("Por liquidar", kpiPorLiquidar, "var(--lumo-warning-text-color)", VaadinIcon.WALLET)
-        );
-    }
-
-    private Div crearTarjeta(String titulo, Span valor, String color, VaadinIcon icono) {
-
+    /** Tarjeta con el estilo de las consultas y texto libre (cantidades o montos). */
+    private Div tarjeta(String etiqueta, String valor, String clase, VaadinIcon icono) {
         Icon ic = icono.create();
-        ic.setSize("var(--lumo-icon-size-s)");
-        ic.getStyle().set("color", color);
-
-        Span lbl = new Span(titulo);
-        lbl.getStyle()
-                .set("font-size", "var(--lumo-font-size-xs)")
-                .set("text-transform", "uppercase")
-                .set("letter-spacing", "0.05em")
-                .set("color", "var(--lumo-secondary-text-color)");
-
-        HorizontalLayout cabecera = new HorizontalLayout(ic, lbl);
-        cabecera.setPadding(false);
-        cabecera.setSpacing(true);
-        cabecera.setAlignItems(Alignment.CENTER);
-
-        valor.getStyle()
-                .set("font-size", "var(--lumo-font-size-xl)")
-                .set("font-weight", "700")
-                .set("color", color);
-
-        Div card = new Div(cabecera, valor);
-        card.getStyle()
-                .set("display", "flex")
-                .set("flex-direction", "column")
-                .set("gap", "var(--lumo-space-xs)")
-                .set("padding", "var(--lumo-space-m)")
-                .set("background", "var(--lumo-base-color)")
-                .set("border", "1px solid var(--lumo-contrast-10pct)")
-                .set("border-left", "4px solid " + color)
-                .set("border-radius", "var(--lumo-border-radius-l)")
-                .set("box-shadow", "var(--lumo-box-shadow-xs)");
-        return card;
+        ic.addClassName("fv-tarjeta-icono");
+        Span lbl = new Span(etiqueta);
+        lbl.addClassName("fv-tarjeta-etiqueta");
+        Span val = new Span(valor);
+        val.addClassName("fv-tarjeta-valor");
+        Div d = new Div(ic, lbl, val);
+        d.addClassNames("fv-tarjeta", clase);
+        return d;
     }
 
     // ============================================================
@@ -369,6 +389,7 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
             dataView.refreshAll();
 
             grid.deselectAll();
+            limpiarDetalle();
             aplicarFiltros();
 
         } catch (Exception ex) {
@@ -404,41 +425,62 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
 
         long pendientes = visibles.stream().filter(d -> DeliveryRealizadoDTO.PENDIENTE.equals(d.getEstado())).count();
         long liquidados = visibles.stream().filter(d -> DeliveryRealizadoDTO.LIQUIDADO.equals(d.getEstado())).count();
-        long anulados = visibles.stream().filter(d -> DeliveryRealizadoDTO.ANULADO.equals(d.getEstado())).count();
+        long anulados = visibles.stream().filter(this::esAnulado).count();
 
-        BigDecimal total = sumar(visibles, false, null);
-        BigDecimal contado = sumar(visibles, false, PedidoDeliveryDTO.CONTADO);
-        BigDecimal fiado = sumar(visibles, false, PedidoDeliveryDTO.FIADO);
+        BigDecimal total = sumar(visibles, null);
+        BigDecimal contado = sumar(visibles, PedidoDeliveryDTO.CONTADO);
+        BigDecimal fiado = sumar(visibles, PedidoDeliveryDTO.FIADO);
         BigDecimal porLiquidar = visibles.stream()
                 .filter(d -> DeliveryRealizadoDTO.PENDIENTE.equals(d.getEstado()))
-                .map(DeliveryRealizadoDTO::getMontoTotal)
+                .map(d -> valor(d.getMontoTotal()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        kpiTotal.setText(String.valueOf(visibles.size()));
-        kpiPendientes.setText(String.valueOf(pendientes));
-        kpiLiquidados.setText(String.valueOf(liquidados));
-        kpiAnulados.setText(String.valueOf(anulados));
-        kpiContado.setText("RD$ " + numero(contado));
-        kpiFiado.setText("RD$ " + numero(fiado));
-        kpiPorLiquidar.setText("RD$ " + numero(porLiquidar));
+        resumen.removeAll();
+        resumen.add(
+                tarjeta("Deliveries", String.valueOf(visibles.size()), "fv-tarjeta-total", VaadinIcon.TRUCK),
+                tarjeta("Pendientes", String.valueOf(pendientes),
+                        pendientes > 0 ? "fv-tarjeta-pendiente" : "fv-tarjeta-saldada", VaadinIcon.CLOCK),
+                tarjeta("Liquidados", String.valueOf(liquidados), "fv-tarjeta-pagado", VaadinIcon.CHECK_CIRCLE),
+                tarjeta("Anulados", String.valueOf(anulados), "fv-tarjeta-saldada", VaadinIcon.BAN),
+                tarjeta("Contado", EstiloConsulta.moneda(contado), "fv-tarjeta-pagado", VaadinIcon.MONEY),
+                tarjeta("Fiado", EstiloConsulta.moneda(fiado), "fv-tarjeta-devuelto", VaadinIcon.BOOK),
+                EstiloConsulta.tarjetaPendiente("Por liquidar", porLiquidar));
 
-        colCodigo.setFooter("TOTAL (" + visibles.size() + "):");
-        colMonto.setFooter("RD$ " + numero(total));
-        colEstado.setFooter("");
+        colCodigo.setFooter("DELIVERIES: " + visibles.size());
+        colMonto.setFooter(EstiloConsulta.moneda(total));
     }
 
-    private BigDecimal sumar(List<DeliveryRealizadoDTO> items, boolean incluirAnulados, String tipoPago) {
+    private BigDecimal sumar(List<DeliveryRealizadoDTO> items, String tipoPago) {
 
         return items.stream()
-                .filter(d -> incluirAnulados || !DeliveryRealizadoDTO.ANULADO.equals(d.getEstado()))
+                .filter(d -> !esAnulado(d))
                 .filter(d -> tipoPago == null || tipoPago.equals(d.getTipoPago()))
-                .map(DeliveryRealizadoDTO::getMontoTotal)
+                .map(d -> valor(d.getMontoTotal()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     // ============================================================
     // UTILIDADES
     // ============================================================
+    private boolean esAnulado(DeliveryRealizadoDTO d) {
+        return DeliveryRealizadoDTO.ANULADO.equals(d.getEstado());
+    }
+
+    private Span chipEstado(DeliveryRealizadoDTO d) {
+        if (esAnulado(d)) {
+            return EstiloConsulta.chip("ANULADO", "fv-chip-anulada");
+        }
+        return DeliveryRealizadoDTO.LIQUIDADO.equals(d.getEstado())
+                ? EstiloConsulta.chip("LIQUIDADO", "fv-chip-pagada")
+                : EstiloConsulta.chip("POR LIQUIDAR", "fv-chip-pendiente");
+    }
+
+    private Span chipTipoPago(DeliveryRealizadoDTO d) {
+        return PedidoDeliveryDTO.FIADO.equals(d.getTipoPago())
+                ? EstiloConsulta.chip("FIADO", "fv-chip-credito")
+                : EstiloConsulta.chip(texto(d.getTipoPago()).toUpperCase(), "fv-chip-contado");
+    }
+
     private Date aDate(LocalDate fecha) {
         return Date.from(fecha.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
@@ -462,6 +504,14 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
             return 1;
         }
         return a.compareTo(b);
+    }
+
+    private static String texto(String s) {
+        return s != null ? s : "";
+    }
+
+    private static BigDecimal valor(BigDecimal v) {
+        return v != null ? v : BigDecimal.ZERO;
     }
 
     private String numero(BigDecimal valor) {

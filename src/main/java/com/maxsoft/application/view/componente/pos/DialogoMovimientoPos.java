@@ -36,8 +36,10 @@ public class DialogoMovimientoPos extends Dialog {
         CajaTurno turnoActual = cajaAbiertaOpt.get();
 
         // 2. Construcción de la ventana de diálogo
-        setHeaderTitle("Registrar Movimiento POS / Tarjeta");
-        setWidth("450px");
+        addClassName("dc-dialogo");
+        setHeaderTitle("Movimiento de Caja");
+        setWidth("500px");
+        setMaxWidth("96vw");
         setCloseOnEsc(true);
         setCloseOnOutsideClick(false);
 
@@ -47,33 +49,71 @@ public class DialogoMovimientoPos extends Dialog {
         layout.setWidthFull();
 
         // Componentes del formulario
-        ComboBox<String> tipoPosCombo = new ComboBox<>("Tipo de Operación POS");
+        ComboBox<String> tipoPosCombo = new ComboBox<>("Tipo de Operación");
         tipoPosCombo.setItems(
-                "Consumo con Tarjeta / Datáfono",
-                "Avance de Efectivo con Tarjeta",
-                "Anulación de Voucher"
+                CajaService.TARJETA_CONSUMO,
+                CajaService.TARJETA_AVANCE,
+                CajaService.TARJETA_ANULACION,
+                CajaService.OPCION_FONDO_EXTRA
         );
-        tipoPosCombo.setValue("Consumo con Tarjeta / Datáfono");
+        tipoPosCombo.setValue(CajaService.TARJETA_CONSUMO);
+        tipoPosCombo.setAllowCustomValue(false);
         tipoPosCombo.setWidthFull();
         tipoPosCombo.setRequiredIndicatorVisible(true);
 
-        BigDecimalField montoField = new BigDecimalField("Monto de la Transacción (RD$)");
+        BigDecimalField montoField = new BigDecimalField("Monto de la Transacción");
         montoField.setValue(BigDecimal.ZERO);
         montoField.setWidthFull();
         montoField.setRequiredIndicatorVisible(true);
+        montoField.addClassName("dc-campo-grande");
+        montoField.setPrefixComponent(new com.vaadin.flow.component.html.Span("RD$"));
+        tipoPosCombo.addClassName("dc-combo");
 
         TextField descripcionField = new TextField("Descripción / Referencia del Voucher");
         descripcionField.setPlaceholder("Ej: Voucher #1234, Tarjeta BHD León");
         descripcionField.setWidthFull();
 
-        layout.add(tipoPosCombo, montoField, descripcionField);
+        // Banda superior: explica en grande qué hace la operación elegida
+        com.vaadin.flow.component.html.Div bandaCont = new com.vaadin.flow.component.html.Div();
+        Runnable actualizarBanda = () -> {
+            String op = tipoPosCombo.getValue();
+            bandaCont.removeAll();
+            if (CajaService.OPCION_FONDO_EXTRA.equals(op)) {
+                bandaCont.add(com.maxsoft.application.view.venta.cajaChica.DialogoCajaEstilo.banda(
+                        VaadinIcon.PLUS_CIRCLE, "Entrada de efectivo", "El dinero ENTRA a la gaveta y se imprime un comprobante"));
+            } else if (CajaService.TARJETA_AVANCE.equals(op)) {
+                bandaCont.add(com.maxsoft.application.view.venta.cajaChica.DialogoCajaEstilo.banda(
+                        VaadinIcon.EXCHANGE, "Avance de efectivo", "Se cobra a la tarjeta y el efectivo SALE de la gaveta"));
+            } else if (CajaService.TARJETA_ANULACION.equals(op)) {
+                bandaCont.add(com.maxsoft.application.view.venta.cajaChica.DialogoCajaEstilo.banda(
+                        VaadinIcon.CLOSE_CIRCLE, "Anulación de voucher", "Resta del total cobrado con tarjeta; no toca la gaveta"));
+            } else {
+                bandaCont.add(com.maxsoft.application.view.venta.cajaChica.DialogoCajaEstilo.banda(
+                        VaadinIcon.CREDIT_CARD, "Consumo con tarjeta", "Venta cobrada en el datáfono; no toca la gaveta"));
+            }
+        };
+        actualizarBanda.run();
+
+        // Para el fondo extra la descripción es el motivo / quién entrega el efectivo
+        tipoPosCombo.addValueChangeListener(ev -> {
+            boolean fondo = CajaService.OPCION_FONDO_EXTRA.equals(ev.getValue());
+            montoField.setLabel(fondo ? "Efectivo que entra a la gaveta" : "Monto de la Transacción");
+            descripcionField.setLabel(fondo ? "Motivo / Quién entrega el efectivo" : "Descripción / Referencia del Voucher");
+            descripcionField.setPlaceholder(fondo ? "Ej: El dueño trae cambio para devoluciones" : "Ej: Voucher #1234, Tarjeta BHD León");
+            actualizarBanda.run();
+        });
+
+        layout.addClassName("dc-cuerpo");
+        layout.add(bandaCont, tipoPosCombo, montoField, descripcionField);
         add(layout);
 
         // Botones de acción del pie de página
         Button cancelBtn = new Button("Cancelar", e -> close());
 
+        cancelBtn.addClassName("dc-btn-secundario");
         Button saveBtn = new Button("Registrar [Enter]", VaadinIcon.CHECK.create());
-        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        saveBtn.addClassName("dc-btn-abrir");
         saveBtn.addClickShortcut(Key.ENTER);
 
         saveBtn.addClickListener(e -> {
@@ -98,6 +138,17 @@ public class DialogoMovimientoPos extends Dialog {
             }
 
             try {
+                if (CajaService.OPCION_FONDO_EXTRA.equals(tipoOperacion)) {
+                    var mov = cajaService.registrarFondoExtra(monto, descripcion.trim(),
+                            usuarioLogueado != null ? usuarioLogueado : "Administrador");
+                    Notification.show("Fondo extra #" + mov.getId() + " registrado: entraron RD$ "
+                            + String.format("%,.2f", monto) + " a la caja.", 4000, Notification.Position.MIDDLE)
+                            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                    imprimirComprobante(cajaService, mov.getId());
+                    close();
+                    return;
+                }
+
                 // Llamada al servicio para guardar en la base de datos
                 cajaService.registrarMovimientoPos(
                         turnoActual.getId().intValue(),
@@ -132,6 +183,23 @@ public class DialogoMovimientoPos extends Dialog {
 
         // Abrir el diálogo automáticamente una vez configurado
         open();
+    }
+
+    /**
+     * Imprime el comprobante del fondo extra en la impresora del navegador
+     * (iframe oculto, igual que el ticket de venta). Si falla, el movimiento ya
+     * quedó guardado: solo se avisa.
+     */
+    private void imprimirComprobante(CajaService cajaService, Long movimientoId) {
+        try {
+            String html = cajaService.generarComprobanteFondoExtraHtml(movimientoId);
+            com.maxsoft.application.util.ImpresionHtmlUtil.imprimir(
+                    getUI().orElse(com.vaadin.flow.component.UI.getCurrent()), html);
+        } catch (Exception ex) {
+            Notification.show("El fondo extra #" + movimientoId + " se guardó, pero no se pudo imprimir el comprobante.",
+                    4000, Notification.Position.TOP_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+        }
     }
 
     // Sobrecarga del constructor para cuando no se pasa el usuario explícitamente

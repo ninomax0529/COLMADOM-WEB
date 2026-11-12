@@ -115,9 +115,84 @@ public class ReciboDeIngresoServiceImpl implements ReciboDeIngresoService {
         return repo.getDetalle(obj);
     }
 
+    /** Conceptos de recibos que se crean solos y no se anulan desde aquí. */
+    private static final String CONCEPTO_RECIBO_POS = "Recibo automática por Factura de venta";
+    private static final String CONCEPTO_RECIBO_LIQUIDACION = "Pago con liquidacion de factura";
+
+    @Transactional(rollbackFor = Exception.class)
     @Override
-    public ReciboDeEgreso anularReciboDeIngreso(Integer id) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    public ReciboDeIngreso anularReciboDeIngreso(Integer id, String motivo, String usuario) {
+
+        String user = usuario != null && !usuario.isBlank() ? usuario : "Admin";
+        ReciboDeIngreso recibo = repo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("El recibo de ingreso #" + id + " no existe."));
+        if (Boolean.TRUE.equals(recibo.getAnulado())) {
+            throw new IllegalStateException("El recibo de ingreso #" + id + " ya está anulado.");
+        }
+        String concepto = recibo.getConcepto() != null ? recibo.getConcepto() : "";
+        if (concepto.startsWith(CONCEPTO_RECIBO_POS)) {
+            throw new IllegalStateException("El recibo #" + id + " es el cobro automático de una venta del POS. "
+                    + "Para revertirlo, anule o devuelva la factura de venta.");
+        }
+        if (concepto.startsWith(CONCEPTO_RECIBO_LIQUIDACION)) {
+            throw new IllegalStateException("El recibo #" + id + " se generó en una liquidación de delivery "
+                    + "y no se puede anular por separado.");
+        }
+
+        BigDecimal total = recibo.getTotalPagado() != null ? recibo.getTotalPagado() : BigDecimal.ZERO;
+
+        // Si el cobro entró a la gaveta, el efectivo sale: caja abierta y con fondos
+        CajaTurno turno = null;
+        if (recibo.getCajaChica() != null && total.signum() > 0) {
+            turno = cajaService.obtenerCajaAbierta()
+                    .orElseThrow(() -> new IllegalStateException(
+                    "Debe abrir una caja: el recibo #" + id + " se cobró en efectivo y ese dinero sale de la gaveta."));
+            cajaService.validarEfectivoDisponible(turno.getId().intValue(), total,
+                    "devolver el cobro del recibo #" + id);
+        }
+
+        // 1. Facturas: vuelven a deber lo que este recibo les pagó
+        for (DetalleReciboDeIngreso det : repo.getDetalle(id)) {
+            if (det.getFactura() == null) {
+                continue;
+            }
+            FacturaDeVenta factura = facturaDeVentaService.getFactura(det.getFactura().getCodigo());
+            BigDecimal monto = det.getTotal() != null ? det.getTotal() : BigDecimal.ZERO;
+
+            BigDecimal pagado = (factura.getTotalPagado() != null ? factura.getTotalPagado() : BigDecimal.ZERO)
+                    .subtract(monto).max(BigDecimal.ZERO);
+            factura.setTotalPagado(pagado);
+            if (!Boolean.TRUE.equals(factura.getAnulada())) {
+                BigDecimal pendiente = netoFactura(factura).subtract(pagado).max(BigDecimal.ZERO);
+                factura.setTotalPendiente(pendiente);
+                if (pendiente.signum() > 0) {
+                    factura.setEstadoFactura(new EstadoFactura(1));
+                }
+            }
+            factura.setFechaActualizacion(new Date());
+            facturaDeVentaService.guardar(factura);
+
+            // 2. Estado de cuenta: el cliente vuelve a deber (si el pago estaba ahí)
+            cuentaPorCobrarService.registrarAnulacionRecibo(recibo, factura, motivo, user);
+        }
+
+        // 3. Recibo anulado
+        recibo.setAnulado(true);
+        String nota = "ANULADO" + (motivo != null && !motivo.isBlank() ? ": " + motivo.trim() : "");
+        recibo.setConcepto(concepto.isBlank() ? nota : concepto + " | " + nota);
+        ReciboDeIngreso anulado = repo.save(recibo);
+
+        // 4. Caja: sale el efectivo que había entrado con el cobro
+        if (turno != null) {
+            cajaService.registrarMovimientoPos(
+                    turno.getId().intValue(),
+                    CajaService.TIPO_ANULACION_COBRO_CXC,
+                    total.negate(),
+                    "Anulación Recibo de Ingreso #" + id
+                    + (motivo != null && !motivo.isBlank() ? ". Motivo: " + motivo.trim() : ""),
+                    user);
+        }
+        return anulado;
     }
 
     @Override
@@ -220,6 +295,8 @@ public class ReciboDeIngresoServiceImpl implements ReciboDeIngresoService {
 
         String nombreUsuario = usuario != null && !usuario.isBlank() ? usuario : "Admin";
         recibo.setNombreUsuario(nombreUsuario);
+        // Liga el recibo al turno: así su anulación sabe que debe sacar el efectivo de la caja
+        recibo.setCajaChica(turno != null ? turno.getId().intValue() : null);
         if (recibo.getCliente() != null) {
             recibo.setNombreCliente(recibo.getCliente().getNombre());
         }
