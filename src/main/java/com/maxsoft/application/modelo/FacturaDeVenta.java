@@ -64,8 +64,8 @@ public class FacturaDeVenta implements Serializable {
     @Column(name = "fecha_actualizacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaActualizacion;
-    @OneToOne(cascade = CascadeType.ALL, mappedBy = "factura")
-    private DetalleLiquidacionDelivery detalleLiquidacionDelivery;
+    // (La relación con DetalleLiquidacionDelivery se quitó: una factura puede
+    // tener varias líneas si se anula una liquidación y se vuelve a liquidar.)
     @OneToMany(mappedBy = "factura")
     private Collection<DetalleReciboDeIngreso> detalleReciboDeIngresoCollection;
 
@@ -408,14 +408,6 @@ public class FacturaDeVenta implements Serializable {
     }
 
 
-    public DetalleLiquidacionDelivery getDetalleLiquidacionDelivery() {
-        return detalleLiquidacionDelivery;
-    }
-
-    public void setDetalleLiquidacionDelivery(DetalleLiquidacionDelivery detalleLiquidacionDelivery) {
-        this.detalleLiquidacionDelivery = detalleLiquidacionDelivery;
-    }
-
     public String getNcf() {
         return ncf;
     }
@@ -440,4 +432,17 @@ public class FacturaDeVenta implements Serializable {
         this.direccion = direccion;
     }
     
+
+    // ===== Lotes: dato de paso entre servicios (no se guarda) =====
+    /** Supervisor que autorizÃ³ vender artÃ­culos de lotes vencidos en esta factura. */
+    @jakarta.persistence.Transient
+    private String autorizadoLoteVencidoPor;
+
+    public String getAutorizadoLoteVencidoPor() {
+        return autorizadoLoteVencidoPor;
+    }
+
+    public void setAutorizadoLoteVencidoPor(String autorizadoLoteVencidoPor) {
+        this.autorizadoLoteVencidoPor = autorizadoLoteVencidoPor;
+    }
 }

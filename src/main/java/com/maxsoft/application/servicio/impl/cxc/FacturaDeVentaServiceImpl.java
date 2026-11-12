@@ -18,6 +18,8 @@ import com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
+import com.maxsoft.application.servicio.interfaces.inventario.LoteService;
+import com.maxsoft.application.servicio.interfaces.inventario.LoteVencidoException;
 import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
 import com.maxsoft.application.servicio.interfaces.venta.CajaService;
@@ -62,6 +64,8 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
     ArticuloService articuloService;
     @Autowired
     AlmacenService almacenService;
+    @Autowired
+    LoteService loteService;
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
@@ -115,6 +119,21 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         // Validar stock antes de guardar nada (respeta "permitir venta sin existencia")
         for (java.util.Map.Entry<Integer, BigDecimal> req : requeridoBasePorArticulo.entrySet()) {
             inventarioService.validarStockDisponible(req.getKey(), req.getValue().doubleValue());
+        }
+
+        // Lotes vencidos: si lo vigente no alcanza y habría que vender de un lote vencido,
+        // se bloquea salvo que un supervisor lo haya autorizado (el POS lo pide y reintenta).
+        java.util.List<String> ventaDeVencidos = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<Integer, BigDecimal> req : requeridoBasePorArticulo.entrySet()) {
+            Articulo art = articuloService.buscarPorCodigo(req.getKey());
+            String aviso = loteService.describirVentaDeVencidos(art, alm, req.getValue());
+            if (aviso != null) {
+                ventaDeVencidos.add(aviso);
+            }
+        }
+        String autorizadoVencido = ticketVenta.getAutorizadoLoteVencidoPor();
+        if (!ventaDeVencidos.isEmpty() && (autorizadoVencido == null || autorizadoVencido.isBlank())) {
+            throw new LoteVencidoException(ventaDeVencidos);
         }
 
         // 3. Mapeo y Construcción de la Factura
@@ -194,6 +213,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         });
 
         factura.setDetalleFacturaDeVentaCollection(ticketVenta.getItems());
+        factura.setAutorizadoLoteVencidoPor(ventaDeVencidos.isEmpty() ? null : autorizadoVencido);
 
         // 4. Persistencia de la factura
         FacturaDeVenta facturaGuardada = facttRepo.saveAndFlush(factura);

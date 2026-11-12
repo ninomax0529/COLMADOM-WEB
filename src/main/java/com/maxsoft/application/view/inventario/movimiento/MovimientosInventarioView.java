@@ -163,6 +163,19 @@ public class MovimientosInventarioView extends VerticalLayout {
                 .setHeader("Exist. Nueva")
                 .setAutoWidth(true);
 
+        // Control de lotes: lote del movimiento, su vencimiento y la existencia del lote
+        grid.addColumn(m -> m.getLote() == null ? "" : m.getLote().getNumeroLote()
+                + (m.getLote().getFechaVencimiento() == null ? ""
+                : " (vence " + m.getLote().getFechaVencimiento()
+                        .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")"))
+                .setHeader("Lote")
+                .setAutoWidth(true);
+
+        grid.addColumn(m -> m.getLote() == null || m.getExistenciaLoteNueva() == null ? ""
+                : String.format("%.2f → %.2f", m.getExistenciaLoteAnterior(), m.getExistenciaLoteNueva()))
+                .setHeader("Exist. Lote")
+                .setAutoWidth(true);
+
         grid.addColumn(MovimientoInventario::getUsuario)
                 .setHeader("Usuario")
                 .setAutoWidth(true);

@@ -250,4 +250,41 @@ public class DetalleRecepcionMercancia implements Serializable {
         return "com.maxsoft.application.modelo.DetalleRecepcionMercancia[ codigo=" + codigo + " ]";
     }
     
+
+    // ===== Lote (control de lotes) =====
+    /** Lote al que entrÃ³ la mercancÃ­a (lo asigna el servicio). */
+    @JoinColumn(name = "lote", referencedColumnName = "codigo")
+    @ManyToOne
+    private Lote lote;
+
+    /** NÃºmero de lote que digita el usuario (vacÃ­o = se genera automÃ¡tico). */
+    @Column(name = "numero_lote", length = 50)
+    private String numeroLote;
+
+    @Column(name = "fecha_vencimiento")
+    private java.time.LocalDate fechaVencimientoLote;
+
+    public Lote getLote() {
+        return lote;
+    }
+
+    public void setLote(Lote lote) {
+        this.lote = lote;
+    }
+
+    public String getNumeroLote() {
+        return numeroLote;
+    }
+
+    public void setNumeroLote(String numeroLote) {
+        this.numeroLote = numeroLote;
+    }
+
+    public java.time.LocalDate getFechaVencimientoLote() {
+        return fechaVencimientoLote;
+    }
+
+    public void setFechaVencimientoLote(java.time.LocalDate fechaVencimientoLote) {
+        this.fechaVencimientoLote = fechaVencimientoLote;
+    }
 }

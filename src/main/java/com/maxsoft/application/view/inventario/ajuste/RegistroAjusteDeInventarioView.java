@@ -77,6 +77,8 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
     private final MovimientoInventarioService movimientoService;
     private final TipoMovimientoService tipoMovimientoService;
     private final TipoDocumentoService tipoDocumentoService;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.maxsoft.application.servicio.interfaces.inventario.LoteService loteService;
 
     private final List<DetalleAjusteInventario> listDet = new ArrayList<>();
 
@@ -141,7 +143,16 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         cbTipoAjuste.setItemLabelGenerator(TipoAjuste::getDescripcion);
         cbTipoAjuste.setAllowCustomValue(false);
         cbTipoAjuste.setRequired(true);
-        cbTipoAjuste.addValueChangeListener(e -> recalcularNuevasExistencias());
+        cbTipoAjuste.addValueChangeListener(e -> {
+            // Al cambiar entre incremento y decremento, los datos de lote de la otra dirección no aplican
+            listDet.forEach(d -> {
+                d.setLote(null);
+                d.setNumeroLote(null);
+                d.setFechaVencimientoLote(null);
+            });
+            recalcularNuevasExistencias();
+            grid.getDataProvider().refreshAll();
+        });
 
         txtObservacion.setWidth("300px");
 
@@ -404,6 +415,27 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         grid.addColumn(DetalleAjusteInventario::getNuevaExistencia)
                 .setHeader("Nueva Existencia (UMM)")
                 .setAutoWidth(true);
+
+        // Lote: en un incremento se digita (número/vencimiento; vacío = automático);
+        // en un decremento se elige de qué lote sale (vacío = FEFO).
+        grid.addComponentColumn(item -> {
+            TipoAjuste tipo = cbTipoAjuste.getValue();
+            if (tipo == null) {
+                com.vaadin.flow.component.html.Span s = new com.vaadin.flow.component.html.Span(
+                        item.getArticulo() != null && item.getArticulo().isControlaLote() ? "Elija el tipo" : "No aplica");
+                s.getStyle().set("color", "var(--lumo-secondary-text-color)");
+                return s;
+            }
+            if (tipo.getCodigo() == 1) {
+                return new HorizontalLayout(
+                        com.maxsoft.application.view.componente.inventario.LoteUi.numeroLote(
+                                item.getArticulo(), item.getNumeroLote(), item::setNumeroLote),
+                        com.maxsoft.application.view.componente.inventario.LoteUi.vencimiento(
+                                item.getArticulo(), item.getFechaVencimientoLote(), item::setFechaVencimientoLote));
+            }
+            return com.maxsoft.application.view.componente.inventario.LoteUi.selectorSalida(
+                    loteService, item.getArticulo(), cbAlmacen.getValue(), item.getLote(), item::setLote);
+        }).setHeader("Lote").setAutoWidth(true);
 
         grid.addColumn(new ComponentRenderer<>(item -> {
             Button deleteButton = new Button(new Icon(VaadinIcon.TRASH), click -> {

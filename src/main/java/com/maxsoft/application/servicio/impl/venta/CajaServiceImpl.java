@@ -346,6 +346,10 @@ public class CajaServiceImpl implements CajaService {
                     ventasEfectivo = ventasEfectivo.add(monto);
                 case "POS_" + TIPO_DELIVERY ->
                     cobrosDelivery = cobrosDelivery.add(monto);
+                case "POS_" + TIPO_ANULACION_DELIVERY ->
+                    cobrosDelivery = cobrosDelivery.subtract(monto.abs());
+                case "POS_" + TIPO_ABONO_MOTORISTA ->
+                    cobrosDelivery = cobrosDelivery.add(monto.abs());
                 case "POS_" + TIPO_COBRO_CXC ->
                     cobrosCxc = cobrosCxc.add(monto);
                 case "POS_" + TIPO_ANULACION_COBRO_CXC ->

@@ -50,9 +50,13 @@ public class DetalleLiquidacionDelivery implements Serializable {
     @JoinColumn(name = "cliente", referencedColumnName = "codigo")
     @ManyToOne
     private Cliente cliente;
+    // ManyToOne: una factura puede tener líneas de liquidaciones anuladas y una vigente
     @JoinColumn(name = "factura", referencedColumnName = "codigo")
-    @OneToOne(optional = false)
+    @ManyToOne(optional = false)
     private FacturaDeVenta factura;
+    /** La liquidación se anuló: la factura volvió a quedar pendiente. */
+    @Column(name = "anulada")
+    private Boolean anulada = false;
     @JoinColumn(name = "liquidacion_delivery", referencedColumnName = "codigo")
     @ManyToOne(optional = false)
     private LiquidacionDelivery liquidacionDelivery;
@@ -108,6 +112,14 @@ public class DetalleLiquidacionDelivery implements Serializable {
 
     public void setFactura(FacturaDeVenta factura) {
         this.factura = factura;
+    }
+
+    public boolean isAnulada() {
+        return Boolean.TRUE.equals(anulada);
+    }
+
+    public void setAnulada(Boolean anulada) {
+        this.anulada = anulada;
     }
 
     public LiquidacionDelivery getLiquidacionDelivery() {

@@ -83,6 +83,7 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
     private final Checkbox chkExistenciaNegativa = new Checkbox("Permitir vender sin existencia (existencia negativa)");
     private final Checkbox chkPerecedero = new Checkbox("Perecedero (maneja fecha de vencimiento)");
     private final IntegerField txtDiasVencimiento = new IntegerField("Días de vida útil");
+    private final Checkbox chkControlaLote = new Checkbox("Controla lotes (existencia por lote y vencimiento; sale primero lo que vence primero)");
     private final BigDecimalField txtPuntoReorden = new BigDecimalField("Punto de reorden (unidad base)");
     private final ComboBox<MetodoCosteo> cbMetodoCosteo = new ComboBox<>("Método de costeo");
     private final TextField txtCodigoBarraPrincipal = new TextField("Código de barras principal");
@@ -113,11 +114,15 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
     private Tab tabEmpaques;
     private Tab tabInventario;
     private Tab tabCompra;
+    private Tab tabLotes;
     private final VerticalLayout containerTabGeneral = new VerticalLayout();
     private final VerticalLayout containerTabAlmacenes = new VerticalLayout();
     private final VerticalLayout containerTabEmpaques = new VerticalLayout();
     private final VerticalLayout containerTabInventario = new VerticalLayout();
     private final VerticalLayout containerTabCompra = new VerticalLayout();
+    private final VerticalLayout containerTabLotes = new VerticalLayout();
+    private final Grid<com.maxsoft.application.modelo.LoteAlmacen> gridLotes = new Grid<>(com.maxsoft.application.modelo.LoteAlmacen.class, false);
+    private final com.maxsoft.application.servicio.interfaces.inventario.LoteService loteService;
     ListDataProvider<ArticuloEmpaque> dataProvider;
     ListDataProvider<ArticuloAlmacen> artalmDataProvider;
 
@@ -133,8 +138,10 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
             @Lazy ArticuloEmpaqueService articuloEmpaqueServiceArg,
             @Lazy ArticuloDaoService articuloDaoServiceArg,
             UnidadService unidadService,
-            ProveedorService proveedorServiceArg
+            ProveedorService proveedorServiceArg,
+            com.maxsoft.application.servicio.interfaces.inventario.LoteService loteServiceArg
     ) {
+        this.loteService = loteServiceArg;
         this.articuloService = articuloServiceArg;
         this.unidaVentaService = unidadDeVentaServiceArg;
         this.almacenService = almacenServiceArg;
@@ -153,10 +160,11 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         configurarFormularioCompra();
         configurarGridAlmacenes();
         configurarGridEmpaques();
+        configurarGridLotes();
         configurarTabs();
 
         add(botonera, tabs, containerTabGeneral, containerTabAlmacenes, containerTabEmpaques,
-                containerTabInventario, containerTabCompra);
+                containerTabInventario, containerTabCompra, containerTabLotes);
     }
 
     private void configurarBotonera() {
@@ -196,14 +204,16 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         tabEmpaques = new Tab("3. Multi-Empaques / Presentaciones");
         tabInventario = new Tab("4. Datos de Inventario");
         tabCompra = new Tab("5. Datos de Compra");
+        tabLotes = new Tab("6. Lotes");
 
-        tabs.add(tabGeneral, tabAlmacenes, tabEmpaques, tabInventario, tabCompra);
+        tabs.add(tabGeneral, tabAlmacenes, tabEmpaques, tabInventario, tabCompra, tabLotes);
         tabs.setWidthFull();
 
         containerTabAlmacenes.setVisible(false);
         containerTabEmpaques.setVisible(false);
         containerTabInventario.setVisible(false);
         containerTabCompra.setVisible(false);
+        containerTabLotes.setVisible(false);
 
         tabs.addSelectedChangeListener(event -> {
             Tab sel = event.getSelectedTab();
@@ -212,6 +222,7 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
             containerTabEmpaques.setVisible(sel.equals(tabEmpaques));
             containerTabInventario.setVisible(sel.equals(tabInventario));
             containerTabCompra.setVisible(sel.equals(tabCompra));
+            containerTabLotes.setVisible(sel.equals(tabLotes));
         });
     }
 
@@ -262,16 +273,24 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 
         txtCodigoBarraPrincipal.setHelperText("Código del artículo; cada presentación tiene el suyo en la pestaña 3");
 
-        chkPerecedero.addValueChangeListener(e -> actualizarEstadoCamposInventario());
+        chkPerecedero.addValueChangeListener(e -> {
+            // Un perecedero se controla por lote (vencimiento) salvo que el usuario lo quite
+            if (e.isFromClient() && Boolean.TRUE.equals(e.getValue())) {
+                chkControlaLote.setValue(true);
+            }
+            actualizarEstadoCamposInventario();
+        });
         chkInventariable.addValueChangeListener(e -> actualizarEstadoCamposInventario());
+        chkControlaLote.setTooltipText("Al guardar, la existencia actual que no esté en ningún lote queda en el lote INICIAL.");
 
         FormLayout form = new FormLayout();
         form.add(chkInventariable, chkExistenciaNegativa, cbMetodoCosteo, txtPuntoReorden,
-                chkPerecedero, txtDiasVencimiento, txtCodigoBarraPrincipal);
+                chkPerecedero, txtDiasVencimiento, chkControlaLote, txtCodigoBarraPrincipal);
 
         form.setColspan(chkInventariable, 2);
         form.setColspan(chkExistenciaNegativa, 2);
         form.setColspan(chkPerecedero, 2);
+        form.setColspan(chkControlaLote, 2);
         form.setColspan(txtCodigoBarraPrincipal, 2);
 
         form.setResponsiveSteps(
@@ -289,7 +308,8 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         binder.bind(chkPerecedero,
                 a -> Boolean.TRUE.equals(a.getPerecedero()), Articulo::setPerecedero);
 
-//        binder.bind(txtDiasVencimiento, Articulo::getDiasVencimiento, Articulo::setDiasVencimiento);
+        binder.bind(txtDiasVencimiento, Articulo::getDiasVencimiento, Articulo::setDiasVencimiento);
+        binder.bind(chkControlaLote, Articulo::isControlaLote, Articulo::setControlaLote);
 //        binder.bind(txtPuntoReorden, Articulo::getPuntoReorden, Articulo::setPuntoReorden);
 //        binder.bind(cbMetodoCosteo, Articulo::getMetodoCosteo, Articulo::setMetodoCosteo);
         binder.bind(txtCodigoBarraPrincipal,
@@ -312,6 +332,7 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         txtPuntoReorden.setEnabled(inventariable);
         chkPerecedero.setEnabled(inventariable);
         txtDiasVencimiento.setEnabled(inventariable && chkPerecedero.getValue());
+        chkControlaLote.setEnabled(inventariable);
     }
 
     // ==========================================
@@ -774,6 +795,51 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
     }
 
     // ==========================================
+    // TAB 6: LOTES (solo lectura)
+    // ==========================================
+    private void configurarGridLotes() {
+        java.time.format.DateTimeFormatter fecha = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        java.text.DecimalFormat cantidad = new java.text.DecimalFormat("#,##0.##");
+
+        com.maxsoft.application.view.componente.EstiloConsulta.aplicarGrid(gridLotes);
+        gridLotes.setWidthFull();
+        gridLotes.setHeight("380px");
+        gridLotes.addComponentColumn(la -> {
+            com.maxsoft.application.view.inventario.lote.LotesVencimientosView.Estado e
+                    = com.maxsoft.application.view.inventario.lote.LotesVencimientosView.estado(la, java.time.LocalDate.now());
+            return com.maxsoft.application.view.componente.EstiloConsulta.chip(e.getEtiqueta(), e.getClase());
+        }).setHeader("Estado").setAutoWidth(true).setFlexGrow(0);
+        gridLotes.addColumn(la -> la.getLote().getNumeroLote()).setHeader("Lote").setAutoWidth(true);
+        gridLotes.addColumn(la -> la.getLote().getFechaVencimiento() != null
+                ? la.getLote().getFechaVencimiento().format(fecha) : "—").setHeader("Vence").setAutoWidth(true);
+        gridLotes.addColumn(la -> la.getAlmacen().getNombre()).setHeader("Almacén").setAutoWidth(true);
+        gridLotes.addColumn(la -> cantidad.format(la.getExistencia())).setHeader("Existencia (unidad base)")
+                .setAutoWidth(true).setTextAlign(com.vaadin.flow.component.grid.ColumnTextAlign.END);
+        gridLotes.addColumn(la -> la.getLote().getCostoUnitario() != null
+                ? com.maxsoft.application.view.componente.EstiloConsulta.moneda(la.getLote().getCostoUnitario()) : "—")
+                .setHeader("Costo unit.").setAutoWidth(true).setTextAlign(com.vaadin.flow.component.grid.ColumnTextAlign.END);
+        gridLotes.addColumn(la -> la.getLote().getProveedor() != null ? la.getLote().getProveedor().getNombre() : "")
+                .setHeader("Proveedor").setAutoWidth(true);
+        gridLotes.addColumn(la -> la.getLote().getDocumentoOrigen() != null ? la.getLote().getDocumentoOrigen() : "")
+                .setHeader("Documento").setAutoWidth(true).setFlexGrow(1);
+
+        com.vaadin.flow.component.html.Span ayuda = new com.vaadin.flow.component.html.Span("Lotes del artículo con su existencia por almacén (los que vencen primero arriba)."
+                + " Para el kardex de un lote use Inventario > Lotes y vencimientos.");
+        ayuda.getStyle().set("color", "var(--lumo-secondary-text-color)").set("font-size", "var(--lumo-font-size-s)");
+        containerTabLotes.add(ayuda, gridLotes);
+        containerTabLotes.setWidthFull();
+    }
+
+    private void cargarLotes() {
+        if (articuloActual == null || articuloActual.getCodigo() == null) {
+            gridLotes.setItems(new ArrayList<>());
+            return;
+        }
+        gridLotes.setItems(loteService.getExistenciasPorArticulo(articuloActual.getCodigo()).stream()
+                .filter(la -> la.getExistencia().signum() != 0).toList());
+    }
+
+    // ==========================================
     // LÓGICA DE EDICIÓN Y GUARDADO ATÓMICO
     // ==========================================
     private void editarArticulo(Articulo articulo) {
@@ -800,6 +866,8 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 
             listaArticuloAlmacen.addAll(articuloAlmacenService.buscarPorArticulo(articuloActual.getCodigo()).get());
         }
+
+        cargarLotes();
 
 //        gridEmpaques.setItems(listaEmpaques);
 //        gridAlmacenes.setItems(listaArticuloAlmacen);

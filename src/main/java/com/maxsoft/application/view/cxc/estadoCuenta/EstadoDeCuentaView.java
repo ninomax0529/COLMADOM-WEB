@@ -190,6 +190,7 @@ public class EstadoDeCuentaView extends VerticalLayout {
             case CuentaPorCobrar.RECIBO -> EstiloConsulta.chip("PAGO", "fv-chip-pagada");
             case CuentaPorCobrar.ANULACION_FACTURA -> EstiloConsulta.chip("ANULACIÓN FACT.", "fv-chip-anulada");
             case CuentaPorCobrar.ANULACION_RECIBO -> EstiloConsulta.chip("ANULACIÓN PAGO", "fv-chip-pendiente");
+            case CuentaPorCobrar.REVERSO_CREDITO -> EstiloConsulta.chip("VUELVE A CONTADO", "fv-chip-anulada");
             case CuentaPorCobrar.DEVOLUCION -> EstiloConsulta.chip("DEVOLUCIÓN", "fv-chip-devuelto");
             case CuentaPorCobrar.AJUSTE_DEBITO -> EstiloConsulta.chip("AJUSTE (+)", "fv-chip-pendiente");
             case CuentaPorCobrar.AJUSTE_CREDITO -> EstiloConsulta.chip("AJUSTE (-)", "fv-chip-contado");

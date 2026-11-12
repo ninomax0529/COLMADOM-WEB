@@ -257,4 +257,30 @@ public class DetalleTrasladoInventario implements Serializable {
         return "com.maxsoft.application.modelo.DetalleTrasladoInventario[ codigo=" + codigo + " ]";
     }
     
+
+    // ===== Lote (control de lotes) =====
+    @JoinColumn(name = "lote", referencedColumnName = "codigo")
+    @ManyToOne
+    private Lote lote;
+
+    public Lote getLote() {
+        return lote;
+    }
+
+    public void setLote(Lote lote) {
+        this.lote = lote;
+    }
+
+    // ===== Lotes: dato de paso entre servicios (no se guarda) =====
+    /** Filas de kardex de la salida del origen: la entrada al destino repite los mismos lotes. */
+    @jakarta.persistence.Transient
+    private java.util.List<MovimientoInventario> movimientosSalida;
+
+    public java.util.List<MovimientoInventario> getMovimientosSalida() {
+        return movimientosSalida;
+    }
+
+    public void setMovimientosSalida(java.util.List<MovimientoInventario> movimientosSalida) {
+        this.movimientosSalida = movimientosSalida;
+    }
 }

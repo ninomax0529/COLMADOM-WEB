@@ -56,7 +56,10 @@ import java.util.Objects;
 @PermitAll
 @PageTitle("Registro de Merma")
 @Route(value = "inventario/registroMerma")
-public class RegistroMermaView extends VerticalLayout {
+public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow.router.BeforeEnterObserver {
+
+    /** Parámetro de URL: código del almacén cuyos lotes vencidos se cargan al entrar (?vencidos=1). */
+    public static final String PARAM_VENCIDOS = "vencidos";
 
     private static final String USUARIO_ACTUAL = "ADMIN";
 
@@ -79,8 +82,12 @@ public class RegistroMermaView extends VerticalLayout {
     private final ArticuloEmpaqueService articuloEmpaqueService;
     private final AlmacenService almacenService;
     private final ArticuloAlmacenService existenciaService;
+    @Autowired
+    private com.maxsoft.application.servicio.interfaces.inventario.LoteService loteService;
 
     private final List<DetalleMerma> listDet = new ArrayList<>();
+    /** Ids temporales (negativos) de las líneas mientras no se guardan. */
+    private int idTemporal = -1;
 
     // Existencia del almacén (en unidad base) al momento de agregar cada línea.
     // Solo se usa para mostrar "existencia actual / nueva existencia".
@@ -112,7 +119,11 @@ public class RegistroMermaView extends VerticalLayout {
         hlDatos.setAlignItems(Alignment.BASELINE);
         hlDatos.getStyle().set("flex-wrap", "wrap");
 
-        HorizontalLayout hlArticulo = new HorizontalLayout(txtBuscar, btnNuevo);
+        Button btnVencidos = new Button("Cargar vencidos", VaadinIcon.CALENDAR_CLOCK.create(), e -> cargarVencidos());
+        btnVencidos.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        btnVencidos.setTooltipText("Agrega todos los lotes vencidos con existencia en el almacén elegido");
+
+        HorizontalLayout hlArticulo = new HorizontalLayout(txtBuscar, btnNuevo, btnVencidos);
         hlArticulo.setWidthFull();
 
         add(hlDatos, hlArticulo, grid);
@@ -253,8 +264,9 @@ public class RegistroMermaView extends VerticalLayout {
             return;
         }
 
+        // Una línea con lote elegido no se mezcla con otra (cada lote va en su línea)
         DetalleMerma existente = listDet.stream()
-                .filter(d -> d.getArticulo() != null
+                .filter(d -> d.getArticulo() != null && d.getLote() == null
                 && Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())
                 && d.getArticuloEmpaque() != null
                 && Objects.equals(d.getArticuloEmpaque().getCodigo(), empaque.getCodigo()))
@@ -272,7 +284,9 @@ public class RegistroMermaView extends VerticalLayout {
 
         DetalleMerma det = new DetalleMerma();
         
-        det.setCodigo(empaque.getCodigo());
+        // Id temporal único para la grilla (el servicio lo pone en null al guardar): dos
+        // líneas del mismo empaque con lotes distintos no deben ser "iguales".
+        det.setCodigo(idTemporal--);
         det.setArticulo(articulo);
         det.setDescripcionArticulo(articulo.getDescripcion());
         det.setArticuloEmpaque(empaque);
@@ -287,6 +301,83 @@ public class RegistroMermaView extends VerticalLayout {
         listDet.add(det);
         grid.getDataProvider().refreshAll();
         actualizarTotales();
+    }
+
+    /**
+     * Agrega una línea por cada lote vencido con existencia en el almacén
+     * elegido (en unidad base, del lote) y pone el tipo de merma VENCIMIENTO.
+     */
+    /** Desde "Lotes y vencimientos": ?vencidos=&lt;almacén&gt; selecciona el almacén y carga sus vencidos. */
+    @Override
+    public void beforeEnter(com.vaadin.flow.router.BeforeEnterEvent event) {
+        List<String> valor = event.getLocation().getQueryParameters().getParameters().get(PARAM_VENCIDOS);
+        if (valor == null || valor.isEmpty() || !listDet.isEmpty()) {
+            return;
+        }
+        try {
+            Integer codigo = Integer.valueOf(valor.get(0));
+            cbAlmacen.getListDataView().getItems()
+                    .filter(a -> Objects.equals(a.getCodigo(), codigo))
+                    .findFirst()
+                    .ifPresent(a -> {
+                        cbAlmacen.setValue(a);
+                        cargarVencidos();
+                    });
+        } catch (NumberFormatException ignorado) {
+            // parámetro inválido: se abre la merma vacía
+        }
+    }
+
+    private void cargarVencidos() {
+
+        Almacen almacen = cbAlmacen.getValue();
+        if (almacen == null) {
+            ClaseUtil.mostrarNotificacion("Seleccione el almacén para buscar sus lotes vencidos", NotificationVariant.LUMO_WARNING);
+            cbAlmacen.focus();
+            return;
+        }
+        LocalDate hoy = LocalDate.now();
+        int agregados = 0;
+        for (com.maxsoft.application.modelo.LoteAlmacen la : loteService.getLotesConExistencia()) {
+            if (!Objects.equals(la.getAlmacen().getCodigo(), almacen.getCodigo())
+                    || la.getExistencia().signum() <= 0 || !la.getLote().isVencido(hoy)) {
+                continue;
+            }
+            boolean yaEsta = listDet.stream().anyMatch(d -> d.getLote() != null
+                    && Objects.equals(d.getLote().getCodigo(), la.getLote().getCodigo()));
+            if (yaEsta) {
+                continue;
+            }
+            Articulo articulo = la.getLote().getArticulo();
+            ArticuloEmpaque base = articuloEmpaqueService.getEmpaqueBase(articulo.getCodigo()).orElse(null);
+            if (base == null) {
+                continue;
+            }
+            DetalleMerma det = new DetalleMerma();
+            det.setCodigo(idTemporal--);
+            det.setArticulo(articulo);
+            det.setDescripcionArticulo(articulo.getDescripcion());
+            det.setArticuloEmpaque(base);
+            det.setLote(la.getLote());
+            existenciaPrevia.put(det, obtenerExistencia(articulo, almacen));
+            if (validarYActualizar(det, la.getExistencia(), base)) {
+                listDet.add(det);
+                agregados++;
+            } else {
+                existenciaPrevia.remove(det);
+            }
+        }
+        if (agregados == 0) {
+            ClaseUtil.mostrarNotificacion("No hay lotes vencidos con existencia en " + almacen.getNombre(),
+                    NotificationVariant.LUMO_CONTRAST);
+            return;
+        }
+        this.tipoMermaService.getListaActivos().stream()
+                .filter(t -> t.getDescripcion() != null && t.getDescripcion().toUpperCase().contains("VENCIM"))
+                .findFirst().ifPresent(cbTipoMerma::setValue);
+        grid.getDataProvider().refreshAll();
+        actualizarTotales();
+        ClaseUtil.mostrarNotificacion(agregados + " lote(s) vencido(s) agregados a la merma", NotificationVariant.LUMO_SUCCESS);
     }
 
     /**
@@ -381,6 +472,12 @@ public class RegistroMermaView extends VerticalLayout {
 
         grid.addColumn(d -> numero(nuevaExistencia(d)))
                 .setHeader("Nueva Existencia (UMM)")
+                .setAutoWidth(true);
+
+        // Lote del que sale la merma (vacío = FEFO). Solo artículos con control de lote.
+        grid.addComponentColumn(d -> com.maxsoft.application.view.componente.inventario.LoteUi.selectorSalida(
+                loteService, d.getArticulo(), cbAlmacen.getValue(), d.getLote(), d::setLote))
+                .setHeader("Lote")
                 .setAutoWidth(true);
 
         grid.addColumn(d -> numero(d.getCostoUnitario()))

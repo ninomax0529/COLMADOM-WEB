@@ -152,6 +152,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     private final FacturaDeVentaService factService;
     private final ImpresionDirectaService impresionDirectaService;
     private final ArticuloAlmacenService articuloAlmacenService;
+    /** Autorización de supervisor (p. ej. vender de un lote vencido). */
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.maxsoft.application.servicio.interfaces.venta.AutorizacionService autorizacionService;
 
     // ============================================================
     // COMPONENTES / ESTADO DEL POS
@@ -1608,6 +1611,27 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                     ticketVenta,
                     USUARIO_POR_DEFECTO
             );
+
+        } catch (com.maxsoft.application.servicio.interfaces.inventario.LoteVencidoException ex) {
+
+            // Solo queda existencia en lotes vencidos: se pide un supervisor. La venta
+            // no se guarda; con la autorización el cajero vuelve a cobrar.
+            new com.maxsoft.application.view.componente.pos.DialogoAutorizacionSupervisor(
+                    "Venta de lote vencido",
+                    ex.getLineas(),
+                    autorizacionService,
+                    supervisor -> {
+                        ticketVenta.setAutorizadoLoteVencidoPor(supervisor);
+                        Notification.show(
+                                "Autorizado por " + supervisor + ". Vuelva a cobrar la venta.",
+                                4000,
+                                Notification.Position.MIDDLE
+                        ).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                        enfocarBuscador();
+                    }
+            ).open();
+
+            return null;
 
         } catch (IllegalStateException
                 | IllegalArgumentException ex) {

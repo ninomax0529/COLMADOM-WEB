@@ -279,4 +279,40 @@ public class MovimientoInventario implements Serializable {
         return "com.maxsoft.application.modelo.MovimientoInventario[ codigo=" + codigo + " ]";
     }
     
+
+    // ===== Lote (control de lotes) =====
+    @JoinColumn(name = "lote", referencedColumnName = "codigo")
+    @ManyToOne
+    private Lote lote;
+
+    /** Existencia del lote en el almacÃ©n antes del movimiento (unidad base). */
+    @Column(name = "existencia_lote_anterior")
+    private BigDecimal existenciaLoteAnterior;
+
+    @Column(name = "existencia_lote_nueva")
+    private BigDecimal existenciaLoteNueva;
+
+    public Lote getLote() {
+        return lote;
+    }
+
+    public void setLote(Lote lote) {
+        this.lote = lote;
+    }
+
+    public BigDecimal getExistenciaLoteAnterior() {
+        return existenciaLoteAnterior;
+    }
+
+    public void setExistenciaLoteAnterior(BigDecimal existenciaLoteAnterior) {
+        this.existenciaLoteAnterior = existenciaLoteAnterior;
+    }
+
+    public BigDecimal getExistenciaLoteNueva() {
+        return existenciaLoteNueva;
+    }
+
+    public void setExistenciaLoteNueva(BigDecimal existenciaLoteNueva) {
+        this.existenciaLoteNueva = existenciaLoteNueva;
+    }
 }

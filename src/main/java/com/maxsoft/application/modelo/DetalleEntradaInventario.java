@@ -303,4 +303,57 @@ public class DetalleEntradaInventario implements Serializable {
         return "com.maxsoft.application.modelo.DetalleEntradaInventario[ codigo=" + codigo + " ]";
     }
     
+
+    // ===== Lote (control de lotes) =====
+    /** Lote al que entrÃ³ la mercancÃ­a (lo asigna el servicio). */
+    @JoinColumn(name = "lote", referencedColumnName = "codigo")
+    @ManyToOne
+    private Lote lote;
+
+    /** NÃºmero de lote que digita el usuario (vacÃ­o = se genera automÃ¡tico). */
+    @Column(name = "numero_lote", length = 50)
+    private String numeroLote;
+
+    @Column(name = "fecha_vencimiento")
+    private java.time.LocalDate fechaVencimientoLote;
+
+    public Lote getLote() {
+        return lote;
+    }
+
+    public void setLote(Lote lote) {
+        this.lote = lote;
+    }
+
+    public String getNumeroLote() {
+        return numeroLote;
+    }
+
+    public void setNumeroLote(String numeroLote) {
+        this.numeroLote = numeroLote;
+    }
+
+    public java.time.LocalDate getFechaVencimientoLote() {
+        return fechaVencimientoLote;
+    }
+
+    public void setFechaVencimientoLote(java.time.LocalDate fechaVencimientoLote) {
+        this.fechaVencimientoLote = fechaVencimientoLote;
+    }
+
+    // ===== Lotes: dato de paso entre servicios (no se guarda) =====
+    /**
+     * true = la cantidad que entra es cantidadFisicaBase tal cual (lÃ­neas
+     * repartidas por lote, donde cantidadRecibida es solo informativa).
+     */
+    @jakarta.persistence.Transient
+    private boolean usarCantidadFisicaBase;
+
+    public boolean isUsarCantidadFisicaBase() {
+        return usarCantidadFisicaBase;
+    }
+
+    public void setUsarCantidadFisicaBase(boolean usarCantidadFisicaBase) {
+        this.usarCantidadFisicaBase = usarCantidadFisicaBase;
+    }
 }

@@ -15,9 +15,13 @@ import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.repo.MovimientoInventarioRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
+import com.maxsoft.application.servicio.interfaces.inventario.LoteService;
 import com.maxsoft.application.servicio.interfaces.inventario.MovimientoInventarioService;
+import com.maxsoft.application.modelo.Lote;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +38,8 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
 
     @Autowired
     private com.maxsoft.application.repo.ArticuloAlmacenRepo articuloAlmacenRepo;
+    @Autowired
+    private LoteService loteService;
     AlmacenService almacenService;
     ArticuloAlmacenService articuloAlmacenService;
 
@@ -53,7 +59,6 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MovimientoInventario registrarMovimiento(
-            
             Articulo articuloInput,
             Almacen alm,
             ArticuloEmpaque articuloEmpaque,
@@ -68,6 +73,31 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
             BigDecimal cantidad,
             String usuario,
             String observacion
+    ) {
+        List<MovimientoInventario> movs = registrarMovimientoConLote(articuloInput, alm, articuloEmpaque,
+                factorConversion, cantidadEmpaque, subTotal, itbis, total, tipoMovimiento, tipoDocumento,
+                numeroDoc, cantidad, usuario, observacion, null);
+        return movs.get(movs.size() - 1);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<MovimientoInventario> registrarMovimientoConLote(
+            Articulo articuloInput,
+            Almacen alm,
+            ArticuloEmpaque articuloEmpaque,
+            BigDecimal factorConversion,
+            BigDecimal cantidadEmpaque,
+            BigDecimal subTotal,
+            BigDecimal itbis,
+            BigDecimal total,
+            TipoMovimiento tipoMovimiento,
+            TipoDocumento tipoDocumento,
+            String numeroDoc,
+            BigDecimal cantidad,
+            String usuario,
+            String observacion,
+            Lote lote
     ) {
 
         // 1. Validaciones de entrada
@@ -135,11 +165,30 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
                 throw new IllegalArgumentException("Tipo de movimiento no soportado (Código: " + codigoTipoMov + ")");
         }
 
-        // 4. Actualizar existencia en el Almacén específico
+        // 4. Tramos por lote. Sin control de lote: un solo tramo sin lote (como siempre).
+        //    Entrada: todo al lote indicado o al lote automático del día.
+        //    Salida: lote indicado, o reparto FEFO entre los lotes del almacén.
+        List<LoteService.Tramo> tramos = new ArrayList<>();
+        if (articulo.isControlaLote()) {
+            // Auto-cuadre: los lotes deben sumar la existencia del almacén ANTES de moverlos
+            this.loteService.cuadrarAlmacen(articulo, almacen, stockAnterior, usuario);
+        }
+        if (!articulo.isControlaLote()) {
+            tramos.add(new LoteService.Tramo(null, cantidadEmpaque, false));
+        } else if (codigoTipoMov == 1) {
+            Lote loteEntrada = lote != null && lote.getCodigo() != null
+                    ? lote
+                    : this.loteService.obtenerOCrearLote(articulo, null, null, null, null, numeroDoc, usuario);
+            tramos.add(new LoteService.Tramo(loteEntrada, cantidadEmpaque, false));
+        } else {
+            tramos.addAll(this.loteService.repartirSalida(articulo, almacen, cantidadEmpaque, lote));
+        }
+
+        // 5. Actualizar existencia en el Almacén específico
         artiAlm.setExistencia(stockNuevo);
         this.articuloAlmacenService.guardar(artiAlm);
 
-        // 5. Existencia general del Artículo = suma real de sus almacenes. Se recalcula
+        // 6. Existencia general del Artículo = suma real de sus almacenes. Se recalcula
         // (no se acumula la diferencia) para que un descuadre previo no se arrastre.
         BigDecimal existenciaTotalGlobal = this.articuloAlmacenRepo.sumarExistencia(articulo.getCodigo());
         if (existenciaTotalGlobal == null) {
@@ -149,28 +198,74 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         articulo.setExistencia(existenciaTotalGlobal);
         this.articuloRepo.save(articulo);
 
-        // 6. Registrar Auditoría en MovimientoInventario / Kardex
-        MovimientoInventario mov = new MovimientoInventario();
-        
-        mov.setArticulo(articulo);
-        mov.setAlmacen(almacen);
-        mov.setArticuloEmpaque(articuloEmpaque);
-        mov.setFactorConversion(factorConversion);
-        mov.setCantidadEmpaque(cantidadEmpaque);
-        mov.setSubTotal(subTotal);
-        mov.setItbis(itbis);
-        mov.setTotal(total);
-        mov.setTipoMovimiento(tipoMovimiento);
-        mov.setTipoDocumento(tipoDocumento);
-        mov.setNumeroDocumento(numeroDoc);
-        mov.setCantidad(cantidadEmpaque);
-        mov.setExistenciaAnterior(stockAnterior);
-        mov.setExistenciaNueva(stockNuevo);
-        mov.setFechaMovimiento(new Date());
-        mov.setUsuario(usuario != null && !usuario.isBlank() ? usuario : "SISTEMA");
-        mov.setObservacion(observacion);
+        // 7. Kardex: una fila por tramo. La existencia del almacén va avanzando tramo a
+        //    tramo y los montos se prorratean por cantidad (el último tramo lleva el resto).
+        String usuarioMov = usuario != null && !usuario.isBlank() ? usuario : "SISTEMA";
+        int signo = codigoTipoMov == 1 ? 1 : -1;
+        BigDecimal existenciaCorriente = stockAnterior;
+        BigDecimal restoSubTotal = subTotal;
+        BigDecimal restoItbis = itbis;
+        BigDecimal restoTotal = total;
+        List<MovimientoInventario> movimientos = new ArrayList<>();
 
-        return movimientoRepo.save(mov);
+        for (int i = 0; i < tramos.size(); i++) {
+            LoteService.Tramo tramo = tramos.get(i);
+            boolean ultimo = i == tramos.size() - 1;
+            BigDecimal cant = tramo.cantidad();
+
+            BigDecimal tSubTotal = ultimo ? restoSubTotal : prorratear(subTotal, cant, cantidadEmpaque);
+            BigDecimal tItbis = ultimo ? restoItbis : prorratear(itbis, cant, cantidadEmpaque);
+            BigDecimal tTotal = ultimo ? restoTotal : prorratear(total, cant, cantidadEmpaque);
+            restoSubTotal = restar(restoSubTotal, tSubTotal);
+            restoItbis = restar(restoItbis, tItbis);
+            restoTotal = restar(restoTotal, tTotal);
+
+            BigDecimal existenciaNueva = existenciaCorriente.add(cant.multiply(BigDecimal.valueOf(signo)));
+
+            MovimientoInventario mov = new MovimientoInventario();
+            mov.setArticulo(articulo);
+            mov.setAlmacen(almacen);
+            mov.setArticuloEmpaque(articuloEmpaque);
+            mov.setFactorConversion(factorConversion);
+            mov.setCantidadEmpaque(cant);
+            mov.setSubTotal(tSubTotal);
+            mov.setItbis(tItbis);
+            mov.setTotal(tTotal);
+            mov.setTipoMovimiento(tipoMovimiento);
+            mov.setTipoDocumento(tipoDocumento);
+            mov.setNumeroDocumento(numeroDoc);
+            mov.setCantidad(cant);
+            mov.setExistenciaAnterior(existenciaCorriente);
+            mov.setExistenciaNueva(existenciaNueva);
+            mov.setFechaMovimiento(new Date());
+            mov.setUsuario(usuarioMov);
+            mov.setObservacion(observacion);
+
+            if (tramo.lote() != null) {
+                BigDecimal[] exLote = this.loteService.moverExistencia(tramo.lote(), almacen,
+                        cant.multiply(BigDecimal.valueOf(signo)));
+                mov.setLote(tramo.lote());
+                mov.setExistenciaLoteAnterior(exLote[0]);
+                mov.setExistenciaLoteNueva(exLote[1]);
+            }
+
+            movimientos.add(movimientoRepo.save(mov));
+            existenciaCorriente = existenciaNueva;
+        }
+
+        return movimientos;
+    }
+
+    /** Parte proporcional de un monto (null si el monto es null). */
+    private static BigDecimal prorratear(BigDecimal monto, BigDecimal parte, BigDecimal todo) {
+        if (monto == null || todo == null || todo.signum() == 0) {
+            return monto;
+        }
+        return monto.multiply(parte).divide(todo, 2, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal restar(BigDecimal a, BigDecimal b) {
+        return a == null || b == null ? a : a.subtract(b);
     }
 
     public MovimientoInventario registrarMovimiento1(
@@ -283,6 +378,12 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
     @Transactional(readOnly = true)
     public List<MovimientoInventario> getMovimientosPorArticulo(Integer articuloCodigo) {
         return movimientoRepo.findByArticuloOrderByFechaMovimientoDesc(articuloCodigo);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MovimientoInventario> getMovimientosPorLote(Integer codigoLote) {
+        return movimientoRepo.findPorLote(codigoLote);
     }
 
     @Override

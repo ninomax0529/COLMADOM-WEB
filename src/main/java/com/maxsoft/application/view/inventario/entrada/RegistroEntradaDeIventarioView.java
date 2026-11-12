@@ -290,6 +290,16 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
                 .setHeader("Nueva Existencia")
                 .setAutoWidth(true);
 
+        // Lote de la entrada: número (vacío = automático) y vencimiento. Solo artículos con lote.
+        grid.addComponentColumn(item -> com.maxsoft.application.view.componente.inventario.LoteUi.numeroLote(
+                item.getArticulo(), item.getNumeroLote(), item::setNumeroLote))
+                .setHeader("Lote")
+                .setAutoWidth(true);
+        grid.addComponentColumn(item -> com.maxsoft.application.view.componente.inventario.LoteUi.vencimiento(
+                item.getArticulo(), item.getFechaVencimientoLote(), item::setFechaVencimientoLote))
+                .setHeader("Vence")
+                .setAutoWidth(true);
+
         grid.addColumn(new ComponentRenderer<>(item -> {
             Button deleteButton = new Button(new Icon(VaadinIcon.TRASH), click -> {
                 ConfirmDialog dialog = new ConfirmDialog(

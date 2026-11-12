@@ -65,6 +65,8 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
     private final SalidaInventarioService salidaInvService;
     private final AlmacenService almacenService;
     private final ArticuloAlmacenService existenciaService;
+    @Autowired
+    private com.maxsoft.application.servicio.interfaces.inventario.LoteService loteService;
 
     private final List<DetalleSalidaInventario> listDet = new ArrayList<>();
 
@@ -340,6 +342,12 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
         grid.addColumn(DetalleSalidaInventario::getExistencia)
                 .setHeader("Nueva Existencia (UMM)")
+                .setAutoWidth(true);
+
+        // Lote del que sale (vacío = FEFO). Solo artículos con control de lote.
+        grid.addComponentColumn(item -> com.maxsoft.application.view.componente.inventario.LoteUi.selectorSalida(
+                loteService, item.getArticulo(), cbAlmacen.getValue(), item.getLote(), item::setLote))
+                .setHeader("Lote")
                 .setAutoWidth(true);
 
         grid.addColumn(new ComponentRenderer<>(item -> {

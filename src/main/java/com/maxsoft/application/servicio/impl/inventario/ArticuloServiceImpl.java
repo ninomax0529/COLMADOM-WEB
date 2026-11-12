@@ -35,6 +35,8 @@ public class ArticuloServiceImpl implements ArticuloService {
     com.maxsoft.application.repo.ArticuloAlmacenRepo articuloAlmacenRepo;
     @Autowired
     AlmacenService almacenService;
+    @Autowired
+    com.maxsoft.application.servicio.interfaces.inventario.LoteService loteService;
 
     @Override
     public Articulo guardar(Articulo art) {
@@ -190,6 +192,13 @@ public class ArticuloServiceImpl implements ArticuloService {
         articulo.setArticuloEmpaqueCollection(listaEmpaques);
 
         // 5. UN SOLO SAVE: JPA/Hibernate persistirá el artículo y en cascada guardará ambas colecciones
-        return repo.save(articulo);
+        Articulo guardado = repo.save(articulo);
+
+        // 6. Control de lotes: lo que haya en existencia y no esté en ningún lote
+        //    (al activar el control, o por un descuadre) queda en el lote INICIAL.
+        if (guardado.isControlaLote()) {
+            loteService.sincronizarLotes(guardado, guardado.getCreadoPor());
+        }
+        return guardado;
     }
 }

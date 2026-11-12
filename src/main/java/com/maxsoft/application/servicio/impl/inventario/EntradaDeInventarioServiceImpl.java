@@ -32,6 +32,9 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
     ArticuloEmpaqueRepo articuloEmpaqueRepo;
     private final ArticuloRepo articuloRepo;
 
+    @Autowired
+    private LoteService loteService;
+
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EntradaDeInventarioServiceImpl.class);
 
     @Autowired
@@ -100,7 +103,10 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                         ? detalle.getCantidadRecibida()
                         : BigDecimal.ZERO;
 
-                if (cantidadEntrante.compareTo(BigDecimal.ZERO) > 0) {
+                boolean hayCantidad = cantidadEntrante.signum() > 0
+                        || (detalle.isUsarCantidadFisicaBase() && detalle.getCantidadFisicaBase() != null
+                        && detalle.getCantidadFisicaBase().signum() > 0);
+                if (hayCantidad) {
 
                     // Cálculo/extracción de totales para la firma completa
                     BigDecimal costoUnitario = detalle.getCostoUnitario() != null
@@ -114,25 +120,33 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                     BigDecimal factor = detalle.getFactorConversion() != null
                             && detalle.getFactorConversion().signum() > 0
                             ? detalle.getFactorConversion() : BigDecimal.ONE;
-                    BigDecimal cantidadFisicaBase = cantidadEntrante.multiply(factor); // UNIDAD BASE
+                    // UNIDAD BASE. Las líneas repartidas por lote traen la cantidad base exacta.
+                    BigDecimal cantidadFisicaBase = detalle.isUsarCantidadFisicaBase()
+                            && detalle.getCantidadFisicaBase() != null
+                            ? detalle.getCantidadFisicaBase()
+                            : cantidadEntrante.multiply(factor);
 
-                    // LLAMADA CORREGIDA CON LOS 13 PARÁMETROS DE LA INTERFAZ:
-                    movimientoService.registrarMovimiento(
-                            articulo, // 1. Articulo
-                            alm, // 2. Almacen
-                            artEmpaque, // 3. ArticuloEmpaque (null si es unidad suelta)
-                            BigDecimal.ONE, // 4. factorConversion (1 por defecto)
-                            cantidadFisicaBase, // 5. cantidadEmpaque
-                            subTotal, // 6. subTotal
-                            itbis, // 7. itbis
-                            total, // 8. total
-                            tm, // 9. TipoMovimiento
-                            tp, // 10. TipoDocumento
-                            numDocumento, // 11. numeroDoc
-                            cantidadEntrante, // 12. cantidad
-                            usuario, // 13. usuario
-                            obj.getComentario() // 14. observacion
-                    );
+                    // Lote: el de la línea; si no hay pero se digitó número o vencimiento, se crea;
+                    // si no hay nada, el movimiento usa el lote automático del día.
+                    Lote lote = detalle.getLote();
+                    Articulo actual = articuloRepo.findById(articulo.getCodigo()).orElse(articulo);
+                    if (lote == null && actual.isControlaLote()
+                            && ((detalle.getNumeroLote() != null && !detalle.getNumeroLote().isBlank())
+                            || detalle.getFechaVencimientoLote() != null)) {
+                        BigDecimal costoBase = costoUnitario.signum() > 0
+                                ? costoUnitario.divide(factor, 4, RoundingMode.HALF_UP) : null;
+                        lote = loteService.obtenerOCrearLote(actual, detalle.getNumeroLote(),
+                                detalle.getFechaVencimientoLote(), costoBase, null, numDocumento, usuario);
+                    }
+
+                    List<MovimientoInventario> movs = movimientoService.registrarMovimientoConLote(
+                            articulo, alm, artEmpaque, BigDecimal.ONE, cantidadFisicaBase,
+                            subTotal, itbis, total, tm, tp, numDocumento, cantidadEntrante,
+                            usuario, obj.getComentario(), lote);
+
+                    if (movs.get(0).getLote() != null) {
+                        detalle.setLote(movs.get(0).getLote());
+                    }
                 }
             }
         }
@@ -203,30 +217,13 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                 BigDecimal subTotal = escalar(det.getSubTotal(), proporcion);
                 BigDecimal total = escalar(det.getTotal(), proporcion);
 
-                DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
-                        entrada,
-                        det.getArticulo(),
-                        det.getArticuloEmpaque(),
-                        factor,
-                        cantidadBase,
-                        itbis,
-                        subTotal,
-                        total,
-                        cantidad,
-                        det.getArticulo().getExistencia(),
-                        det.getAlmacen(),
-                        det.getAlmacen().getNombre(),
-                        det.getNombreUnidad()
-                );
-
                 // Asignar costos y precios de venta con fallbacks seguros
                 BigDecimal costo = det.getPrecioCompra() != null ? det.getPrecioCompra() : BigDecimal.ZERO;
                 BigDecimal precio = det.getPrecioVenta() != null ? det.getPrecioVenta() : costo;
 
-                detEntrada.setCostoUnitario(costo);
-                detEntrada.setPrecioVenta(precio);
-
-                detallesList.add(detEntrada);
+                // Una línea por lote del que había salido (vuelve al mismo lote)
+                agregarLineasDeReposicion(detallesList, entrada, det, factor, cantidad, cantidadBase,
+                        itbis, subTotal, total, costo, precio);
             }
         }
         if (detallesList.isEmpty()) {
@@ -269,6 +266,10 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                         ajuste.getAlmacen().getNombre(),
                         det.getArticuloEmpaque().getNombreEmpaque()
                 );
+                // Ajuste positivo: lote elegido, o número/vencimiento digitados (se crea), o lote del día
+                detEntrada.setLote(det.getLote());
+                detEntrada.setNumeroLote(det.getNumeroLote());
+                detEntrada.setFechaVencimientoLote(det.getFechaVencimientoLote());
                 detallesEntrada.add(detEntrada);
             }
         }
@@ -290,25 +291,17 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
 
         for (DetalleFacturaDeVenta det : listaDetFact) {
 
-//            if (det.getArticulo() != null && det.getCantidad() != null && det.getCantidad().compareTo(BigDecimal.ZERO) > 0) {
-            DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
-                    entrada,
-                    det.getArticulo(),
-                    det.getArticuloEmpaque(),
-                    det.getFactorConversion(),
-                    det.getCantidadFisicaBase(),
-                    det.getTotalItbis(),
-                    det.getSubTotal(),
-                    det.getTotal(),
-                    det.getCantidad(),
-                    det.getArticulo().getExistencia(),
-                    det.getAlmacen(),
-                    det.getAlmacen() != null ? det.getAlmacen().getNombre() : "General",
-                    det.getNombreUnidad()
-            );
-
-            detallesEntrada.add(detEntrada);
-//            }
+            // Repone lo que se vendió (menos lo ya devuelto) en los mismos lotes de los que salió
+            BigDecimal factor = det.getFactorConversion() != null && det.getFactorConversion().signum() > 0
+                    ? det.getFactorConversion() : BigDecimal.ONE;
+            BigDecimal cantidadBase = det.getCantidadFisicaBase() != null
+                    ? det.getCantidadFisicaBase()
+                    : (det.getCantidad() != null ? det.getCantidad().multiply(factor) : BigDecimal.ZERO);
+            if (cantidadBase.signum() <= 0) {
+                continue;
+            }
+            agregarLineasDeReposicion(detallesEntrada, entrada, det, factor, det.getCantidad(), cantidadBase,
+                    det.getTotalItbis(), det.getSubTotal(), det.getTotal(), null, null);
         }
 
         entrada.setDetalleEntradaInventarioCollection(detallesEntrada);
@@ -360,6 +353,24 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                 detEntrada.setPrecioCompra(det.getPrecioUnitario());
             }
 
+            // Lote de la compra: número y vencimiento digitados (vacío = lote del día con
+            // vencimiento por vida útil). Queda en el detalle de la recepción para que su
+            // anulación saque del mismo lote.
+            Articulo actual = articuloRepo.findById(det.getArticulo().getCodigo()).orElse(det.getArticulo());
+            if (actual.isControlaLote()) {
+                Lote lote = det.getLote();
+                if (lote == null) {
+                    BigDecimal factor = det.getFactorConversion() != null && det.getFactorConversion().signum() > 0
+                            ? det.getFactorConversion() : BigDecimal.ONE;
+                    BigDecimal costoBase = det.getPrecioUnitario() != null
+                            ? det.getPrecioUnitario().divide(factor, 4, RoundingMode.HALF_UP) : null;
+                    lote = loteService.obtenerOCrearLote(actual, det.getNumeroLote(), det.getFechaVencimientoLote(),
+                            costoBase, recepcion.getProveedor(), "REC-" + recepcion.getCodigo(), usuario);
+                    det.setLote(lote);
+                }
+                detEntrada.setLote(lote);
+            }
+
             detallesEntrada.add(detEntrada);
 //            }
         }
@@ -408,6 +419,35 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
 
                 detEntrada.setCantidadPedida(det.getCantidadEnviada());
                 detEntrada.setUnidad(det.getUnidad());
+
+                // Lotes: entra al destino con los mismos lotes (y cantidades) que salieron del origen
+                List<MovimientoInventario> salidos = det.getMovimientosSalida();
+                if (salidos != null && salidos.stream().anyMatch(m -> m.getLote() != null)) {
+                    BigDecimal factor = det.getFactorConversion() != null && det.getFactorConversion().signum() > 0
+                            ? det.getFactorConversion() : BigDecimal.ONE;
+                    BigDecimal baseTotal = salidos.stream().map(MovimientoInventario::getCantidad)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    for (MovimientoInventario m : salidos) {
+                        BigDecimal proporcion = baseTotal.signum() > 0
+                                ? m.getCantidad().divide(baseTotal, 8, RoundingMode.HALF_UP) : BigDecimal.ONE;
+                        DetalleEntradaInventario parte = buildDetalleEntradaBase(
+                                entrada, det.getArticulo(), det.getArticuloEmpaque(), factor,
+                                m.getCantidad(),
+                                escalar(det.getItbis(), proporcion),
+                                escalar(det.getSubTotal(), proporcion),
+                                escalar(det.getTotal(), proporcion),
+                                m.getCantidad().divide(factor, 2, RoundingMode.HALF_UP),
+                                stockActual, almacenDestino,
+                                almacenDestino != null ? almacenDestino.getNombre() : "General",
+                                det.getNombreUnidad());
+                        parte.setCantidadPedida(det.getCantidadEnviada());
+                        parte.setUnidad(det.getUnidad());
+                        parte.setLote(m.getLote());
+                        parte.setUsarCantidadFisicaBase(true);
+                        detallesEntrada.add(parte);
+                    }
+                    continue;
+                }
 
                 detallesEntrada.add(detEntrada);
             }
@@ -500,6 +540,64 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         entrada.setComentario(comentario);
 
         return entrada;
+    }
+
+    /**
+     * Agrega las líneas de entrada que reponen (devolución o anulación) una
+     * línea de venta: una por cada lote del que había salido, con la cantidad
+     * y los montos repartidos en proporción (la última lleva el resto).
+     *
+     * @param costo/precio null = los que pone buildDetalleEntradaBase
+     */
+    private void agregarLineasDeReposicion(List<DetalleEntradaInventario> destino, EntradaInventario entrada,
+            DetalleFacturaDeVenta det, BigDecimal factor, BigDecimal cantidadDoc, BigDecimal cantidadBase,
+            BigDecimal itbis, BigDecimal subTotal, BigDecimal total, BigDecimal costo, BigDecimal precio) {
+
+        List<LoteService.Tramo> tramos = loteService.repartirReposicionVenta(det, cantidadBase);
+        BigDecimal restoDoc = cantidadDoc != null ? cantidadDoc : BigDecimal.ZERO;
+        BigDecimal restoItbis = itbis != null ? itbis : BigDecimal.ZERO;
+        BigDecimal restoSub = subTotal != null ? subTotal : BigDecimal.ZERO;
+        BigDecimal restoTotal = total != null ? total : BigDecimal.ZERO;
+
+        for (int i = 0; i < tramos.size(); i++) {
+            LoteService.Tramo tramo = tramos.get(i);
+            boolean ultimo = i == tramos.size() - 1;
+            BigDecimal proporcion = tramo.cantidad().divide(cantidadBase, 8, RoundingMode.HALF_UP);
+
+            BigDecimal tDoc = ultimo ? restoDoc : escalar(cantidadDoc, proporcion);
+            BigDecimal tItbis = ultimo ? restoItbis : escalar(itbis, proporcion);
+            BigDecimal tSub = ultimo ? restoSub : escalar(subTotal, proporcion);
+            BigDecimal tTotal = ultimo ? restoTotal : escalar(total, proporcion);
+            restoDoc = restoDoc.subtract(tDoc);
+            restoItbis = restoItbis.subtract(tItbis);
+            restoSub = restoSub.subtract(tSub);
+            restoTotal = restoTotal.subtract(tTotal);
+
+            DetalleEntradaInventario detEntrada = buildDetalleEntradaBase(
+                    entrada,
+                    det.getArticulo(),
+                    det.getArticuloEmpaque(),
+                    factor,
+                    tramo.cantidad(),
+                    tItbis,
+                    tSub,
+                    tTotal,
+                    tDoc,
+                    det.getArticulo().getExistencia(),
+                    det.getAlmacen(),
+                    det.getAlmacen() != null ? det.getAlmacen().getNombre() : "General",
+                    det.getNombreUnidad()
+            );
+            detEntrada.setLote(tramo.lote());
+            detEntrada.setUsarCantidadFisicaBase(true);
+            if (costo != null) {
+                detEntrada.setCostoUnitario(costo);
+            }
+            if (precio != null) {
+                detEntrada.setPrecioVenta(precio);
+            }
+            destino.add(detEntrada);
+        }
     }
 
     private static BigDecimal escalar(BigDecimal valor, BigDecimal proporcion) {

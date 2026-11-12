@@ -189,4 +189,17 @@ public class DetalleMerma implements Serializable {
         return "com.maxsoft.application.modelo.DetalleMerma[ codigo=" + codigo + " ]";
     }
     
+
+    // ===== Lote (control de lotes) =====
+    @JoinColumn(name = "lote", referencedColumnName = "codigo")
+    @ManyToOne
+    private Lote lote;
+
+    public Lote getLote() {
+        return lote;
+    }
+
+    public void setLote(Lote lote) {
+        this.lote = lote;
+    }
 }

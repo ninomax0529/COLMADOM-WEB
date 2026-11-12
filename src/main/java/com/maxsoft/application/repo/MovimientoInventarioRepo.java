@@ -22,4 +22,8 @@ public interface MovimientoInventarioRepo extends JpaRepository<MovimientoInvent
     List<MovimientoInventario> findByArticuloOrderByFechaMovimientoDesc(@Param("articulo") Integer articulo);
 
     List<MovimientoInventario> findByFechaMovimientoBetweenOrderByFechaMovimientoDesc(LocalDateTime inicio, LocalDateTime fin);
+
+    /** Kardex de un lote: sus movimientos del más reciente al más antiguo. */
+    @Query("SELECT m FROM MovimientoInventario m WHERE m.lote.codigo = :lote ORDER BY m.fechaMovimiento DESC, m.codigo DESC")
+    List<MovimientoInventario> findPorLote(@Param("lote") Integer lote);
 }

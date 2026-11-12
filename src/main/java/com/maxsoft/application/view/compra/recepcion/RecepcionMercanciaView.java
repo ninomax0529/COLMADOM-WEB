@@ -677,6 +677,34 @@ public class RecepcionMercanciaView extends VerticalLayout {
 
         gridDetalles.addColumn(d -> d.getCantidadFisicaBase() + " (Base)").setHeader("Stock Físico").setAutoWidth(true);
 
+        // Control de lotes: número de lote (vacío = automático) y vencimiento, solo para artículos con lote
+        gridDetalles.addComponentColumn(d -> {
+            TextField txtLote = new TextField();
+            txtLote.setWidth("120px");
+            txtLote.setMaxLength(50);
+            boolean conLote = d.getArticulo() != null && d.getArticulo().isControlaLote();
+            txtLote.setEnabled(conLote);
+            txtLote.setPlaceholder(conLote ? "Automático" : "No aplica");
+            txtLote.setValue(d.getNumeroLote() != null ? d.getNumeroLote() : "");
+            txtLote.addValueChangeListener(e -> d.setNumeroLote(
+                    e.getValue() == null || e.getValue().isBlank() ? null : e.getValue().trim().toUpperCase()));
+            return txtLote;
+        }).setHeader("Lote").setAutoWidth(true);
+
+        gridDetalles.addComponentColumn(d -> {
+            DatePicker dpVence = new DatePicker();
+            dpVence.setWidth("150px");
+            boolean conLote = d.getArticulo() != null && d.getArticulo().isControlaLote();
+            dpVence.setEnabled(conLote);
+            dpVence.setMin(LocalDate.now());
+            Integer dias = d.getArticulo() != null ? d.getArticulo().getDiasVencimiento() : null;
+            dpVence.setPlaceholder(!conLote ? "No aplica"
+                    : (dias != null && dias > 0 ? "Hoy + " + dias + " días" : "Sin vencimiento"));
+            dpVence.setValue(d.getFechaVencimientoLote());
+            dpVence.addValueChangeListener(e -> d.setFechaVencimientoLote(e.getValue()));
+            return dpVence;
+        }).setHeader("Vence").setAutoWidth(true);
+
         gridDetalles.addColumn(d -> String.format("RD$ %,.2f", d.getPrecioUnitario())).setHeader("P. Unitario").setAutoWidth(true);
         gridDetalles.addColumn(d -> String.format("RD$ %,.2f", d.getItbis())).setHeader("ITBIS").setAutoWidth(true);
         gridDetalles.addColumn(d -> String.format("RD$ %,.2f", d.getSubTotal())).setHeader("SubTotal").setAutoWidth(true);
@@ -808,6 +836,22 @@ public class RecepcionMercanciaView extends VerticalLayout {
             Notification.show("Agregue al menos un artículo recibido.", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
             return;
         }
+        // Lotes: un perecedero sin días de vida útil necesita la fecha de vencimiento del lote
+        for (DetalleRecepcionMercancia d : detalles) {
+            if (d.getArticulo() != null && d.getArticulo().isControlaLote() && d.getArticulo().getPerecedero()
+                    && d.getFechaVencimientoLote() == null
+                    && (d.getArticulo().getDiasVencimiento() == null || d.getArticulo().getDiasVencimiento() <= 0)) {
+                Notification.show("Indique la fecha de vencimiento del lote de '" + d.getDescripcionArticulo() + "'.",
+                        3500, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+            if (d.getFechaVencimientoLote() != null && d.getFechaVencimientoLote().isBefore(LocalDate.now())) {
+                Notification.show("El lote de '" + d.getDescripcionArticulo() + "' ya está vencido; no se puede recibir.",
+                        3500, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+        }
+
         // Validación final contra lo pendiente de la orden
         for (DetalleRecepcionMercancia d : detalles) {
 

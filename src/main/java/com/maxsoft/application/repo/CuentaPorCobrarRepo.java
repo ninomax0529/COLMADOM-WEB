@@ -18,6 +18,9 @@ public interface CuentaPorCobrarRepo extends JpaRepository<CuentaPorCobrar, Inte
     @Query("SELECT COUNT(c) > 0 FROM CuentaPorCobrar c WHERE c.factura.codigo = :factura AND c.tipoMovimiento = :tipo")
     boolean existeMovimientoFactura(@Param("factura") Integer factura, @Param("tipo") String tipo);
 
+    @Query("SELECT COUNT(c) FROM CuentaPorCobrar c WHERE c.factura.codigo = :factura AND c.tipoMovimiento = :tipo")
+    long contarMovimientosFactura(@Param("factura") Integer factura, @Param("tipo") String tipo);
+
     /** Lo que un recibo le acreditó a una factura en el estado de cuenta. */
     @Query("SELECT COALESCE(SUM(c.credito), 0) FROM CuentaPorCobrar c WHERE c.reciboIngreso.codigo = :recibo "
             + "AND c.factura.codigo = :factura AND c.tipoMovimiento = 'RECIBO'")

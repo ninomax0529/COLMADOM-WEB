@@ -51,7 +51,9 @@ public class CuentaPorCobrarServiceImpl implements CuentaPorCobrarService {
         if (monto.signum() <= 0) {
             throw new IllegalArgumentException("La factura a crédito #" + factura.getCodigo() + " no tiene monto.");
         }
-        if (repo.existeMovimientoFactura(factura.getCodigo(), CuentaPorCobrar.FACTURA)) {
+        // Ya está si tiene más débitos de factura que reversos (un reverso permite volver a cargarla)
+        if (repo.contarMovimientosFactura(factura.getCodigo(), CuentaPorCobrar.FACTURA)
+                > repo.contarMovimientosFactura(factura.getCodigo(), CuentaPorCobrar.REVERSO_CREDITO)) {
             throw new IllegalStateException("La factura #" + factura.getCodigo() + " ya está en el estado de cuenta.");
         }
 
@@ -101,6 +103,26 @@ public class CuentaPorCobrarServiceImpl implements CuentaPorCobrarService {
         String concepto = "Anulación factura #" + factura.getCodigo()
                 + (motivo != null && !motivo.isBlank() ? ". Motivo: " + motivo.trim() : "");
         return registrar(clienteId, balance, CuentaPorCobrar.ANULACION_FACTURA, factura, null,
+                "FAC-" + factura.getCodigo(), concepto,
+                BigDecimal.ZERO, valor, usuario, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public CuentaPorCobrar registrarReversoCredito(FacturaDeVenta factura, String motivo, String usuario) {
+
+        if (factura.getCliente() == null || factura.getCliente().getCodigo() == null) {
+            return null;
+        }
+        Integer clienteId = factura.getCliente().getCodigo();
+        BigDecimal balance = bloquear(clienteId);
+        BigDecimal valor = saldoFactura(factura.getCodigo());
+        if (valor.signum() <= 0) {
+            return null;
+        }
+        String concepto = "Factura #" + factura.getCodigo() + " vuelve a contado"
+                + (motivo != null && !motivo.isBlank() ? ". " + motivo.trim() : "");
+        return registrar(clienteId, balance, CuentaPorCobrar.REVERSO_CREDITO, factura, null,
                 "FAC-" + factura.getCodigo(), concepto,
                 BigDecimal.ZERO, valor, usuario, null);
     }

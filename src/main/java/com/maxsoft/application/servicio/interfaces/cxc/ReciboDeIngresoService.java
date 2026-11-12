@@ -55,6 +55,16 @@ public interface ReciboDeIngresoService {
      */
     ReciboDeIngreso anularReciboDeIngreso(Integer id, String motivo, String usuario);
 
+    /**
+     * Anula los recibos que generó la liquidación de delivery para la factura
+     * (la factura vuelve a deber). No toca la caja: eso lo hace la anulación
+     * de la liquidación. Devuelve cuántos recibos anuló.
+     */
+    int anularRecibosLiquidacionDelivery(Integer codigoFactura, String motivo, String usuario);
+
+    /** Recibos vigentes (no anulados) que pagaron la factura. */
+    List<ReciboDeIngreso> getRecibosVigentesDeFactura(Integer codigoFactura);
+
     Double getPagoFacturaVenta(int fact);
 
 }

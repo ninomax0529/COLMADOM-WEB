@@ -213,5 +213,83 @@ public class LiquidacionDelivery implements Serializable {
     public void setObservacion(String observacion) {
         this.observacion = observacion;
     }
-    
+
+    // ---- Pagos mixtos, cuenta del motorista y anulación ----
+    /** Parte que el motorista entregó por transferencia (no entra a la gaveta). */
+    @Column(name = "transferencia_recibida")
+    private BigDecimal transferenciaRecibida = BigDecimal.ZERO;
+    @Size(max = 100)
+    @Column(name = "referencia_transferencia")
+    private String referenciaTransferencia;
+    /** Parte del faltante que se le cargó como deuda al motorista. */
+    @Column(name = "faltante_cargado")
+    private BigDecimal faltanteCargado = BigDecimal.ZERO;
+    @Column(name = "anulada")
+    private Boolean anulada = false;
+    @Column(name = "fecha_anulacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaAnulacion;
+    @Size(max = 300)
+    @Column(name = "motivo_anulacion")
+    private String motivoAnulacion;
+    @Size(max = 100)
+    @Column(name = "usuario_anulacion")
+    private String usuarioAnulacion;
+
+    public BigDecimal getTransferenciaRecibida() {
+        return transferenciaRecibida != null ? transferenciaRecibida : BigDecimal.ZERO;
+    }
+
+    public void setTransferenciaRecibida(BigDecimal transferenciaRecibida) {
+        this.transferenciaRecibida = transferenciaRecibida;
+    }
+
+    public String getReferenciaTransferencia() {
+        return referenciaTransferencia;
+    }
+
+    public void setReferenciaTransferencia(String referenciaTransferencia) {
+        this.referenciaTransferencia = referenciaTransferencia;
+    }
+
+    public BigDecimal getFaltanteCargado() {
+        return faltanteCargado != null ? faltanteCargado : BigDecimal.ZERO;
+    }
+
+    public void setFaltanteCargado(BigDecimal faltanteCargado) {
+        this.faltanteCargado = faltanteCargado;
+    }
+
+    public boolean isAnulada() {
+        return Boolean.TRUE.equals(anulada);
+    }
+
+    public void setAnulada(Boolean anulada) {
+        this.anulada = anulada;
+    }
+
+    public Date getFechaAnulacion() {
+        return fechaAnulacion;
+    }
+
+    public void setFechaAnulacion(Date fechaAnulacion) {
+        this.fechaAnulacion = fechaAnulacion;
+    }
+
+    public String getMotivoAnulacion() {
+        return motivoAnulacion;
+    }
+
+    public void setMotivoAnulacion(String motivoAnulacion) {
+        this.motivoAnulacion = motivoAnulacion;
+    }
+
+    public String getUsuarioAnulacion() {
+        return usuarioAnulacion;
+    }
+
+    public void setUsuarioAnulacion(String usuarioAnulacion) {
+        this.usuarioAnulacion = usuarioAnulacion;
+    }
+
 }

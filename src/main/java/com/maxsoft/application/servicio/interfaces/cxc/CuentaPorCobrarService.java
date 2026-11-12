@@ -36,6 +36,14 @@ public interface CuentaPorCobrarService {
     CuentaPorCobrar registrarAnulacionFactura(FacturaDeVenta factura, String motivo, String usuario);
 
     /**
+     * Saca del estado de cuenta una factura que se había pasado a crédito (p.
+     * ej. al anular la liquidación de delivery que la pasó): crédito por su
+     * saldo. Después la factura puede volver a registrarse a crédito.
+     * Devuelve null si no tenía saldo.
+     */
+    CuentaPorCobrar registrarReversoCredito(FacturaDeVenta factura, String motivo, String usuario);
+
+    /**
      * Registra el crédito por devolución de artículos de una factura a crédito
      * (rebaja la deuda del cliente). El monto no puede exceder el saldo de la
      * factura en el estado de cuenta.

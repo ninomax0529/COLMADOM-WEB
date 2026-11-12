@@ -151,6 +151,49 @@ public class ReciboDeIngresoServiceImpl implements ReciboDeIngresoService {
                     "devolver el cobro del recibo #" + id);
         }
 
+        ReciboDeIngreso anulado = revertirRecibo(recibo, motivo, user);
+
+        // 4. Caja: sale el efectivo que había entrado con el cobro
+        if (turno != null) {
+            cajaService.registrarMovimientoPos(
+                    turno.getId().intValue(),
+                    CajaService.TIPO_ANULACION_COBRO_CXC,
+                    total.negate(),
+                    "Anulación Recibo de Ingreso #" + id
+                    + (motivo != null && !motivo.isBlank() ? ". Motivo: " + motivo.trim() : ""),
+                    user);
+        }
+        return anulado;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public int anularRecibosLiquidacionDelivery(Integer codigoFactura, String motivo, String usuario) {
+
+        String user = usuario != null && !usuario.isBlank() ? usuario : "Admin";
+        List<ReciboDeIngreso> recibos = repo.findVigentesPorFacturaYConcepto(codigoFactura, CONCEPTO_RECIBO_LIQUIDACION);
+        for (ReciboDeIngreso r : recibos) {
+            // Sin movimiento de caja: quien anula la liquidación saca el efectivo completo
+            revertirRecibo(r, motivo, user);
+        }
+        return recibos.size();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<ReciboDeIngreso> getRecibosVigentesDeFactura(Integer codigoFactura) {
+        return repo.findVigentesPorFactura(codigoFactura);
+    }
+
+    /**
+     * Pasos comunes de una anulación: las facturas vuelven a deber lo pagado,
+     * el estado de cuenta se reversa y el recibo queda anulado. No toca caja.
+     */
+    private ReciboDeIngreso revertirRecibo(ReciboDeIngreso recibo, String motivo, String user) {
+
+        Integer id = recibo.getCodigo();
+        String concepto = recibo.getConcepto() != null ? recibo.getConcepto() : "";
+
         // 1. Facturas: vuelven a deber lo que este recibo les pagó
         for (DetalleReciboDeIngreso det : repo.getDetalle(id)) {
             if (det.getFactura() == null) {
@@ -180,19 +223,7 @@ public class ReciboDeIngresoServiceImpl implements ReciboDeIngresoService {
         recibo.setAnulado(true);
         String nota = "ANULADO" + (motivo != null && !motivo.isBlank() ? ": " + motivo.trim() : "");
         recibo.setConcepto(concepto.isBlank() ? nota : concepto + " | " + nota);
-        ReciboDeIngreso anulado = repo.save(recibo);
-
-        // 4. Caja: sale el efectivo que había entrado con el cobro
-        if (turno != null) {
-            cajaService.registrarMovimientoPos(
-                    turno.getId().intValue(),
-                    CajaService.TIPO_ANULACION_COBRO_CXC,
-                    total.negate(),
-                    "Anulación Recibo de Ingreso #" + id
-                    + (motivo != null && !motivo.isBlank() ? ". Motivo: " + motivo.trim() : ""),
-                    user);
-        }
-        return anulado;
+        return repo.save(recibo);
     }
 
     @Override

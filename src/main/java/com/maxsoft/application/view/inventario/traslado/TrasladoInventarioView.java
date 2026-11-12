@@ -59,6 +59,8 @@ public class TrasladoInventarioView extends VerticalLayout {
     private final ArticuloAlmacenService articuloAlmacenService;
     private final ArticuloService articuloService;
     private final ArticuloEmpaqueService articuloEmpaqueService;
+    @Autowired
+    private com.maxsoft.application.servicio.interfaces.inventario.LoteService loteService;
 
     // Componentes de la interfaz
     private ComboBox<Almacen> cbAlmacenOrigen;
@@ -120,6 +122,9 @@ public class TrasladoInventarioView extends VerticalLayout {
         cbAlmacenOrigen.addValueChangeListener(e -> {
             validarAlmacenes();
             actualizarStockGridOrigen(e.getValue());
+            if (gridDetalle != null) {
+                gridDetalle.getDataProvider().refreshAll(); // los lotes dependen del almacén de origen
+            }
         });
 
         cbAlmacenDestino.addValueChangeListener(e -> validarAlmacenes());
@@ -380,6 +385,13 @@ public class TrasladoInventarioView extends VerticalLayout {
         gridDetalle.addColumn(DetalleTrasladoInventario::getCantidadFisicaBase)
                 .setHeader("Nueva Existencia (UMM)")
                 .setAutoWidth(true);
+
+        // Lote que se traslada (vacío = FEFO); llega al destino con el mismo lote y vencimiento
+        gridDetalle.addComponentColumn(item -> com.maxsoft.application.view.componente.inventario.LoteUi.selectorSalida(
+                loteService, item.getArticulo(), cbAlmacenOrigen.getValue(), item.getLote(), item::setLote))
+                .setHeader("Lote")
+                .setAutoWidth(true);
+
         gridDetalle.addColumn(new ComponentRenderer<>(item -> {
             Button deleteButton = new Button(new Icon(VaadinIcon.TRASH), click -> {
                 ConfirmDialog dialog = new ConfirmDialog(

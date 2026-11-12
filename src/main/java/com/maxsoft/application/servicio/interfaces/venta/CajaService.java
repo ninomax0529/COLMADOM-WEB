@@ -22,6 +22,10 @@ public interface CajaService {
     String TIPO_ANULACION_VENTA = "ANULACION_VENTA";
     String TIPO_DEVOLUCION = "DEVOLUCION";
     String TIPO_DELIVERY = "DELIVERY";
+    /** Reverso de una liquidación de delivery anulada: el efectivo sale (negativo). */
+    String TIPO_ANULACION_DELIVERY = "ANULACION_DELIVERY";
+    /** Pago en efectivo de un motorista a su deuda (faltantes): entra a la gaveta. */
+    String TIPO_ABONO_MOTORISTA = "ABONO_MOTORISTA";
     String TIPO_PAGO_PROVEEDOR = "PAGO_PROVEEDOR";
     /** Reverso de un pago a proveedor (anulación de recibo de egreso): el efectivo vuelve. */
     String TIPO_ANULACION_PAGO_PROVEEDOR = "ANULACION_PAGO_PROVEEDOR";
@@ -78,6 +82,8 @@ public interface CajaService {
             case "POS_" + TIPO_ANULACION_VENTA -> "Anulación de venta";
             case "POS_" + TIPO_DEVOLUCION -> "Devolución";
             case "POS_" + TIPO_DELIVERY -> "Liquidación delivery";
+            case "POS_" + TIPO_ANULACION_DELIVERY -> "Anulación liquidación delivery";
+            case "POS_" + TIPO_ABONO_MOTORISTA -> "Abono de motorista (faltante)";
             case "POS_" + TIPO_PAGO_PROVEEDOR -> "Pago a proveedor";
             case "POS_" + TIPO_ANULACION_PAGO_PROVEEDOR -> "Anulación pago proveedor";
             case "POS_" + TIPO_COBRO_CXC -> "Abono de cliente (CxC)";
@@ -104,8 +110,10 @@ public interface CajaService {
         String desc = m.getDescripcion() != null ? m.getDescripcion() : "";
         return switch (tipo) {
             case "POS_" + TARJETA_CONSUMO, "POS_" + TARJETA_ANULACION -> BigDecimal.ZERO;
-            case "POS_" + TARJETA_AVANCE, "POS_" + TIPO_PAGO_PROVEEDOR, "RETIRO", "GASTO_MENOR" -> monto.abs().negate();
-            case "POS_" + TIPO_ANULACION_PAGO_PROVEEDOR, "POS_" + TIPO_FONDO_EXTRA, "INGRESO_EXTRA" -> monto.abs();
+            case "POS_" + TARJETA_AVANCE, "POS_" + TIPO_PAGO_PROVEEDOR, "POS_" + TIPO_ANULACION_DELIVERY,
+                    "RETIRO", "GASTO_MENOR" -> monto.abs().negate();
+            case "POS_" + TIPO_ANULACION_PAGO_PROVEEDOR, "POS_" + TIPO_FONDO_EXTRA, "POS_" + TIPO_ABONO_MOTORISTA,
+                    "INGRESO_EXTRA" -> monto.abs();
             default -> (desc.startsWith("Egreso por compra") || "POS_SALIDA DE DINERO".equals(tipo))
                     ? monto.abs().negate() : monto;
         };

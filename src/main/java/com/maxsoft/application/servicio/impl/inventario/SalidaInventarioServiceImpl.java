@@ -12,6 +12,7 @@ import com.maxsoft.application.modelo.DetalleSalidaInventario;
 import com.maxsoft.application.modelo.DetalleTrasladoInventario;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.modelo.Merma;
+import com.maxsoft.application.modelo.MovimientoInventario;
 import com.maxsoft.application.modelo.RecepcionMercancia;
 import com.maxsoft.application.modelo.DetalleRecepcionMercancia;
 import com.maxsoft.application.modelo.SalidaInventario;
@@ -49,6 +50,9 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
     private final TipoMovimientoService tipoMovimientoService;
     private final ArticuloAlmacenService articuloAlmacenService;
     private final ArticuloEmpaqueService articuloEmpaqueService;
+
+    @Autowired
+    private com.maxsoft.application.servicio.interfaces.inventario.LoteService loteService;
 
     @Autowired
     public SalidaInventarioServiceImpl(SalidaInventarioRepo salidaRepo,
@@ -123,23 +127,23 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
                         ArticuloEmpaque artEmpaq = this.articuloEmpaqueService.getEmpaqueBase(articulo.getCodigo()).orElse(null);
 
-                        // LLAMADA CORREGIDA: 13 parámetros según la interfaz MovimientoInventarioService
-                        movimientoService.registrarMovimiento(
-                                articulo, // 1. Articulo
-                                alm, // 2. Almacen
-                                artEmpaq, // 3. ArticuloEmpaque
-                                BigDecimal.ONE, // 4. factorConversion
-                                cantidadFisicaBase, // 5. cantidadEmpaque
-                                subTotal, // 6. subTotal
-                                itbis, // 7. itbis
-                                total, // 8. total
-                                tm, // 9. TipoMovimiento
-                                tp, // 10. TipoDocumento
-                                numDocumento, // 11. numeroDoc
-                                cantidadSalida, // 12. cantidad
-                                usuario != null ? usuario : "SISTEMA", // 13. usuario
-                                obj.getObservacion() // 14. observacion
-                        );
+                        // Lote: el indicado en la línea, o FEFO si es null (solo artículos con control de lote)
+                        List<MovimientoInventario> movs = movimientoService.registrarMovimientoConLote(
+                                articulo, alm, artEmpaq, BigDecimal.ONE, cantidadFisicaBase,
+                                subTotal, itbis, total, tm, tp, numDocumento, cantidadSalida,
+                                usuario != null ? usuario : "SISTEMA", obj.getObservacion(),
+                                detalle.getLote());
+
+                        detalle.setMovimientosGenerados(movs);
+                        // Si salió de un solo lote queda en la línea; si se repartió, el detalle está en el kardex
+                        if (detalle.getLote() == null && movs.size() == 1) {
+                            detalle.setLote(movs.get(0).getLote());
+                        }
+                        // Venta: guardar de qué lotes salió cada línea (para anular/devolver al mismo lote)
+                        if (detalle.getDetalleFacturaOrigen() != null) {
+                            loteService.registrarConsumoVenta(detalle.getDetalleFacturaOrigen(), movs,
+                                    detalle.getAutorizadoLoteVencidoPor());
+                        }
                     }
                 }
             }
@@ -202,6 +206,10 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
                 detSalida.setPrecioCompra(detFactura.getPrecioCompra());
                 detSalida.setPrecioVenta(detFactura.getPrecioVenta() != null ? detFactura.getPrecioVenta() : BigDecimal.ZERO);
+
+                // Lotes: la venta sale por FEFO y se registra de qué lote salió cada línea
+                detSalida.setDetalleFacturaOrigen(detFactura);
+                detSalida.setAutorizadoLoteVencidoPor(factura.getAutorizadoLoteVencidoPor());
 
                 detalles.add(detSalida);
 //                }
@@ -267,6 +275,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setCostoUnitario(costo);
                 detSalida.setPrecioCompra(costo);
                 detSalida.setPrecioVenta(precio);
+                detSalida.setLote(det.getLote()); // ajuste negativo: lote elegido, o FEFO si es null
 
                 detallesSalida.add(detSalida);
 //                }
@@ -372,6 +381,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setExistenciaAnterior(stockActual);
                 detSalida.setExistencia(stockActual);
                 detSalida.setUnidad(det.getUnidad());
+                detSalida.setLote(det.getLote()); // traslado: lote elegido, o FEFO si es null
 
                 BigDecimal costo = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
                 BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
@@ -392,7 +402,15 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
         salida.setDetalleSalidaInventarioCollection(detallesSalida);
 
-        return guardar(salida, nombreUsuario);
+        SalidaInventario guardada = guardar(salida, nombreUsuario);
+
+        // La entrada al destino debe repetir los mismos lotes que salieron del origen
+        if (detalles != null) {
+            for (int i = 0; i < detalles.size() && i < detallesSalida.size(); i++) {
+                detalles.get(i).setMovimientosSalida(detallesSalida.get(i).getMovimientosGenerados());
+            }
+        }
+        return guardada;
     }
 
     @Override
@@ -452,6 +470,8 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setArticulo(det.getArticulo());
                 detSalida.setDescripcionArticulo(det.getArticulo().getDescripcion());
                 detSalida.setCantidad(det.getCantidad());
+
+                detSalida.setLote(det.getLote()); // merma: lote elegido (p. ej. el vencido), o FEFO si es null
 
                 // Protección Optional al buscar la existencia por almacén
                 Optional<ArticuloAlmacen> optArtiAlm = (merma.getAlmacen() != null && det.getArticulo().getCodigo() != null)
@@ -551,6 +571,8 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
             detSalida.setCostoUnitario(costo);
             detSalida.setPrecioCompra(costo);
             detSalida.setPrecioVenta(BigDecimal.ZERO);
+            // Sale del mismo lote al que entró; si ya se vendió y no alcanza, la anulación se bloquea
+            detSalida.setLote(det.getLote());
 
             detallesSalida.add(detSalida);
         }

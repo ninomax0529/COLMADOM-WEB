@@ -60,6 +60,40 @@ public interface MovimientoInventarioService {
     );
 
     /**
+     * Igual que {@link #registrarMovimiento}, con control de lotes. Si el
+     * artículo controla lote:
+     * <ul>
+     * <li>Entrada: va al lote indicado, o al lote automático del día si es
+     * null.</li>
+     * <li>Salida: sale del lote indicado (error si no alcanza), o se reparte
+     * por FEFO entre los lotes del almacén si es null.</li>
+     * </ul>
+     * Se graba una fila de kardex por cada lote tocado (con la existencia del
+     * lote antes y después) y los montos se prorratean por cantidad. Si el
+     * artículo no controla lote, el parámetro se ignora y queda una sola fila.
+     *
+     * @param lote lote del documento, o null
+     * @return los movimientos grabados, en orden (al menos uno)
+     */
+    List<MovimientoInventario> registrarMovimientoConLote(
+            Articulo articulo,
+            Almacen almacen,
+            ArticuloEmpaque articuloEmpaque,
+            BigDecimal factorConversion,
+            BigDecimal cantidadEmpaque,
+            BigDecimal subTotal,
+            BigDecimal itbis,
+            BigDecimal total,
+            TipoMovimiento tipoMovimiento,
+            TipoDocumento tipoDocumento,
+            String numeroDoc,
+            BigDecimal cantidad,
+            String usuario,
+            String observacion,
+            com.maxsoft.application.modelo.Lote lote
+    );
+
+    /**
      * Obtiene el historial completo de movimientos de un artículo ordenado del
      * más reciente al más antiguo.
      *
@@ -67,6 +101,9 @@ public interface MovimientoInventarioService {
      * @return
      */
     List<MovimientoInventario> getMovimientosPorArticulo(Integer articuloCodigo);
+
+    /** Kardex de un lote (del más reciente al más antiguo). */
+    List<MovimientoInventario> getMovimientosPorLote(Integer codigoLote);
 
     /**
      * Obtiene los movimientos registrados dentro de un rango de fechas.

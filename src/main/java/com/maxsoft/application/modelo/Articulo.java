@@ -650,4 +650,17 @@ public class Articulo implements Serializable {
         this.diasVencimiento = diasVencimiento;
     }
     
+
+    // ===== Control de lotes =====
+    /** Si true, la existencia se lleva por lote (con vencimiento) y las salidas usan FEFO. */
+    @Column(name = "controla_lote")
+    private boolean controlaLote;
+
+    public boolean isControlaLote() {
+        return controlaLote;
+    }
+
+    public void setControlaLote(boolean controlaLote) {
+        this.controlaLote = controlaLote;
+    }
 }

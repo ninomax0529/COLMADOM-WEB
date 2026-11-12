@@ -8,6 +8,8 @@ import com.maxsoft.application.view.delivery.liquidarfactura.MonitorDeliveryView
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.delivery.gestiondelivey.DeliveryView;
 import com.maxsoft.application.view.delivery.liquidarfactura.ConsultaDeliveryRealizadoView;
+import com.maxsoft.application.view.delivery.liquidarfactura.ConsultaLiquidacionDeliveryView;
+import com.maxsoft.application.view.delivery.liquidarfactura.CuentaMotoristasView;
 import com.maxsoft.application.view.delivery.liquidarfactura.LiquidacionDeliveryView;
 import com.maxsoft.application.view.delivery.vehiculo.VehiculoView;
 import com.vaadin.flow.component.Component;
@@ -44,6 +46,8 @@ public class ModuloDelivery extends AppLayout {
     private void createDrawer() {
 
         RouterLink linkLiquidar = createLink(VaadinIcon.DASHBOARD, "Liquidación de Delivery", LiquidacionDeliveryView.class);
+        RouterLink linkConsultaLiquidaciones = createLink(VaadinIcon.WALLET, "Consulta de liquidaciones", ConsultaLiquidacionDeliveryView.class);
+        RouterLink linkCuentaMotoristas = createLink(VaadinIcon.USER_CARD, "Cuenta de motoristas", CuentaMotoristasView.class);
         RouterLink linkConsultaRealizadoView = createLink(VaadinIcon.FILE_TABLE, "Consulta factura delivery", ConsultaDeliveryRealizadoView.class);
         RouterLink linkMonitorDeliveryView = createLink(VaadinIcon.FILE_TABLE, "Monitor de Deliveries", MonitorDeliveryView.class);
         RouterLink linkDeliveryView = createLink(VaadinIcon.FILE_TABLE, "Gestion Delivery", DeliveryView.class);
@@ -54,6 +58,8 @@ public class ModuloDelivery extends AppLayout {
 //        // Layout vertical que contiene los enlaces del menú
         VerticalLayout menuLayout = new VerticalLayout(
                 linkLiquidar,
+                linkConsultaLiquidaciones,
+                linkCuentaMotoristas,
                 linkConsultaRealizadoView,
                 linkMonitorDeliveryView,
                 linkDeliveryView,

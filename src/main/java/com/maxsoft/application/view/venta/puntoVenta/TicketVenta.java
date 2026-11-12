@@ -33,6 +33,16 @@ public class TicketVenta {
     private final Span totalSpan = new Span("RD$ 0.00");
     private String nombreCliente;
     private String direccion;
+    /** Supervisor que autorizó vender de lotes vencidos en este ticket (null = sin autorización). */
+    private String autorizadoLoteVencidoPor;
+
+    public String getAutorizadoLoteVencidoPor() {
+        return autorizadoLoteVencidoPor;
+    }
+
+    public void setAutorizadoLoteVencidoPor(String autorizadoLoteVencidoPor) {
+        this.autorizadoLoteVencidoPor = autorizadoLoteVencidoPor;
+    }
 
     // 1. Definir la interfaz funcional para notificar cuando se pida editar una fila
     @FunctionalInterface

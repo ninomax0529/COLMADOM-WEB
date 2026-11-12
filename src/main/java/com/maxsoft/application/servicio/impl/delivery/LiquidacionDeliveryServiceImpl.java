@@ -1,6 +1,11 @@
 package com.maxsoft.application.servicio.impl.delivery;
 
 import com.maxsoft.application.dto.DeliveryRealizadoDTO;
+import com.maxsoft.application.dto.DetalleLiquidacionDTO;
+import com.maxsoft.application.dto.LiquidacionResumenDTO;
+import com.maxsoft.application.modelo.CuentaMotorista;
+import com.maxsoft.application.modelo.ReciboDeIngreso;
+import com.maxsoft.application.repo.CuentaMotoristaRepo;
 import com.maxsoft.application.dto.PedidoDeliveryDTO;
 import com.maxsoft.application.dto.PendientesMotoristaDTO;
 import com.maxsoft.application.modelo.CajaTurno;
@@ -33,6 +38,7 @@ public class LiquidacionDeliveryServiceImpl implements LiquidacionDeliveryServic
 
     // Mismos códigos que usa el punto de venta
     private static final int ESTADO_FACTURA_DELIVERY = 1;
+    private static final int TIPO_VENTA_CONTADO = 1;
     private static final int TIPO_VENTA_LIBRETA = 2;
 
     private final LiquidacionDeliveryRepo liquidacionRepo;
@@ -41,20 +47,26 @@ public class LiquidacionDeliveryServiceImpl implements LiquidacionDeliveryServic
     private final CajaService cajaService;
     private final CuentaPorCobrarService cuentaPorCobrarService;
     private final EmpresaRepo empresaRepo;
+    private final CuentaMotoristaRepo cuentaMotoristaRepo;
+    private final com.maxsoft.application.repo.DeliveryRepo deliveryRepo;
 
     public LiquidacionDeliveryServiceImpl(LiquidacionDeliveryRepo liquidacionRepo,
             TipoVentaService tipoVentaService,
             ReciboDeIngresoService reciboDeIngresoService,
             CajaService cajaService,
             CuentaPorCobrarService cuentaPorCobrarService,
-            EmpresaRepo empresaRepo
+            EmpresaRepo empresaRepo,
+            CuentaMotoristaRepo cuentaMotoristaRepo,
+            com.maxsoft.application.repo.DeliveryRepo deliveryRepo
     ) {
+        this.deliveryRepo = deliveryRepo;
         this.liquidacionRepo = liquidacionRepo;
         this.tipoVentaService = tipoVentaService;
         this.reciboDeIngresoService = reciboDeIngresoService;
         this.cajaService = cajaService;
         this.cuentaPorCobrarService = cuentaPorCobrarService;
         this.empresaRepo = empresaRepo;
+        this.cuentaMotoristaRepo = cuentaMotoristaRepo;
     }
 
     // ============================================================
@@ -147,22 +159,17 @@ public class LiquidacionDeliveryServiceImpl implements LiquidacionDeliveryServic
 
         LiquidacionDelivery l = liquidacionRepo.findById(codigoLiquidacion)
                 .orElseThrow(() -> new IllegalArgumentException("Liquidación #" + codigoLiquidacion + " no encontrada."));
-        Empresa empresa = empresaRepo.findFirstByOrderByCodigoAsc().orElse(null);
         SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy hh:mm a");
 
-        StringBuilder h = new StringBuilder();
-        h.append("<!doctype html><html><head><meta charset='utf-8'><title>Liquidación delivery #").append(l.getCodigo())
-                .append("</title><style>@page{size:80mm auto;margin:3mm}body{font-family:'Courier New',monospace;font-size:12px;width:72mm;margin:0}")
-                .append(".c{text-align:center}.b{font-weight:bold}.g{font-size:15px}hr{border:0;border-top:1px dashed #000;margin:6px 0}")
-                .append("table{width:100%;border-collapse:collapse}td{padding:1px 0;vertical-align:top}td.r{text-align:right}")
-                .append(".f{margin-top:36px;border-top:1px solid #000;text-align:center;padding-top:2px}</style></head><body>");
-        if (empresa != null) {
-            h.append("<div class='c b'>").append(esc(empresa.getNombre())).append("</div>")
-                    .append("<div class='c'>").append(esc(empresa.getDiereccion())).append("</div>")
-                    .append("<div class='c'>Tel: ").append(esc(empresa.getTelefono()))
-                    .append(" &nbsp;RNC: ").append(esc(empresa.getRnc())).append("</div>");
+        StringBuilder h = encabezadoTicket("Liquidación delivery #" + l.getCodigo());
+        h.append("<hr><div class='c b'>LIQUIDACIÓN DE DELIVERY</div>");
+        if (l.isAnulada()) {
+            h.append("<div class='anulada'>*** ANULADA ***</div>")
+                    .append("<div>Anulada el ").append(l.getFechaAnulacion() != null ? df.format(l.getFechaAnulacion()) : "")
+                    .append(" por ").append(esc(l.getUsuarioAnulacion())).append("</div>")
+                    .append("<div>Motivo: ").append(esc(l.getMotivoAnulacion())).append("</div>");
         }
-        h.append("<hr><div class='c b'>LIQUIDACIÓN DE DELIVERY</div><hr><table>")
+        h.append("<hr><table>")
                 .append("<tr><td>No.:</td><td class='r b'>").append(l.getCodigo()).append("</td></tr>")
                 .append("<tr><td>Fecha:</td><td class='r'>").append(l.getFecha() != null ? df.format(l.getFecha()) : "").append("</td></tr>")
                 .append("<tr><td>Motorista:</td><td class='r b'>").append(esc(l.getDelivery() != null ? l.getDelivery().getNombre() : "")).append("</td></tr>")
@@ -187,11 +194,25 @@ public class LiquidacionDeliveryServiceImpl implements LiquidacionDeliveryServic
                 .append(fila("Pedidos:", String.valueOf(detalles.size()), false))
                 .append(fila("Total liquidado:", "RD$ " + String.format("%,.2f", valor(l.getTotalLiquidado())), false))
                 .append(fila("Fiado / crédito:", "RD$ " + String.format("%,.2f", valor(l.getTotalFiado())), false))
-                .append(fila("Efectivo esperado:", "RD$ " + String.format("%,.2f", valor(l.getEfectivoEsperado())), true))
-                .append(fila("Efectivo recibido:", "RD$ " + String.format("%,.2f", valor(l.getEfectivoRecibido())), true))
-                .append(fila(diferencia.signum() == 0 ? "Diferencia:" : diferencia.signum() > 0 ? "SOBRANTE:" : "FALTANTE:",
-                        "RD$ " + String.format("%,.2f", diferencia.abs()), true))
-                .append("</table>");
+                .append(fila("A cobrar (contado):", "RD$ " + String.format("%,.2f", valor(l.getEfectivoEsperado())), true))
+                .append(fila("Efectivo recibido:", "RD$ " + String.format("%,.2f", valor(l.getEfectivoRecibido())), true));
+        if (l.getTransferenciaRecibida().signum() > 0) {
+            h.append(fila("Transferencia:", "RD$ " + String.format("%,.2f", l.getTransferenciaRecibida()), true));
+            if (l.getReferenciaTransferencia() != null) {
+                h.append(fila("&nbsp;&nbsp;Ref.:", esc(l.getReferenciaTransferencia()), false));
+            }
+        }
+        h.append(fila(diferencia.signum() == 0 ? "Diferencia:" : diferencia.signum() > 0 ? "SOBRANTE:" : "FALTANTE:",
+                "RD$ " + String.format("%,.2f", diferencia.abs()), true));
+        if (l.getFaltanteCargado().signum() > 0) {
+            h.append(fila("Cargado al motorista:", "RD$ " + String.format("%,.2f", l.getFaltanteCargado()), true));
+        }
+        BigDecimal deuda = getDeudaMotorista(l.getDelivery().getCodigo());
+        if (deuda.signum() != 0) {
+            h.append(fila(deuda.signum() > 0 ? "Deuda total motorista:" : "Saldo a favor motorista:",
+                    "RD$ " + String.format("%,.2f", deuda.abs()), true));
+        }
+        h.append("</table>");
         if (l.getObservacion() != null && !l.getObservacion().isBlank()) {
             h.append("<hr><div>Observación:</div><div>").append(esc(l.getObservacion())).append("</div>");
         }
@@ -252,16 +273,31 @@ public class LiquidacionDeliveryServiceImpl implements LiquidacionDeliveryServic
     public LiquidacionDelivery liquidar(Delivery motorista, List<Integer> codigosFactura,
             BigDecimal efectivoRecibido, String observacion, String usuario) {
 
-        return liquidar(motorista, codigosFactura, Map.of(), efectivoRecibido, observacion, usuario);
+        return liquidar(motorista, codigosFactura, Map.of(), efectivoRecibido, BigDecimal.ZERO, null,
+                false, observacion, usuario);
+    }
+
+    @Override
+    public LiquidacionDelivery liquidar(Delivery motorista, List<Integer> codigosFactura,
+            Map<Integer, Cliente> clientesCredito, BigDecimal efectivoRecibido,
+            String observacion, String usuario) {
+
+        return liquidar(motorista, codigosFactura, clientesCredito, efectivoRecibido, BigDecimal.ZERO, null,
+                false, observacion, usuario);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public LiquidacionDelivery liquidar(Delivery motorista, List<Integer> codigosFactura,
             Map<Integer, Cliente> clientesCredito, BigDecimal efectivoRecibido,
-            String observacion, String usuario) {
+            BigDecimal transferenciaRecibida, String referenciaTransferencia,
+            boolean cargarFaltante, String observacion, String usuario) {
 
         Map<Integer, Cliente> credito = clientesCredito != null ? clientesCredito : Map.of();
+        BigDecimal transferencia = transferenciaRecibida != null ? transferenciaRecibida : BigDecimal.ZERO;
+        if (transferencia.signum() < 0) {
+            throw new IllegalArgumentException("La transferencia no puede ser negativa.");
+        }
 
         if (motorista == null) {
             throw new IllegalArgumentException("Debe seleccionar el motorista.");
@@ -346,20 +382,29 @@ public class LiquidacionDeliveryServiceImpl implements LiquidacionDeliveryServic
             detalles.add(d);
         }
 
-        BigDecimal diferencia = recibido.subtract(esperado);
+        // Pago mixto: lo que se compara con lo esperado es efectivo + transferencia
+        BigDecimal diferencia = recibido.add(transferencia).subtract(esperado);
 
         // Un sobrante o faltante siempre debe quedar explicado
         if (diferencia.signum() != 0 && (observacion == null || observacion.isBlank())) {
             throw new IllegalArgumentException("Debe indicar el motivo del "
                     + (diferencia.signum() > 0 ? "sobrante" : "faltante") + ".");
         }
+        BigDecimal faltanteCargado = cargarFaltante && diferencia.signum() < 0
+                ? diferencia.abs() : BigDecimal.ZERO;
+        String user = usuario != null && !usuario.isBlank() ? usuario : "SISTEMA";
 
         liquidacion.setFecha(new Date());
         liquidacion.setDelivery(motorista);
         liquidacion.setNombreUsuario(usuario);
         liquidacion.setEfectivoEsperado(esperado);
         liquidacion.setEfectivoRecibido(recibido);
+        liquidacion.setTransferenciaRecibida(transferencia);
+        liquidacion.setReferenciaTransferencia(transferencia.signum() > 0 && referenciaTransferencia != null
+                && !referenciaTransferencia.isBlank() ? referenciaTransferencia.trim() : null);
         liquidacion.setDiferencia(diferencia);
+        liquidacion.setFaltanteCargado(faltanteCargado);
+        liquidacion.setAnulada(false);
         liquidacion.setTotalFiado(fiado);
         liquidacion.setTotalLiquidado(total);
         liquidacion.setObservacion(observacion != null ? observacion.trim() : null);
@@ -368,25 +413,310 @@ public class LiquidacionDeliveryServiceImpl implements LiquidacionDeliveryServic
         LiquidacionDelivery liqDb=liquidacionRepo.save(liquidacion);
         this.reciboDeIngresoService.procesarReciboDeIngresoLiquidacionDelivery(detalles);
 
-        // Se registra lo que realmente entregó el motorista (incluye sobrante/faltante).
+        // El faltante que no se perdona queda como deuda del motorista
+        if (faltanteCargado.signum() > 0) {
+            registrarMovimientoCuenta(motorista, CuentaMotorista.FALTANTE, faltanteCargado, liqDb,
+                    "Faltante liquidación #" + liqDb.getCodigo(), user);
+        }
+
+        // A la gaveta entra solo el efectivo; la transferencia va al banco.
         if (recibido.signum() > 0) {
             String descripcion = "Liquidación delivery #" + liqDb.getCodigo()
                     + " - Motorista: " + motorista.getNombre()
                     + ". Esperado RD$ " + esperado.toPlainString()
-                    + ", recibido RD$ " + recibido.toPlainString()
+                    + ", efectivo RD$ " + recibido.toPlainString()
+                    + (transferencia.signum() > 0 ? ", transferencia RD$ " + transferencia.toPlainString() : "")
                     + (diferencia.signum() != 0
                             ? (diferencia.signum() > 0 ? ", sobrante RD$ " : ", faltante RD$ ")
                             + diferencia.abs().toPlainString()
-                            : "");
+                            : "")
+                    + (faltanteCargado.signum() > 0 ? " (cargado al motorista)" : "");
             cajaService.registrarMovimientoPos(
                     turnoActual.getId().intValue(),
                     CajaService.TIPO_DELIVERY,
                     recibido,
                     descripcion,
-                    usuario != null && !usuario.isBlank() ? usuario : "SISTEMA"
+                    user
             );
         }
 
         return liqDb;
+    }
+
+    // ============================================================
+    // CONSULTA DE LIQUIDACIONES
+    // ============================================================
+    @Override
+    @Transactional(readOnly = true)
+    public List<LiquidacionResumenDTO> getLiquidaciones(Date desde, Date hastaExclusivo, Integer codigoDelivery) {
+
+        return liquidacionRepo.findEntreFechas(desde, hastaExclusivo).stream()
+                .filter(l -> codigoDelivery == null || Objects.equals(l.getDelivery().getCodigo(), codigoDelivery))
+                .map(this::aResumen)
+                .toList();
+    }
+
+    private LiquidacionResumenDTO aResumen(LiquidacionDelivery l) {
+
+        int pedidos = 0;
+        int aCredito = 0;
+        if (l.getDetalleLiquidacionDeliveryCollection() != null) {
+            for (DetalleLiquidacionDelivery d : l.getDetalleLiquidacionDeliveryCollection()) {
+                pedidos++;
+                if (d.getCliente() != null) {
+                    aCredito++;
+                }
+            }
+        }
+        return new LiquidacionResumenDTO(
+                l.getCodigo(), l.getFecha(),
+                l.getDelivery().getCodigo(), l.getDelivery().getNombre(),
+                l.getNombreUsuario(), pedidos, aCredito,
+                valor(l.getTotalLiquidado()), valor(l.getTotalFiado()),
+                valor(l.getEfectivoEsperado()), valor(l.getEfectivoRecibido()),
+                l.getTransferenciaRecibida(), l.getReferenciaTransferencia(),
+                valor(l.getDiferencia()), l.getFaltanteCargado(), l.getObservacion(),
+                l.isAnulada(), l.getFechaAnulacion(), l.getMotivoAnulacion(), l.getUsuarioAnulacion());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DetalleLiquidacionDTO> getDetalleLiquidacion(Integer codigoLiquidacion) {
+
+        return liquidacionRepo.findDetalles(codigoLiquidacion).stream()
+                .map(d -> new DetalleLiquidacionDTO(
+                d.getFactura().getCodigo(),
+                d.getFactura().getFechaCreacion() != null ? d.getFactura().getFechaCreacion() : d.getFactura().getFecha(),
+                d.getFactura().getNombreCliente(),
+                d.getTipoPago(),
+                valor(d.getMonto()),
+                d.getCliente() != null ? d.getCliente().getNombre() : null))
+                .toList();
+    }
+
+    // ============================================================
+    // ANULACIÓN
+    // ============================================================
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public LiquidacionDelivery anularLiquidacion(Integer codigoLiquidacion, String motivo, String usuario) {
+
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException("Indique el motivo de la anulación.");
+        }
+        String user = usuario != null && !usuario.isBlank() ? usuario : "SISTEMA";
+        LiquidacionDelivery l = liquidacionRepo.findById(codigoLiquidacion)
+                .orElseThrow(() -> new IllegalArgumentException("Liquidación #" + codigoLiquidacion + " no encontrada."));
+        if (l.isAnulada()) {
+            throw new IllegalStateException("La liquidación #" + codigoLiquidacion + " ya está anulada.");
+        }
+        List<DetalleLiquidacionDelivery> detalles = liquidacionRepo.findDetalles(codigoLiquidacion);
+        String nota = "Anulación liquidación delivery #" + codigoLiquidacion + ": " + motivo.trim();
+
+        // 1. Validar todo antes de tocar nada
+        BigDecimal efectivo = valor(l.getEfectivoRecibido());
+        CajaTurno turno = null;
+        if (efectivo.signum() > 0) {
+            turno = cajaService.obtenerCajaAbierta()
+                    .orElseThrow(() -> new IllegalStateException(
+                    "Debe abrir una caja: el efectivo de la liquidación (RD$ "
+                    + String.format("%,.2f", efectivo) + ") sale de la gaveta."));
+            cajaService.validarEfectivoDisponible(turno.getId().intValue(), efectivo,
+                    "anular la liquidación #" + codigoLiquidacion);
+        }
+        for (DetalleLiquidacionDelivery d : detalles) {
+            FacturaDeVenta f = d.getFactura();
+            if (Boolean.TRUE.equals(f.getAnulada())) {
+                throw new IllegalStateException("La factura #" + f.getCodigo()
+                        + " se anuló después de liquidarse; esta liquidación ya no se puede anular.");
+            }
+            if (d.getCliente() != null) {
+                List<ReciboDeIngreso> abonos = reciboDeIngresoService.getRecibosVigentesDeFactura(f.getCodigo());
+                if (!abonos.isEmpty()) {
+                    throw new IllegalStateException("El cliente " + d.getCliente().getNombre()
+                            + " ya abonó a la factura #" + f.getCodigo() + " (recibo #" + abonos.get(0).getCodigo()
+                            + "). Anule primero ese recibo.");
+                }
+            }
+        }
+
+        // 2. Facturas: vuelven a quedar como estaban antes de liquidar
+        for (DetalleLiquidacionDelivery d : detalles) {
+            FacturaDeVenta f = d.getFactura();
+            if (d.getCliente() != null) {
+                // Se había pasado de contado a crédito: sale del estado de cuenta y vuelve a contado
+                cuentaPorCobrarService.registrarReversoCredito(f, nota, user);
+                f.setTipoVenta(tipoVentaService.getTipoVenta(TIPO_VENTA_CONTADO));
+                f.setEstadoFactura(new com.maxsoft.application.modelo.EstadoFactura(ESTADO_FACTURA_DELIVERY));
+                f.setFechaActualizacion(new Date());
+            } else if (PedidoDeliveryDTO.CONTADO.equals(d.getTipoPago())) {
+                // Su recibo de la liquidación se anula: la factura vuelve a deber
+                reciboDeIngresoService.anularRecibosLiquidacionDelivery(f.getCodigo(), nota, user);
+                f.setEstadoFactura(new com.maxsoft.application.modelo.EstadoFactura(ESTADO_FACTURA_DELIVERY));
+                f.setFechaActualizacion(new Date());
+            }
+            // Las fiadas de origen no cambian: siguen en la libreta del cliente con sus abonos
+            d.setAnulada(true);
+        }
+
+        // 3. El faltante cargado al motorista se reversa
+        if (l.getFaltanteCargado().signum() > 0) {
+            registrarMovimientoCuenta(l.getDelivery(), CuentaMotorista.ANULACION_FALTANTE,
+                    l.getFaltanteCargado().negate(), l, "Reverso faltante: " + nota, user);
+        }
+
+        // 4. Liquidación anulada
+        l.setAnulada(true);
+        l.setFechaAnulacion(new Date());
+        l.setMotivoAnulacion(motivo.trim().length() > 300 ? motivo.trim().substring(0, 300) : motivo.trim());
+        l.setUsuarioAnulacion(user);
+        LiquidacionDelivery anulada = liquidacionRepo.save(l);
+
+        // 5. Caja: sale el efectivo que había entrado
+        if (turno != null) {
+            cajaService.registrarMovimientoPos(turno.getId().intValue(), CajaService.TIPO_ANULACION_DELIVERY,
+                    efectivo.negate(), nota + " - Motorista: " + l.getDelivery().getNombre(), user);
+        }
+        return anulada;
+    }
+
+    // ============================================================
+    // CUENTA DEL MOTORISTA
+    // ============================================================
+    private CuentaMotorista registrarMovimientoCuenta(Delivery motorista, String tipo, BigDecimal monto,
+            LiquidacionDelivery liquidacion, String descripcion, String usuario) {
+
+        CuentaMotorista m = new CuentaMotorista();
+        m.setDelivery(motorista);
+        m.setFecha(new Date());
+        m.setTipo(tipo);
+        m.setMonto(monto);
+        m.setLiquidacionDelivery(liquidacion);
+        m.setDescripcion(descripcion != null && descripcion.length() > 300 ? descripcion.substring(0, 300) : descripcion);
+        m.setNombreUsuario(usuario);
+        return cuentaMotoristaRepo.save(m);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getDeudaMotorista(Integer codigoDelivery) {
+        return codigoDelivery == null ? BigDecimal.ZERO : valor(cuentaMotoristaRepo.saldo(codigoDelivery));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Integer, BigDecimal> getDeudasMotoristas() {
+        Map<Integer, BigDecimal> deudas = new LinkedHashMap<>();
+        for (Object[] fila : cuentaMotoristaRepo.saldos()) {
+            deudas.put((Integer) fila[0], valor((BigDecimal) fila[1]));
+        }
+        return deudas;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.maxsoft.application.dto.CuentaMotoristaResumenDTO> getResumenCuentasMotoristas() {
+
+        Map<Integer, Object[]> porMotorista = new LinkedHashMap<>();
+        for (Object[] fila : cuentaMotoristaRepo.resumenPorMotorista()) {
+            porMotorista.put((Integer) fila[0], fila);
+        }
+        List<com.maxsoft.application.dto.CuentaMotoristaResumenDTO> resultado = new ArrayList<>();
+        for (Delivery d : deliveryRepo.findAll()) {
+            Object[] f = porMotorista.get(d.getCodigo());
+            BigDecimal cargos = f != null ? valor((BigDecimal) f[1]) : BigDecimal.ZERO;
+            BigDecimal descargos = f != null ? valor((BigDecimal) f[2]).abs() : BigDecimal.ZERO;
+            resultado.add(new com.maxsoft.application.dto.CuentaMotoristaResumenDTO(
+                    d.getCodigo(), d.getNombre(), d.getCelular(),
+                    cargos, descargos, cargos.subtract(descargos),
+                    f != null ? (Date) f[3] : null));
+        }
+        // Los que más deben primero
+        resultado.sort(java.util.Comparator
+                .comparing(com.maxsoft.application.dto.CuentaMotoristaResumenDTO::saldo).reversed()
+                .thenComparing(r -> r.nombre() != null ? r.nombre() : ""));
+        return resultado;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CuentaMotorista> getCuentaMotorista(Integer codigoDelivery) {
+        return codigoDelivery == null ? List.of() : cuentaMotoristaRepo.findMovimientos(codigoDelivery);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public CuentaMotorista registrarAbonoMotorista(Delivery motorista, BigDecimal monto, String nota, String usuario) {
+
+        if (motorista == null) {
+            throw new IllegalArgumentException("Seleccione el motorista.");
+        }
+        if (monto == null || monto.signum() <= 0) {
+            throw new IllegalArgumentException("Ingrese un monto mayor que cero.");
+        }
+        CajaTurno turno = cajaService.obtenerCajaAbierta()
+                .orElseThrow(() -> new IllegalStateException("Debe abrir una caja: el abono entra a la gaveta."));
+        BigDecimal deuda = getDeudaMotorista(motorista.getCodigo());
+        if (deuda.signum() <= 0) {
+            throw new IllegalStateException(motorista.getNombre() + " no tiene deuda pendiente.");
+        }
+        if (monto.compareTo(deuda) > 0) {
+            throw new IllegalArgumentException("El abono (RD$ " + String.format("%,.2f", monto)
+                    + ") es mayor que la deuda (RD$ " + String.format("%,.2f", deuda) + ").");
+        }
+        String user = usuario != null && !usuario.isBlank() ? usuario : "SISTEMA";
+        String descripcion = "Abono a faltantes" + (nota != null && !nota.isBlank() ? ": " + nota.trim() : "");
+
+        CuentaMotorista mov = registrarMovimientoCuenta(motorista, CuentaMotorista.ABONO, monto.negate(), null,
+                descripcion, user);
+        cajaService.registrarMovimientoPos(turno.getId().intValue(), CajaService.TIPO_ABONO_MOTORISTA, monto,
+                "Abono motorista " + motorista.getNombre() + " #" + mov.getCodigo() + " - " + descripcion, user);
+        return mov;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String generarComprobanteAbonoHtml(Integer codigoMovimiento) {
+
+        CuentaMotorista m = cuentaMotoristaRepo.findById(codigoMovimiento)
+                .orElseThrow(() -> new IllegalArgumentException("Movimiento #" + codigoMovimiento + " no encontrado."));
+        if (!CuentaMotorista.ABONO.equals(m.getTipo())) {
+            throw new IllegalArgumentException("El movimiento #" + codigoMovimiento + " no es un abono.");
+        }
+        BigDecimal saldo = getDeudaMotorista(m.getDelivery().getCodigo());
+        SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy hh:mm a");
+
+        StringBuilder h = encabezadoTicket("Abono motorista #" + m.getCodigo());
+        h.append("<hr><div class='c b'>RECIBO DE ABONO DEL MOTORISTA</div><div class='c'>(FALTANTES DE DELIVERY)</div><hr><table>")
+                .append(fila("No.:", String.valueOf(m.getCodigo()), true))
+                .append(fila("Fecha:", m.getFecha() != null ? df.format(m.getFecha()) : "", false))
+                .append(fila("Motorista:", esc(m.getDelivery().getNombre()), true))
+                .append(fila("Cajero:", esc(m.getNombreUsuario()), false))
+                .append("</table><hr><div>").append(esc(m.getDescripcion())).append("</div><hr><table>")
+                .append("<tr><td class='b g'>ABONO:</td><td class='r b g'>RD$ ")
+                .append(String.format("%,.2f", valor(m.getMonto()).abs())).append("</td></tr>")
+                .append(fila("Deuda actual:", "RD$ " + String.format("%,.2f", saldo), true))
+                .append("</table><hr><div class='f'>Firma del motorista</div><div class='f'>Recibido por (cajero)</div></body></html>");
+        return h.toString();
+    }
+
+    /** Inicio del ticket de 80 mm con los datos de la empresa. */
+    private StringBuilder encabezadoTicket(String titulo) {
+
+        Empresa empresa = empresaRepo.findFirstByOrderByCodigoAsc().orElse(null);
+        StringBuilder h = new StringBuilder();
+        h.append("<!doctype html><html><head><meta charset='utf-8'><title>").append(esc(titulo))
+                .append("</title><style>@page{size:80mm auto;margin:3mm}body{font-family:'Courier New',monospace;font-size:12px;width:72mm;margin:0}")
+                .append(".c{text-align:center}.b{font-weight:bold}.g{font-size:15px}hr{border:0;border-top:1px dashed #000;margin:6px 0}")
+                .append("table{width:100%;border-collapse:collapse}td{padding:1px 0;vertical-align:top}td.r{text-align:right}")
+                .append(".f{margin-top:36px;border-top:1px solid #000;text-align:center;padding-top:2px}")
+                .append(".anulada{border:2px solid #000;text-align:center;font-weight:bold;font-size:16px;padding:4px;margin:6px 0}</style></head><body>");
+        if (empresa != null) {
+            h.append("<div class='c b'>").append(esc(empresa.getNombre())).append("</div>")
+                    .append("<div class='c'>").append(esc(empresa.getDiereccion())).append("</div>")
+                    .append("<div class='c'>Tel: ").append(esc(empresa.getTelefono()))
+                    .append(" &nbsp;RNC: ").append(esc(empresa.getRnc())).append("</div>");
+        }
+        return h;
     }
 }

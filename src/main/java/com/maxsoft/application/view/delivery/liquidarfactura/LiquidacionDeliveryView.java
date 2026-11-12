@@ -19,7 +19,10 @@ import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.textfield.TextField;
+import com.maxsoft.application.modelo.CuentaMotorista;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
@@ -84,8 +87,13 @@ public class LiquidacionDeliveryView extends VerticalLayout {
     private Grid.Column<PedidoDeliveryDTO> colFactura;
     private Grid.Column<PedidoDeliveryDTO> colMonto;
 
+    private final Button btnCobrarDeuda = new Button("Cobrar deuda", VaadinIcon.MONEY_DEPOSIT.create());
+    private final Button btnCuenta = new Button("Cuenta del motorista", VaadinIcon.BOOK_DOLLAR.create());
+
     private List<PedidoDeliveryDTO> pedidosActuales = new ArrayList<>();
     private Map<Integer, PendientesMotoristaDTO> pendientesPorMotorista = new HashMap<>();
+    /** Lo que debe cada motorista por faltantes. */
+    private Map<Integer, BigDecimal> deudasMotoristas = new HashMap<>();
     private CajaTurno cajaAbierta;
     /** Evita recargar pedidos mientras se refresca la lista de motoristas. */
     private boolean refrescandoMotoristas;
@@ -117,7 +125,10 @@ public class LiquidacionDeliveryView extends VerticalLayout {
 
         Button btnRefrescar = new Button("Refrescar", VaadinIcon.REFRESH.create(), e -> refrescarTodo());
 
-        HorizontalLayout barra = new HorizontalLayout(motoristaCombo, btnRefrescar,
+        btnCobrarDeuda.addClickListener(e -> abrirDialogoAbono());
+        btnCuenta.addClickListener(e -> abrirCuentaMotorista());
+
+        HorizontalLayout barra = new HorizontalLayout(motoristaCombo, btnRefrescar, btnCuenta, btnCobrarDeuda,
                 EstiloConsulta.ayuda("Marque las casillas para liquidar solo algunos pedidos"));
         barra.setAlignItems(Alignment.BASELINE);
         barra.setWidthFull();
@@ -218,11 +229,13 @@ public class LiquidacionDeliveryView extends VerticalLayout {
     /** "JUAN — 4 pedidos · RD$ 3,250.00" para saber quién tiene pendientes. */
     private String etiquetaMotorista(Delivery d) {
         PendientesMotoristaDTO p = pendientesPorMotorista.getOrDefault(d.getCodigo(), PendientesMotoristaDTO.VACIO);
+        BigDecimal deuda = deudasMotoristas.getOrDefault(d.getCodigo(), BigDecimal.ZERO);
+        String debe = deuda.signum() > 0 ? " · debe " + moneda(deuda) : "";
         if (p.pedidos() == 0) {
-            return d.getNombre() + " — sin pendientes";
+            return d.getNombre() + " — sin pendientes" + debe;
         }
         return d.getNombre() + " — " + p.pedidos() + (p.pedidos() == 1 ? " pedido" : " pedidos")
-                + " · " + moneda(p.monto());
+                + " · " + moneda(p.monto()) + debe;
     }
 
     /** Recarga motoristas (con sus pendientes) conservando el seleccionado. */
@@ -233,6 +246,12 @@ public class LiquidacionDeliveryView extends VerticalLayout {
         } catch (Exception ex) {
             ex.printStackTrace();
             pendientesPorMotorista = new HashMap<>();
+        }
+        try {
+            deudasMotoristas = liquidacionService.getDeudasMotoristas();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            deudasMotoristas = new HashMap<>();
         }
 
         Integer seleccionado = motoristaCombo.getValue() != null ? motoristaCombo.getValue().getCodigo() : null;
@@ -377,6 +396,12 @@ public class LiquidacionDeliveryView extends VerticalLayout {
                 // (Antes decía "Monto Global Liquidado" aunque aún no se había liquidado)
                 tarjeta("Total en ruta", moneda(efectivo.add(fiado)),
                         pedidosActuales.isEmpty() ? "fv-tarjeta-saldada" : "fv-tarjeta-pendiente", VaadinIcon.WALLET));
+        Delivery motorista = motoristaCombo.getValue();
+        if (motorista != null) {
+            BigDecimal deuda = deudaSeleccionado();
+            resumen.add(tarjeta(deuda.signum() >= 0 ? "Deuda del motorista" : "Saldo a favor", moneda(deuda.abs()),
+                    deuda.signum() > 0 ? "fv-tarjeta-pendiente" : "fv-tarjeta-saldada", VaadinIcon.USER_CARD));
+        }
 
         colFactura.setFooter("PEDIDOS: " + pedidosActuales.size());
         colMonto.setFooter(EstiloConsulta.moneda(efectivo.add(fiado)));
@@ -390,6 +415,142 @@ public class LiquidacionDeliveryView extends VerticalLayout {
                 ? "Liquidar seleccionados (" + seleccionados + ")" : "Liquidar seleccionados");
         btnLiquidarSeleccion.setEnabled(hayCaja && seleccionados > 0);
         btnLiquidarTodo.setEnabled(hayCaja && !pedidosActuales.isEmpty());
+        boolean hayMotorista = motoristaCombo.getValue() != null;
+        btnCuenta.setEnabled(hayMotorista);
+        btnCobrarDeuda.setEnabled(hayCaja && hayMotorista && deudaSeleccionado().signum() > 0);
+    }
+
+    private BigDecimal deudaSeleccionado() {
+        Delivery m = motoristaCombo.getValue();
+        return m == null ? BigDecimal.ZERO : deudasMotoristas.getOrDefault(m.getCodigo(), BigDecimal.ZERO);
+    }
+
+    // ============================================================
+    // CUENTA DEL MOTORISTA (faltantes)
+    // ============================================================
+    /** El motorista paga en efectivo lo que debe por faltantes. */
+    private void abrirDialogoAbono() {
+
+        Delivery motorista = motoristaCombo.getValue();
+        verificarCaja();
+        if (motorista == null || cajaAbierta == null) {
+            notificar("Seleccione el motorista y abra la caja para cobrar.", NotificationVariant.LUMO_WARNING);
+            return;
+        }
+        BigDecimal deuda;
+        try {
+            deuda = liquidacionService.getDeudaMotorista(motorista.getCodigo());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            notificar("No se pudo consultar la deuda: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
+            return;
+        }
+        if (deuda.signum() <= 0) {
+            notificar(motorista.getNombre() + " no tiene deuda pendiente.", NotificationVariant.LUMO_CONTRAST);
+            return;
+        }
+
+        Dialog dialog = new Dialog();
+        dialog.addClassName("dc-dialogo");
+        dialog.setHeaderTitle("Cobrar deuda del motorista");
+        dialog.setWidth("460px");
+        dialog.setCloseOnOutsideClick(false);
+
+        BigDecimalField monto = new BigDecimalField("Monto que paga");
+        monto.addClassName("dc-campo-grande");
+        monto.setPrefixComponent(new Span("RD$"));
+        monto.setWidthFull();
+        Div rapidos = new Div();
+        rapidos.addClassName("dc-rapidos");
+        Button todo = new Button("Toda la deuda", e -> monto.setValue(deuda));
+        todo.addClassName("dc-rapido");
+        rapidos.add(todo);
+        TextField nota = new TextField("Nota (opcional)");
+        nota.setWidthFull();
+        nota.setMaxLength(200);
+
+        Div cuerpo = new Div(DialogoCajaEstilo.banda(VaadinIcon.USER_CARD, motorista.getNombre(),
+                "Faltantes de liquidaciones anteriores"),
+                DialogoCajaEstilo.billeteGrande("Deuda actual", MONEDA_FORMAT.format(deuda)),
+                monto, rapidos, nota);
+        cuerpo.addClassName("dc-cuerpo");
+        dialog.add(cuerpo);
+
+        Button cancelar = new Button("Cancelar", e -> dialog.close());
+        cancelar.addClassName("dc-btn-secundario");
+        Button confirmar = new Button("Registrar abono", VaadinIcon.CHECK.create());
+        confirmar.addClassName("dc-btn-cerrar");
+        confirmar.setDisableOnClick(true);
+        confirmar.addClickListener(e -> {
+            try {
+                CuentaMotorista mov = liquidacionService.registrarAbonoMotorista(motorista, monto.getValue(),
+                        nota.getValue(), usuarioActual());
+                dialog.close();
+                cargarMotoristas();
+                actualizarTotales();
+                notificar("Abono registrado: " + moneda(valor(mov.getMonto()).abs()), NotificationVariant.LUMO_SUCCESS);
+                ImpresionHtmlUtil.imprimir(UI.getCurrent(), liquidacionService.generarComprobanteAbonoHtml(mov.getCodigo()));
+            } catch (IllegalStateException | IllegalArgumentException ex) {
+                notificar(ex.getMessage(), NotificationVariant.LUMO_WARNING);
+                confirmar.setEnabled(true);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                notificar("Error al registrar el abono: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
+                confirmar.setEnabled(true);
+            }
+        });
+        monto.addKeyDownListener(Key.ENTER, e -> confirmar.click());
+        dialog.getFooter().add(cancelar, confirmar);
+        dialog.open();
+        monto.focus();
+    }
+
+    /** Historial de faltantes y abonos del motorista. */
+    private void abrirCuentaMotorista() {
+
+        Delivery motorista = motoristaCombo.getValue();
+        if (motorista == null) {
+            return;
+        }
+        List<CuentaMotorista> movimientos;
+        BigDecimal deuda;
+        try {
+            movimientos = liquidacionService.getCuentaMotorista(motorista.getCodigo());
+            deuda = liquidacionService.getDeudaMotorista(motorista.getCodigo());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            notificar("No se pudo consultar la cuenta: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
+            return;
+        }
+
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Cuenta de " + motorista.getNombre());
+        dialog.setWidth("820px");
+
+        Grid<CuentaMotorista> grid = new Grid<>(CuentaMotorista.class, false);
+        EstiloConsulta.aplicarGrid(grid);
+        SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy hh:mm a");
+        grid.addColumn(m -> m.getFecha() != null ? df.format(m.getFecha()) : "").setHeader("Fecha").setAutoWidth(true);
+        grid.addComponentColumn(m -> switch (m.getTipo()) {
+            case CuentaMotorista.FALTANTE -> EstiloConsulta.chip("FALTANTE", "fv-chip-anulada");
+            case CuentaMotorista.ABONO -> EstiloConsulta.chip("ABONO", "fv-chip-pagada");
+            case CuentaMotorista.ANULACION_FALTANTE -> EstiloConsulta.chip("REVERSO", "fv-chip-devuelto");
+            default -> EstiloConsulta.chip(m.getTipo(), "fv-chip-contado");
+        }).setHeader("Tipo").setAutoWidth(true);
+        grid.addColumn(m -> m.getLiquidacionDelivery() != null ? "#" + m.getLiquidacionDelivery().getCodigo() : "")
+                .setHeader("Liquidación").setAutoWidth(true);
+        grid.addColumn(CuentaMotorista::getDescripcion).setHeader("Detalle").setFlexGrow(1);
+        EstiloConsulta.monto(grid.addColumn(m -> (valor(m.getMonto()).signum() > 0 ? "+" : "")
+                + EstiloConsulta.moneda(m.getMonto()))).setHeader("Monto").setAutoWidth(true)
+                .setFooter((deuda.signum() >= 0 ? "DEBE: " : "A FAVOR: ") + EstiloConsulta.moneda(deuda.abs()));
+        grid.addColumn(CuentaMotorista::getNombreUsuario).setHeader("Usuario").setAutoWidth(true);
+        grid.setItems(movimientos);
+        grid.setHeight("380px");
+
+        dialog.add(movimientos.isEmpty() ? new Span("El motorista no tiene faltantes registrados.") : grid);
+        Button cerrar = new Button("Cerrar", e -> dialog.close());
+        dialog.getFooter().add(cerrar);
+        dialog.open();
     }
 
     private Div tarjeta(String etiqueta, String valor, String clase, VaadinIcon icono) {
@@ -466,11 +627,30 @@ public class LiquidacionDeliveryView extends VerticalLayout {
         efectivoField.setPlaceholder("Cuente el efectivo y digítelo");
         efectivoField.setWidthFull();
 
+        // Pago mixto: parte la pagaron los clientes por transferencia (no entra a la gaveta)
+        BigDecimalField transferenciaField = new BigDecimalField("Transferencias recibidas");
+        transferenciaField.setPrefixComponent(new Span("RD$"));
+        transferenciaField.setPlaceholder("0.00");
+        transferenciaField.setWidth("220px");
+        TextField referenciaField = new TextField("Referencia / banco");
+        referenciaField.setPlaceholder("Ej.: BHD 123456");
+        referenciaField.setMaxLength(100);
+        referenciaField.setEnabled(false);
+        HorizontalLayout filaTransferencia = new HorizontalLayout(transferenciaField, referenciaField);
+        filaTransferencia.setWidthFull();
+        filaTransferencia.setFlexGrow(1, referenciaField);
+        transferenciaField.addValueChangeListener(e -> referenciaField.setEnabled(valor(e.getValue()).signum() > 0));
+
+        Checkbox chkCargarFaltante = new Checkbox("Cargar el faltante a la cuenta del motorista (lo debe pagar)", true);
+        chkCargarFaltante.setVisible(false);
+
         // Botones rápidos: monto exacto o sumar billetes
         BigDecimal[] esperadoActual = {BigDecimal.ZERO};
         Div rapidos = new Div();
         rapidos.addClassName("dc-rapidos");
-        Button exacto = new Button("Exacto", e -> efectivoField.setValue(esperadoActual[0]));
+        // Exacto = lo que falta después de las transferencias
+        Button exacto = new Button("Exacto", e -> efectivoField.setValue(
+                esperadoActual[0].subtract(valor(transferenciaField.getValue())).max(BigDecimal.ZERO)));
         exacto.addClassName("dc-rapido");
         rapidos.add(exacto);
         for (int billeteValor : new int[]{100, 200, 500, 1000, 2000}) {
@@ -499,17 +679,19 @@ public class LiquidacionDeliveryView extends VerticalLayout {
 
         Runnable mostrarDiferencia = () -> {
             panelDif.removeClassNames("dc-dif-cuadre", "dc-dif-sobrante", "dc-dif-faltante");
+            chkCargarFaltante.setVisible(false);
             if (efectivoField.getValue() == null) {
                 lblDif.setText("Pendiente de contar");
                 notaDif.setText("Digite el efectivo que entrega el motorista");
                 valDif.setText("");
                 return;
             }
-            BigDecimal diff = efectivoField.getValue().subtract(esperadoActual[0]);
+            BigDecimal diff = efectivoField.getValue().add(valor(transferenciaField.getValue()))
+                    .subtract(esperadoActual[0]);
             valDif.setText(moneda(diff.abs()));
             if (diff.signum() == 0) {
                 lblDif.setText("Cuadre exacto");
-                notaDif.setText("El efectivo coincide con lo esperado");
+                notaDif.setText("Efectivo + transferencias coinciden con lo esperado");
                 panelDif.addClassName("dc-dif-cuadre");
             } else if (diff.signum() > 0) {
                 lblDif.setText("Sobrante");
@@ -519,6 +701,7 @@ public class LiquidacionDeliveryView extends VerticalLayout {
                 lblDif.setText("Faltante");
                 notaDif.setText("Entregó menos de lo esperado: explique en la observación");
                 panelDif.addClassName("dc-dif-faltante");
+                chkCargarFaltante.setVisible(true);
             }
         };
 
@@ -541,19 +724,25 @@ public class LiquidacionDeliveryView extends VerticalLayout {
             boolean hayEfectivo = esperado.signum() > 0;
             efectivoField.setVisible(hayEfectivo);
             rapidos.setVisible(hayEfectivo);
+            filaTransferencia.setVisible(hayEfectivo);
             panelDif.setVisible(hayEfectivo);
             txtObservacion.setVisible(hayEfectivo);
+            if (!hayEfectivo) {
+                transferenciaField.clear();
+            }
 
             validarCredito(credito, combosCredito, cacheCredito, pedidos, lblErrorCredito);
             mostrarDiferencia.run();
         };
 
         efectivoField.addValueChangeListener(e -> mostrarDiferencia.run());
+        transferenciaField.addValueChangeListener(e -> mostrarDiferencia.run());
 
         if (!contado.isEmpty()) {
             cuerpo.add(crearSeccionCredito(contado, credito, combosCredito, cacheCredito, recalcular), lblErrorCredito);
         }
-        cuerpo.add(lblFiado, billete, efectivoField, rapidos, panelDif, txtObservacion);
+        cuerpo.add(lblFiado, billete, efectivoField, rapidos, filaTransferencia, panelDif, chkCargarFaltante,
+                txtObservacion);
         recalcular.run();
 
         dialog.add(cuerpo);
@@ -577,9 +766,10 @@ public class LiquidacionDeliveryView extends VerticalLayout {
                 return;
             }
             BigDecimal recibido = esperado.signum() > 0 ? valor(efectivoField.getValue()) : BigDecimal.ZERO;
+            BigDecimal transferencia = esperado.signum() > 0 ? valor(transferenciaField.getValue()) : BigDecimal.ZERO;
 
-            if (recibido.signum() < 0) {
-                notificar("El efectivo recibido no puede ser negativo.", NotificationVariant.LUMO_WARNING);
+            if (recibido.signum() < 0 || transferencia.signum() < 0) {
+                notificar("Los montos recibidos no pueden ser negativos.", NotificationVariant.LUMO_WARNING);
                 btnConfirmar.setEnabled(true);
                 return;
             }
@@ -588,15 +778,18 @@ public class LiquidacionDeliveryView extends VerticalLayout {
                 btnConfirmar.setEnabled(true);
                 return;
             }
-            if (recibido.compareTo(esperado) != 0 && txtObservacion.getValue().isBlank()) {
-                notificar("Explique el motivo del " + (recibido.compareTo(esperado) > 0 ? "sobrante" : "faltante") + ".",
+            BigDecimal totalRecibido = recibido.add(transferencia);
+            if (totalRecibido.compareTo(esperado) != 0 && txtObservacion.getValue().isBlank()) {
+                notificar("Explique el motivo del " + (totalRecibido.compareTo(esperado) > 0 ? "sobrante" : "faltante") + ".",
                         NotificationVariant.LUMO_WARNING);
                 txtObservacion.focus();
                 btnConfirmar.setEnabled(true);
                 return;
             }
 
-            if (!liquidar(pedidos, credito, recibido, txtObservacion.getValue(), dialog)) {
+            boolean cargarFaltante = totalRecibido.compareTo(esperado) < 0 && chkCargarFaltante.getValue();
+            if (!liquidar(pedidos, credito, recibido, transferencia, referenciaField.getValue(), cargarFaltante,
+                    txtObservacion.getValue(), dialog)) {
                 btnConfirmar.setEnabled(true);
             }
         });
@@ -718,13 +911,15 @@ public class LiquidacionDeliveryView extends VerticalLayout {
      * comprobante. Devuelve false si no se pudo registrar.
      */
     private boolean liquidar(List<PedidoDeliveryDTO> pedidos, Map<Integer, Cliente> credito,
-            BigDecimal recibido, String observacion, Dialog dialog) {
+            BigDecimal recibido, BigDecimal transferencia, String referencia, boolean cargarFaltante,
+            String observacion, Dialog dialog) {
 
         try {
             List<Integer> codigos = pedidos.stream().map(PedidoDeliveryDTO::getCodigoFactura).toList();
 
             LiquidacionDelivery liq = liquidacionService.liquidar(motoristaCombo.getValue(), codigos,
-                    new LinkedHashMap<>(credito), recibido, observacion, usuarioActual());
+                    new LinkedHashMap<>(credito), recibido, transferencia, referencia, cargarFaltante,
+                    observacion, usuarioActual());
 
             dialog.close();
             cargarMotoristas();
@@ -761,8 +956,14 @@ public class LiquidacionDeliveryView extends VerticalLayout {
                         pedidos + (pedidos == 1 ? " pedido liquidado" : " pedidos liquidados"),
                         aCredito > 0 ? aCredito + " pasada(s) a cuentas por cobrar" : "Todo cuadrado en caja"),
                 DialogoCajaEstilo.billeteGrande("Efectivo recibido", MONEDA_FORMAT.format(valor(liq.getEfectivoRecibido()))));
+        if (liq.getTransferenciaRecibida().signum() > 0) {
+            Span tr = new Span("Transferencias: " + moneda(liq.getTransferenciaRecibida()));
+            tr.getStyle().set("font-weight", "600");
+            cuerpo.add(tr);
+        }
         if (diferencia.signum() != 0) {
-            Span dif = new Span((diferencia.signum() > 0 ? "Sobrante: " : "Faltante: ") + moneda(diferencia.abs()));
+            Span dif = new Span((diferencia.signum() > 0 ? "Sobrante: " : "Faltante: ") + moneda(diferencia.abs())
+                    + (liq.getFaltanteCargado().signum() > 0 ? " — cargado a la cuenta del motorista" : ""));
             dif.getStyle().set("font-weight", "700").set("color", diferencia.signum() > 0 ? "#7a5d00" : "#b3261e");
             cuerpo.add(dif);
         }

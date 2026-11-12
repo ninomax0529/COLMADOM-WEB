@@ -134,9 +134,11 @@ public class TrasladoInventarioServiceImpl implements TrasladoInventarioService 
                 .stream()
                 .toList();
 
-        this.entradaInventarioService.crearEntradaPorTraslado(traslado, lista);
-
+        // Primero sale del origen (FEFO o lote elegido) y luego entra al destino con esos
+        // mismos lotes: la salida deja en cada línea las filas de kardex que generó.
         this.SalidaInventarioService.crearSalidaPorTraslado(traslado, lista);
+
+        this.entradaInventarioService.crearEntradaPorTraslado(traslado, lista);
 
         // Guarda la cabecera y en cascada guarda todos los detalles
         return traslado;

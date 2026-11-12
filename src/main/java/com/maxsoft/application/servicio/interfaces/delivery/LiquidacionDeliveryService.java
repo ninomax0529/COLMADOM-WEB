@@ -62,4 +62,62 @@ public interface LiquidacionDeliveryService {
     LiquidacionDelivery liquidar(Delivery motorista, List<Integer> codigosFactura,
             Map<Integer, Cliente> clientesCredito, BigDecimal efectivoRecibido,
             String observacion, String usuario);
+
+    /**
+     * Liquidación completa: además del crédito, admite pago mixto (parte en
+     * transferencia, que no entra a la gaveta) y cargar el faltante a la
+     * cuenta del motorista. La diferencia es (efectivo + transferencia) -
+     * efectivo esperado.
+     *
+     * @param cargarFaltante si hay faltante, queda como deuda del motorista
+     */
+    LiquidacionDelivery liquidar(Delivery motorista, List<Integer> codigosFactura,
+            Map<Integer, Cliente> clientesCredito, BigDecimal efectivoRecibido,
+            BigDecimal transferenciaRecibida, String referenciaTransferencia,
+            boolean cargarFaltante, String observacion, String usuario);
+
+    // ============================================================
+    // CONSULTA, REIMPRESIÓN Y ANULACIÓN
+    // ============================================================
+    /** Liquidaciones (vigentes y anuladas) en [desde, hastaExclusivo), de un motorista o de todos (null). */
+    List<com.maxsoft.application.dto.LiquidacionResumenDTO> getLiquidaciones(Date desde, Date hastaExclusivo,
+            Integer codigoDelivery);
+
+    List<com.maxsoft.application.dto.DetalleLiquidacionDTO> getDetalleLiquidacion(Integer codigoLiquidacion);
+
+    /**
+     * Anula una liquidación: sus facturas vuelven a quedar pendientes del
+     * motorista, se anulan los recibos que generó, las facturas que pasó a
+     * crédito vuelven a contado (salen del estado de cuenta), se reversa el
+     * faltante cargado y el efectivo recibido sale de la caja abierta.
+     *
+     * @throws IllegalStateException ya anulada, sin caja o sin efectivo
+     * suficiente, o algún cliente ya abonó a una factura que se pasó a crédito
+     */
+    LiquidacionDelivery anularLiquidacion(Integer codigoLiquidacion, String motivo, String usuario);
+
+    // ============================================================
+    // CUENTA DEL MOTORISTA (faltantes)
+    // ============================================================
+    /** Lo que debe el motorista por faltantes (negativo = saldo a su favor). */
+    BigDecimal getDeudaMotorista(Integer codigoDelivery);
+
+    /** Código de motorista -> deuda, solo los que tienen movimientos. */
+    Map<Integer, BigDecimal> getDeudasMotoristas();
+
+    /** Todos los motoristas con lo cargado, lo abonado y su saldo (los que no tienen movimientos salen en cero). */
+    List<com.maxsoft.application.dto.CuentaMotoristaResumenDTO> getResumenCuentasMotoristas();
+
+    /** Movimientos de la cuenta del motorista, los más nuevos primero. */
+    List<com.maxsoft.application.modelo.CuentaMotorista> getCuentaMotorista(Integer codigoDelivery);
+
+    /**
+     * El motorista paga en efectivo parte o todo lo que debe: entra a la caja
+     * abierta y rebaja su deuda. No puede pagar más de lo que debe.
+     */
+    com.maxsoft.application.modelo.CuentaMotorista registrarAbonoMotorista(Delivery motorista, BigDecimal monto,
+            String nota, String usuario);
+
+    /** Ticket (HTML de 80 mm) del recibo de un abono del motorista. */
+    String generarComprobanteAbonoHtml(Integer codigoMovimiento);
 }

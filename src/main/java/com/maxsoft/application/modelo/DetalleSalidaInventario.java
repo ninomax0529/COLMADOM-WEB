@@ -285,4 +285,54 @@ public class DetalleSalidaInventario implements Serializable {
         return "com.maxsoft.application.modelo.DetalleSalidaInventario[ codigo=" + codigo + " ]";
     }
     
+
+    // ===== Lote (control de lotes) =====
+    @JoinColumn(name = "lote", referencedColumnName = "codigo")
+    @ManyToOne
+    private Lote lote;
+
+    public Lote getLote() {
+        return lote;
+    }
+
+    public void setLote(Lote lote) {
+        this.lote = lote;
+    }
+
+    // ===== Lotes: datos de paso entre servicios (no se guardan) =====
+    /** LÃ­nea de venta que originÃ³ esta salida (para registrar de quÃ© lotes saliÃ³). */
+    @jakarta.persistence.Transient
+    private DetalleFacturaDeVenta detalleFacturaOrigen;
+
+    /** Supervisor que autorizÃ³ vender de un lote vencido (venta). */
+    @jakarta.persistence.Transient
+    private String autorizadoLoteVencidoPor;
+
+    /** Filas de kardex que generÃ³ esta lÃ­nea (una por lote). */
+    @jakarta.persistence.Transient
+    private java.util.List<MovimientoInventario> movimientosGenerados;
+
+    public DetalleFacturaDeVenta getDetalleFacturaOrigen() {
+        return detalleFacturaOrigen;
+    }
+
+    public void setDetalleFacturaOrigen(DetalleFacturaDeVenta detalleFacturaOrigen) {
+        this.detalleFacturaOrigen = detalleFacturaOrigen;
+    }
+
+    public String getAutorizadoLoteVencidoPor() {
+        return autorizadoLoteVencidoPor;
+    }
+
+    public void setAutorizadoLoteVencidoPor(String autorizadoLoteVencidoPor) {
+        this.autorizadoLoteVencidoPor = autorizadoLoteVencidoPor;
+    }
+
+    public java.util.List<MovimientoInventario> getMovimientosGenerados() {
+        return movimientosGenerados;
+    }
+
+    public void setMovimientosGenerados(java.util.List<MovimientoInventario> movimientosGenerados) {
+        this.movimientosGenerados = movimientosGenerados;
+    }
 }
