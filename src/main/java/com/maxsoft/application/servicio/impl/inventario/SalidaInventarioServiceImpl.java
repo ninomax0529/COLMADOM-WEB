@@ -135,6 +135,10 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                                 detalle.getLote());
 
                         detalle.setMovimientosGenerados(movs);
+                        // Existencia real (unidad base) antes y después, según el kardex; no la
+                        // proyectada en pantalla, que puede estar vieja o no sumar otras filas
+                        detalle.setExistenciaAnterior(movs.get(0).getExistenciaAnterior());
+                        detalle.setExistencia(movs.get(movs.size() - 1).getExistenciaNueva());
                         // Si salió de un solo lote queda en la línea; si se repartió, el detalle está en el kardex
                         if (detalle.getLote() == null && movs.size() == 1) {
                             detalle.setLote(movs.get(0).getLote());
@@ -578,6 +582,62 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
         }
 
         salida.setDetalleSalidaInventarioCollection(detallesSalida);
+        return guardar(salida, nombreUsuario);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SalidaInventario crearSalidaPorDevolucionProveedor(com.maxsoft.application.modelo.DevolucionProveedor devolucion,
+            List<com.maxsoft.application.modelo.DetalleDevolucionProveedor> detalles, boolean desdeLoteNuevo,
+            String usuario) {
+
+        String nombreUsuario = usuario != null && !usuario.isBlank() ? usuario : "SISTEMA";
+        Date ahora = new Date();
+
+        SalidaInventario salida = new SalidaInventario();
+        salida.setFecha(ahora);
+        salida.setFechaRegistro(ahora);
+        salida.setFechaContabilizacion(ahora);
+        salida.setTipoDocumento(this.tipoDocumentoService.getTipoDocumento(10)); // Devolución a proveedor
+        salida.setNumeroDocumento((desdeLoteNuevo ? "ANU-" : "") + devolucion.getNumero());
+        salida.setUsuario(new Usuario(1));
+        salida.setNombreUsuario(nombreUsuario);
+        salida.setAnulada(false);
+        salida.setObservacion(desdeLoteNuevo
+                ? "Retiro de la reposición por anulación de la devolución " + devolucion.getNumero()
+                : "Devolución a proveedor " + devolucion.getNumero() + " ("
+                + (devolucion.getProveedor() != null ? devolucion.getProveedor().getNombre() : "") + ")");
+
+        Almacen almacen = devolucion.getAlmacen();
+        List<DetalleSalidaInventario> lineas = new ArrayList<>();
+        for (com.maxsoft.application.modelo.DetalleDevolucionProveedor det : detalles) {
+            if (det.getCantidadBase().signum() <= 0) {
+                continue;
+            }
+            BigDecimal stock = this.articuloAlmacenService
+                    .buscarPorArticuloYAlmacen(det.getArticulo().getCodigo(), almacen.getCodigo())
+                    .map(ArticuloAlmacen::getExistencia).orElse(BigDecimal.ZERO);
+
+            DetalleSalidaInventario d = new DetalleSalidaInventario();
+            d.setSalidaInventario(salida);
+            d.setArticulo(det.getArticulo());
+            d.setArticuloEmpaque(det.getArticuloEmpaque());
+            d.setDescripcionArticulo(det.getArticulo().getDescripcion());
+            d.setAlmacen(almacen);
+            d.setCantidad(det.getCantidad());
+            d.setFactorConversion(det.getFactorConversion());
+            d.setCantidadFisicaBase(det.getCantidadBase());
+            d.setExistenciaAnterior(stock);
+            d.setExistencia(stock);
+            d.setUnidad(det.getArticuloEmpaque().getUnidadEmpaque());
+            d.setCostoUnitario(det.getCostoUnitario());
+            d.setPrecioCompra(det.getCostoUnitario());
+            d.setPrecioVenta(BigDecimal.ZERO);
+            // Sale del lote exacto (si no alcanza, error); sin lote = FEFO
+            d.setLote(desdeLoteNuevo ? det.getLoteNuevo() : det.getLote());
+            lineas.add(d);
+        }
+        salida.setDetalleSalidaInventarioCollection(lineas);
         return guardar(salida, nombreUsuario);
     }
 }

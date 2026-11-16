@@ -33,6 +33,9 @@ import java.util.List;
 @Service
 public class MovimientoInventarioServiceImpl implements MovimientoInventarioService {
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     private final MovimientoInventarioRepo movimientoRepo;
     private final ArticuloRepo articuloRepo;
 
@@ -124,13 +127,22 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
 
         Almacen almacen = this.almacenService.getAlmacen(alm.getCodigo());
 
-        // Buscar o instanciar el registro ArticuloAlmacen
+        // Fila del artículo en el almacén, BLOQUEADA hasta el fin de la transacción: otra
+        // caja que mueva el mismo artículo espera aquí y luego lee la existencia ya
+        // actualizada (sin el bloqueo, las dos leían el mismo valor y una venta se perdía).
+        // (SELECT existencia ... FOR UPDATE, solo el valor: no se recarga la entidad para no
+        // reinicializar sus colecciones en medio de otros guardados de la misma transacción)
+        entityManager.flush(); // lo pendiente de esta transacción (p. ej. otra línea del mismo artículo) va primero
+        BigDecimal existenciaBloqueada = this.articuloAlmacenRepo
+                .bloquearExistencia(articulo.getCodigo(), almacen.getCodigo())
+                .orElseThrow(() -> new EntityNotFoundException("El producto con ID " + articulo.getCodigo()
+                + " no está asignado al almacén ID: " + almacen.getCodigo()));
         ArticuloAlmacen artiAlm = this.articuloAlmacenService
                 .buscarPorArticuloYAlmacen(articulo.getCodigo(), almacen.getCodigo())
                 .orElseThrow(() -> new EntityNotFoundException("El producto con ID " + articulo.getCodigo()
                 + " no está asignado al almacén ID: " + almacen.getCodigo()));
 
-        BigDecimal stockAnterior = artiAlm.getExistencia() != null ? artiAlm.getExistencia() : BigDecimal.ZERO;
+        BigDecimal stockAnterior = existenciaBloqueada != null ? existenciaBloqueada : BigDecimal.ZERO;
         BigDecimal stockNuevo;
 
         Integer codigoTipoMov = tipoMovimiento.getCodigo();
@@ -179,7 +191,17 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
             Lote loteEntrada = lote != null && lote.getCodigo() != null
                     ? lote
                     : this.loteService.obtenerOCrearLote(articulo, null, null, null, null, numeroDoc, usuario);
-            tramos.add(new LoteService.Tramo(loteEntrada, cantidadEmpaque, false));
+            // Si en este almacén se vendió sin existencia (SIN-LOTE en negativo), lo que
+            // entra primero repone ese faltante; el resto va al lote de la entrada.
+            LoteService.Tramo cubre = LoteService.NUMERO_SIN_LOTE.equals(loteEntrada.getNumeroLote()) ? null
+                    : this.loteService.cubrirSinLote(articulo, almacen, cantidadEmpaque);
+            BigDecimal alLote = cubre == null ? cantidadEmpaque : cantidadEmpaque.subtract(cubre.cantidad());
+            if (alLote.signum() > 0) {
+                tramos.add(new LoteService.Tramo(loteEntrada, alLote, false));
+            }
+            if (cubre != null) {
+                tramos.add(cubre);
+            }
         } else {
             tramos.addAll(this.loteService.repartirSalida(articulo, almacen, cantidadEmpaque, lote));
         }

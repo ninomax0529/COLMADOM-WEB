@@ -42,6 +42,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -301,6 +302,13 @@ class LotesFase3Test {
         List<DetalleTrasladoInventario> lista = List.of(dt);
         BigDecimal ini1 = ex(inicial, alm1);
         BigDecimal ini2 = ex(inicial, alm2);
+        // Existencia de cada lote del artículo en origen y destino antes del traslado
+        // (puede haber lotes reales además de los de la prueba)
+        Map<Integer, BigDecimal[]> antesTraslado = new java.util.LinkedHashMap<>();
+        for (Lote l : em.createQuery("select l from Lote l where l.articulo.codigo = :a", Lote.class)
+                .setParameter("a", ART).getResultList()) {
+            antesTraslado.put(l.getCodigo(), new BigDecimal[]{ex(l, alm1), ex(l, alm2)});
+        }
         salidaService.crearSalidaPorTraslado(tr, lista);
         entradaService.crearEntradaPorTraslado(tr, lista);
         em.flush();
@@ -309,11 +317,29 @@ class LotesFase3Test {
         }
         System.out.println(">>> Traslado 3 cajas alm1->alm2: AJ-777 alm1=" + ex(aj777, alm1) + " alm2=" + ex(aj777, alm2)
                 + " | INICIAL alm1=" + ex(inicial, alm1) + " alm2=" + ex(inicial, alm2));
-        // FEFO: AJ-777 (vence en 40 días) sale antes que INICIAL (sin vencimiento)
+        // Lo que salió de cada lote en el origen entró al mismo lote en el destino, 30 en total
+        BigDecimal movido = BigDecimal.ZERO;
+        for (Map.Entry<Integer, BigDecimal[]> e : antesTraslado.entrySet()) {
+            Lote l = em.find(Lote.class, e.getKey());
+            BigDecimal salio = e.getValue()[0].subtract(ex(l, alm1));
+            BigDecimal entro = ex(l, alm2).subtract(e.getValue()[1]);
+            assertEquals(0, salio.compareTo(entro), "lote " + l.getNumeroLote() + " salió " + salio + " y entró " + entro);
+            movido = movido.add(salio);
+        }
+        assertEquals(0, bd(30).compareTo(movido));
+        // FEFO: AJ-777 (vence en 40 días) sale antes que INICIAL (sin vencimiento); INICIAL
+        // solo se toca si los lotes con vencimiento del origen se agotaron
         assertEquals(0, ex(aj777, alm1).signum());
         assertEquals(0, ajAntes2.add(bd(20)).compareTo(ex(aj777, alm2)));
-        assertEquals(0, ini1.subtract(bd(10)).compareTo(ex(inicial, alm1)));
-        assertEquals(0, ini2.add(bd(10)).compareTo(ex(inicial, alm2)));
+        if (ex(inicial, alm1).compareTo(ini1) < 0) {
+            for (Integer cod : antesTraslado.keySet()) {
+                Lote l = em.find(Lote.class, cod);
+                if (l.getFechaVencimiento() != null) {
+                    assertEquals(0, ex(l, alm1).signum(), "INICIAL salió antes que " + l.getNumeroLote());
+                }
+            }
+        }
+        assertEquals(0, ini2.add(ini1.subtract(ex(inicial, alm1))).compareTo(ex(inicial, alm2)));
         assertCuadra();
         System.out.println(">>> TODO OK (se revierte al terminar)");
     }

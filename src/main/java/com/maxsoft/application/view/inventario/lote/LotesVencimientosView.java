@@ -320,8 +320,22 @@ public class LotesVencimientosView extends VerticalLayout implements BeforeEnter
             Button ver = new Button(VaadinIcon.LINES_LIST.create(), e -> abrirKardex(la));
             ver.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
             ver.setTooltipText("Kardex del lote");
-            return ver;
-        }).setHeader("Kardex").setAutoWidth(true).setFlexGrow(0);
+            Button devolver = new Button(VaadinIcon.TRUCK.create(), e -> UI.getCurrent().navigate(
+                    com.maxsoft.application.view.compra.devolucion.RegistroDevolucionProveedorView.class,
+                    QueryParameters.simple(Map.of(
+                            com.maxsoft.application.view.compra.devolucion.RegistroDevolucionProveedorView.PARAM_LOTE_ALMACEN,
+                            String.valueOf(la.getCodigo())))));
+            devolver.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+            devolver.setTooltipText("Devolver al proveedor");
+            devolver.setVisible(la.getExistencia().signum() > 0);
+            Button vence = new Button(VaadinIcon.CALENDAR.create(), e -> editarVencimiento(la.getLote()));
+            vence.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+            vence.setTooltipText("Editar vencimiento");
+            vence.setVisible(!LoteService.NUMERO_SIN_LOTE.equals(la.getLote().getNumeroLote()));
+            HorizontalLayout acciones = new HorizontalLayout(ver, vence, devolver);
+            acciones.setSpacing(false);
+            return acciones;
+        }).setHeader("Acciones").setAutoWidth(true).setFlexGrow(0);
 
         grid.addItemDoubleClickListener(e -> {
             if (e.getItem() != null) {
@@ -442,6 +456,58 @@ public class LotesVencimientosView extends VerticalLayout implements BeforeEnter
         Button cerrar = new Button("Cerrar", e -> dlg.close());
         dlg.getFooter().add(cerrar);
         dlg.open();
+    }
+
+    // ============================================================
+    // EDITAR VENCIMIENTO
+    // ============================================================
+    private void editarVencimiento(Lote lote) {
+
+        Dialog dlg = new Dialog();
+        dlg.setHeaderTitle("Vencimiento del lote " + lote.getNumeroLote());
+        dlg.setWidth("420px");
+        dlg.setMaxWidth("95vw");
+
+        com.vaadin.flow.component.datepicker.DatePicker dpVence
+                = new com.vaadin.flow.component.datepicker.DatePicker("Vence");
+        dpVence.setValue(lote.getFechaVencimiento());
+        dpVence.setClearButtonVisible(true);
+        dpVence.setWidthFull();
+        dpVence.setLocale(new java.util.Locale("es", "DO"));
+
+        List<String> almacenes = lista.stream()
+                .filter(x -> Objects.equals(x.getLote().getCodigo(), lote.getCodigo()))
+                .map(x -> x.getAlmacen().getNombre() + ": " + CANTIDAD.format(x.getExistencia()))
+                .toList();
+
+        VerticalLayout cuerpo = new VerticalLayout(
+                new Span(lote.getArticulo().getDescripcion()),
+                dpVence,
+                EstiloConsulta.ayuda("El cambio aplica al lote en todos los almacenes ("
+                        + String.join(" · ", almacenes) + "). Vacío = sin vencimiento."
+                        + " Si pone una fecha pasada, el lote queda vencido y la venta pedirá supervisor."));
+        cuerpo.setPadding(false);
+        dlg.add(cuerpo);
+
+        Button guardar = new Button("Guardar", VaadinIcon.CHECK.create(), e -> {
+            LocalDate nueva = dpVence.getValue();
+            if (Objects.equals(nueva, lote.getFechaVencimiento())) {
+                dlg.close();
+                return;
+            }
+            try {
+                loteService.cambiarVencimiento(lote.getCodigo(), nueva, "ADMIN");
+                dlg.close();
+                notificar("Lote " + lote.getNumeroLote() + ": vence " + fecha(nueva), NotificationVariant.LUMO_SUCCESS);
+                cargar();
+            } catch (IllegalArgumentException ex) {
+                notificar(ex.getMessage(), NotificationVariant.LUMO_ERROR);
+            }
+        });
+        guardar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        dlg.getFooter().add(new Button("Cancelar", e -> dlg.close()), guardar);
+        dlg.open();
+        dpVence.focus();
     }
 
     // ============================================================

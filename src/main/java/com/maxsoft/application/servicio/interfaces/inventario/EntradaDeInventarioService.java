@@ -44,4 +44,10 @@ public interface EntradaDeInventarioService {
 
     EntradaInventario crearEntradaPorTraslado(TrasladoInventario ajuste, List<DetalleTrasladoInventario> detalles);
 
+    /**
+     * Entrada por devolución a proveedor: reposición de un cambio en los lotes nuevos
+     * (reposicion = true) o reverso de una devolución anulada a sus lotes de origen.
+     */
+    EntradaInventario crearEntradaPorDevolucionProveedor(com.maxsoft.application.modelo.DevolucionProveedor devolucion,
+            List<com.maxsoft.application.modelo.DetalleDevolucionProveedor> detalles, boolean reposicion, String usuario);
 }

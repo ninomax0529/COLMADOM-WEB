@@ -1,48 +1,57 @@
-
-
 package com.maxsoft.application.view.compra.recepcion;
 
-import com.maxsoft.application.modelo.*;
-
+import com.maxsoft.application.modelo.Almacen;
+import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.modelo.ArticuloEmpaque;
+import com.maxsoft.application.modelo.CondicionPago;
+import com.maxsoft.application.modelo.DetalleOrdendeDeCompra;
+import com.maxsoft.application.modelo.DetalleRecepcionMercancia;
+import com.maxsoft.application.modelo.OrdenDeCompra;
+import com.maxsoft.application.modelo.Proveedor;
+import com.maxsoft.application.modelo.RecepcionMercancia;
+import com.maxsoft.application.modelo.TipoDocumento;
+import com.maxsoft.application.modelo.Usuario;
 import com.maxsoft.application.servicio.interfaces.EstadoDocumentoService;
-import com.maxsoft.application.servicio.interfaces.cxp.CondicionPagoService;
 import com.maxsoft.application.servicio.interfaces.compra.OrdenDeCompraService;
 import com.maxsoft.application.servicio.interfaces.compra.ProveedorService;
 import com.maxsoft.application.servicio.interfaces.compra.RecepcionMercanciaService;
+import com.maxsoft.application.servicio.interfaces.cxp.CondicionPagoService;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoDocumentoService;
-import com.maxsoft.application.servicio.interfaces.venta.UnidadDeVentaService;
 import com.maxsoft.application.util.ClaseUtil;
-
+import com.maxsoft.application.view.componente.EmpaqueSeleccionDialogo;
+import com.maxsoft.application.view.componente.EstiloConsulta;
+import com.maxsoft.application.view.componente.inventario.LoteUi;
+import com.maxsoft.application.view.inventario.articulo.ArticuloDialogoFilteringView;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.ListItem;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.NumberField;
-import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-
+import jakarta.annotation.security.PermitAll;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -50,27 +59,31 @@ import java.util.Date;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
 
+/**
+ * Recepción de mercancía: desde una orden de compra (solo lo pendiente) o
+ * manual (artículos con F2). Genera la entrada de inventario, el lote de cada
+ * artículo que controla lote y la factura de compra.
+ */
+@PermitAll
+@PageTitle("Recepción de Mercancía | MaxSoft ERP")
 @Route(value = "compra/recepcion")
-@PageTitle("Recepción de Mercancía")
 public class RecepcionMercanciaView extends VerticalLayout {
 
     private static final Integer ORIGEN_ORDEN_COMPRA = 8;
+    private static final BigDecimal ITBIS_DEFECTO = new BigDecimal("18");
+    private static final DecimalFormat CANTIDAD = new DecimalFormat("#,##0.##");
 
     private final RecepcionMercanciaService recepcionService;
     private final OrdenDeCompraService ordenCompraService;
-    private final ProveedorService proveedorService;
     private final ArticuloService articuloService;
-    private final AlmacenService almacenService;
     private final ArticuloEmpaqueService articuloEmpaqueService;
-    private final TipoDocumentoService tipoDocumentoService;
-    private final EstadoDocumentoService essDocumentoService;
-    private final UnidadDeVentaService unidadDeVentaService;
-    private final CondicionPagoService condicionPService;
+    private final EstadoDocumentoService estadoDocumentoService;
 
     // Estado interno
     private final List<DetalleRecepcionMercancia> detalles = new ArrayList<>();
-
     // IdentityHashMap: las entidades JPA suelen sobrescribir equals/hashCode por id (null aquí)
     // Cantidad pendiente de la orden por cada línea (solo líneas que vienen de una OC)
     private final Map<DetalleRecepcionMercancia, BigDecimal> pendientePorDetalle = new IdentityHashMap<>();
@@ -78,39 +91,30 @@ public class RecepcionMercanciaView extends VerticalLayout {
     private final Map<DetalleRecepcionMercancia, BigDecimal> itbisPorcPorDetalle = new IdentityHashMap<>();
 
     // Encabezado
-    private final TextField txtNumero = new TextField("N° Recepción");
-    private final ComboBox<TipoDocumento> cbTipoDocumento = new ComboBox<>("Tipo Origen");
-    private final ComboBox<OrdenDeCompra> cbOrdenCompra = new ComboBox<>("Orden de Compra");
+    private final ComboBox<TipoDocumento> cbTipoDocumento = new ComboBox<>("Origen");
+    private final ComboBox<OrdenDeCompra> cbOrdenCompra = new ComboBox<>("Orden de compra");
     private final Button btnOrdenesPendientes = new Button("Ver pendientes", VaadinIcon.SEARCH.create());
     private final HorizontalLayout layoutOrden = new HorizontalLayout();
-    private final TextField txtDocOrigen = new TextField("N° Doc. Referencia / NCF");
-    private final ComboBox<Proveedor> cbSuplidor = new ComboBox<>("Suplidor / Proveedor");
-    private final ComboBox<Almacen> cbAlmacenDestino = new ComboBox<>("Almacén Destino");
-    private final ComboBox<CondicionPago> cbCondicionPago = new ComboBox<>("Condición de Pago");
-    private final DatePicker dtFecha = new DatePicker("Fecha Recepción");
-    private final TextArea txtComentario = new TextArea("Comentarios / Observaciones");
+    private final TextField txtDocOrigen = new TextField("N° conduce / NCF");
+    private final ComboBox<Proveedor> cbSuplidor = new ComboBox<>("Proveedor");
+    private final ComboBox<Almacen> cbAlmacenDestino = new ComboBox<>("Almacén destino");
+    private final ComboBox<CondicionPago> cbCondicionPago = new ComboBox<>("Condición de pago");
+    private final DatePicker dtFecha = new DatePicker("Fecha");
+    private final TextField txtComentario = new TextField("Comentario");
 
-    // Formulario Agregar Detalle
-    private HorizontalLayout layoutDetalle;
-    private final ComboBox<Articulo> cbArticulo = new ComboBox<>("Artículo");
-    private final ComboBox<ArticuloEmpaque> cbEmpaque = new ComboBox<>("Presentación / Empaque");
-    private final TextField txtDescripcion = new TextField("Descripción");
-    private final NumberField numCantidad = new NumberField("Cant. A Recibir");
-    private final NumberField numPrecio = new NumberField("P. Unitario Empaque");
-    private final NumberField numItbisPorc = new NumberField("% ITBIS");
-    private final Button btnAgregarDetalle = new Button("Agregar Detalle", VaadinIcon.PLUS.create());
+    // Barra de artículos (solo recepción manual)
+    private final HorizontalLayout barraArticulos = new HorizontalLayout();
+    private final Span lblAyuda = new Span();
 
     // Grid
-    private final Grid<DetalleRecepcionMercancia> gridDetalles = new Grid<>(DetalleRecepcionMercancia.class, false);
+    private final Grid<DetalleRecepcionMercancia> grid = new Grid<>(DetalleRecepcionMercancia.class, false);
+    private Grid.Column<DetalleRecepcionMercancia> colPendienteOc;
 
-    // Totales
-    private final Span lblSubTotal = new Span("RD$ 0.00");
-    private final Span lblItbis = new Span("RD$ 0.00");
-    private final Span lblTotal = new Span("RD$ 0.00");
-
-    // Botones
-    private final Button btnGuardar = new Button("Procesar Entrada", VaadinIcon.CHECK.create());
-    private final Button btnCancelar = new Button("Cancelar", VaadinIcon.CLOSE.create());
+    // Totales y acciones
+    private final Span lblSubTotal = new Span();
+    private final Span lblItbis = new Span();
+    private final Span lblTotal = new Span();
+    private final Button btnGuardar = new Button("Procesar recepción", VaadinIcon.CHECK.create());
 
     public RecepcionMercanciaView(RecepcionMercanciaService recepcionService,
             OrdenDeCompraService ordenCompraService,
@@ -119,127 +123,162 @@ public class RecepcionMercanciaView extends VerticalLayout {
             AlmacenService almacenService,
             ArticuloEmpaqueService articuloEmpaqueService,
             TipoDocumentoService tipoDocumentoService,
-            EstadoDocumentoService essDocumentoService,
-            UnidadDeVentaService unidadDeVentaService,
-            CondicionPagoService condicionPService) {
+            EstadoDocumentoService estadoDocumentoService,
+            CondicionPagoService condicionPagoService) {
 
         this.recepcionService = recepcionService;
         this.ordenCompraService = ordenCompraService;
-        this.proveedorService = proveedorService;
         this.articuloService = articuloService;
-        this.almacenService = almacenService;
         this.articuloEmpaqueService = articuloEmpaqueService;
-        this.tipoDocumentoService = tipoDocumentoService;
-        this.essDocumentoService = essDocumentoService;
-        this.unidadDeVentaService = unidadDeVentaService;
-        this.condicionPService = condicionPService;
+        this.estadoDocumentoService = estadoDocumentoService;
 
-        setSpacing(true);
-        setPadding(true);
+        setSizeFull();
+        setSpacing(false);
+        addClassName("fv-vista");
 
-        add(new H2("Recepción e Ingreso de Mercancía"));
+        H2 titulo = new H2("Recepción de Mercancía");
+        titulo.addClassName("fv-titulo");
 
-        crearFormularioEncabezado();
-        crearSeccionAgregarDetalle();
-        configurarGridDetalles();
-        crearSeccionTotalesYAcciones();
+        configurarEncabezado(proveedorService, almacenService, tipoDocumentoService, condicionPagoService);
 
+        HorizontalLayout fila1 = new HorizontalLayout(cbTipoDocumento, layoutOrden, cbSuplidor, txtDocOrigen);
+        fila1.setAlignItems(Alignment.BASELINE);
+        fila1.getStyle().set("flex-wrap", "wrap");
+        HorizontalLayout fila2 = new HorizontalLayout(cbAlmacenDestino, cbCondicionPago, dtFecha, txtComentario);
+        fila2.setAlignItems(Alignment.BASELINE);
+        fila2.getStyle().set("flex-wrap", "wrap");
+
+        Button btnArticulo = new Button("Artículo (F2)", VaadinIcon.PLUS.create(), e -> agregarArticulo());
+        btnArticulo.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        btnArticulo.addClickShortcut(Key.F2);
+        lblAyuda.getStyle().set("color", "var(--lumo-secondary-text-color)")
+                .set("font-size", "var(--lumo-font-size-s)");
+        barraArticulos.add(btnArticulo, lblAyuda);
+        barraArticulos.setAlignItems(Alignment.CENTER);
+
+        configurarGrid();
+
+        btnGuardar.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+        btnGuardar.addClickListener(e -> procesarRecepcion());
+        Button btnCancelar = new Button("Cancelar", e -> UI.getCurrent().navigate(ConsultaRecepcionMercanciaView.class));
+
+        Div totales = new Div(etiquetaTotal("Subtotal", lblSubTotal), etiquetaTotal("ITBIS", lblItbis),
+                etiquetaTotal("Total", lblTotal));
+        totales.getStyle().set("display", "flex").set("gap", "var(--lumo-space-l)").set("align-items", "baseline");
+        lblTotal.getStyle().set("font-size", "var(--lumo-font-size-xl)").set("font-weight", "700");
+        HorizontalLayout pie = new HorizontalLayout(totales, btnCancelar, btnGuardar);
+        pie.setWidthFull();
+        pie.setAlignItems(Alignment.CENTER);
+        pie.expand(totales);
+
+        add(titulo, fila1, fila2, barraArticulos, grid, pie);
+        setFlexGrow(1, grid);
+
+        actualizarTotales();
         cargarDatosIniciales();
+    }
+
+    private static Span etiquetaTotal(String texto, Span valor) {
+        Span s = new Span(texto + ": ");
+        s.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        return new Span(s, valor);
     }
 
     // =====================================================================
     // ENCABEZADO
     // =====================================================================
-    private void crearFormularioEncabezado() {
-        FormLayout form = new FormLayout();
+    private void configurarEncabezado(ProveedorService proveedorService, AlmacenService almacenService,
+            TipoDocumentoService tipoDocumentoService, CondicionPagoService condicionPagoService) {
 
-        cbTipoDocumento.setItems(this.tipoDocumentoService.getLista());
+        cbTipoDocumento.setItems(tipoDocumentoService.getLista());
         cbTipoDocumento.setItemLabelGenerator(TipoDocumento::getNombre);
-
-        cbTipoDocumento.addValueChangeListener(e -> {
-
-            cambiarTipoOrigen(e.getValue() != null ? e.getValue().getCodigo() : 0);
-        });
+        cbTipoDocumento.setWidth("200px");
+        cbTipoDocumento.addValueChangeListener(e
+                -> cambiarTipoOrigen(e.getValue() != null ? e.getValue().getCodigo() : 0));
 
         cbOrdenCompra.setItemLabelGenerator(o -> o.getNumero() + " - "
                 + (o.getProveedor() != null ? o.getProveedor().getNombre() : ""));
-
-        cbOrdenCompra.setPlaceholder("Seleccione Orden...");
+        cbOrdenCompra.setPlaceholder("Seleccione la orden...");
         cbOrdenCompra.setClearButtonVisible(true);
-        cbOrdenCompra.addValueChangeListener(e -> {
+        cbOrdenCompra.setWidth("280px");
+        cbOrdenCompra.addValueChangeListener(e -> cargarDesdeOrdenCompra(e.getValue()));
 
-            cargarDesdeOrdenCompra(e.getValue());
-
-        });
-        cbOrdenCompra.setWidthFull();
-
+        btnOrdenesPendientes.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         btnOrdenesPendientes.addClickListener(e -> abrirDialogoOrdenesPendientes());
 
         layoutOrden.setPadding(false);
         layoutOrden.setSpacing(true);
-        layoutOrden.setWidthFull();
-        layoutOrden.setAlignItems(FlexComponent.Alignment.END);
+        layoutOrden.setAlignItems(Alignment.BASELINE);
         layoutOrden.add(cbOrdenCompra, btnOrdenesPendientes);
-        layoutOrden.setFlexGrow(1, cbOrdenCompra);
 
         cbSuplidor.setItems(proveedorService.getLista());
         cbSuplidor.setItemLabelGenerator(Proveedor::getNombre);
+        cbSuplidor.setWidth("280px");
         cbSuplidor.setRequired(true);
+
+        txtDocOrigen.setWidth("180px");
+        txtDocOrigen.setMaxLength(50);
 
         cbAlmacenDestino.setItems(almacenService.getLista());
         cbAlmacenDestino.setItemLabelGenerator(Almacen::getNombre);
+        cbAlmacenDestino.setWidth("180px");
         cbAlmacenDestino.setRequired(true);
         // Si el almacén cambia (antes o después de cargar la OC), se aplica a todas las líneas
         cbAlmacenDestino.addValueChangeListener(e -> {
             for (DetalleRecepcionMercancia d : detalles) {
                 d.setAlmacen(e.getValue());
             }
-            gridDetalles.getDataProvider().refreshAll();
+            grid.getDataProvider().refreshAll();
         });
 
         // Condición de pago (contado, crédito 30 días, etc.)
-        cbCondicionPago.setItems(condicionPService.getLista());
+        cbCondicionPago.setItems(condicionPagoService.getLista());
         cbCondicionPago.setItemLabelGenerator(CondicionPago::getNombre);
         cbCondicionPago.setAllowCustomValue(false);
         cbCondicionPago.setRequired(true);
-        cbCondicionPago.setPlaceholder("Seleccione la condición...");
+        cbCondicionPago.setWidth("200px");
+        cbCondicionPago.setPlaceholder("Seleccione...");
 
         dtFecha.setValue(LocalDate.now());
-        txtComentario.setMinHeight("70px");
+        dtFecha.setWidth("150px");
 
-        form.add(txtNumero, cbTipoDocumento, layoutOrden, txtDocOrigen, cbSuplidor, cbAlmacenDestino, cbCondicionPago, dtFecha);
-        form.add(txtComentario);
-        form.setColspan(txtComentario, 3);
-
-        form.setResponsiveSteps(
-                new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("600px", 2),
-                new FormLayout.ResponsiveStep("900px", 3)
-        );
-
-        add(form);
+        txtComentario.setWidth("300px");
+        txtComentario.setMaxLength(250);
+        txtComentario.setRequired(true);
+        txtComentario.setPlaceholder("Quién entregó, observaciones...");
     }
 
     private void cambiarTipoOrigen(Integer tipo) {
-
         if (ORIGEN_ORDEN_COMPRA.equals(tipo)) {
-
             layoutOrden.setVisible(true);
             cargarOrdenesPendientes();
         } else {
             cbOrdenCompra.clear(); // dispara cargarDesdeOrdenCompra(null) que limpia las líneas de la OC
             layoutOrden.setVisible(false);
             cbSuplidor.setReadOnly(false);
-            layoutDetalle.setVisible(true);
+        }
+        actualizarModo();
+    }
+
+    /** Con una OC seleccionada solo se recibe lo que la orden contiene: no se agregan artículos. */
+    private void actualizarModo() {
+        boolean conOrden = cbOrdenCompra.getValue() != null;
+        barraArticulos.setVisible(!conOrden);
+        colPendienteOc.setVisible(conOrden);
+        if (conOrden) {
+            lblAyuda.setText("");
+        } else if (layoutOrden.isVisible()) {
+            lblAyuda.setText("Elija la orden de compra a recibir, o cambie el origen para una recepción manual.");
+        } else {
+            lblAyuda.setText("Agregue los artículos recibidos. Lote vacío = lote automático del día.");
         }
     }
 
-    /**
-     * Órdenes (vía OrdenDeCompraService) que todavía tienen mercancía por
-     * recibir.
-     */
+    // =====================================================================
+    // ÓRDENES DE COMPRA PENDIENTES
+    // =====================================================================
+    /** Órdenes (vía OrdenDeCompraService) que todavía tienen mercancía por recibir. */
     private List<OrdenDeCompra> obtenerOrdenesPendientes() {
-
         return ordenCompraService.getListaOcPendiente().stream()
                 .filter(o -> !"COMPLETADA".equalsIgnoreCase(o.getEstado())
                 && (o.getAnulada() == null || !o.getAnulada())
@@ -248,7 +287,6 @@ public class RecepcionMercanciaView extends VerticalLayout {
     }
 
     private void cargarOrdenesPendientes() {
-
         cbOrdenCompra.setItems(obtenerOrdenesPendientes());
     }
 
@@ -284,18 +322,15 @@ public class RecepcionMercanciaView extends VerticalLayout {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    /**
-     * Diálogo con las órdenes de compra pendientes por recibir; al elegir una
-     * se carga en la recepción.
-     */
+    /** Diálogo con las órdenes pendientes por recibir; al elegir una se carga en la recepción. */
     private void abrirDialogoOrdenesPendientes() {
         List<OrdenDeCompra> pendientes = obtenerOrdenesPendientes();
         // El combo usa la misma lista para que la orden elegida en el diálogo exista en sus items
         cbOrdenCompra.setItems(pendientes);
 
         if (pendientes.isEmpty()) {
-            Notification.show("No hay órdenes de compra pendientes por recibir.",
-                    3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+            ClaseUtil.mostrarNotificacion("No hay órdenes de compra pendientes por recibir.",
+                    NotificationVariant.LUMO_CONTRAST);
             return;
         }
 
@@ -310,43 +345,40 @@ public class RecepcionMercanciaView extends VerticalLayout {
         txtFiltro.setValueChangeMode(ValueChangeMode.LAZY);
         txtFiltro.setWidthFull();
 
-        Grid<OrdenDeCompra> grid = new Grid<>(OrdenDeCompra.class, false);
-        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_COMPACT);
-        grid.addColumn(OrdenDeCompra::getNumero).setHeader("N° Orden").setAutoWidth(true);
-        grid.addColumn(o -> o.getProveedor() != null ? o.getProveedor().getNombre() : "-")
+        Grid<OrdenDeCompra> gridOc = new Grid<>(OrdenDeCompra.class, false);
+        EstiloConsulta.aplicarGrid(gridOc);
+        gridOc.addColumn(OrdenDeCompra::getNumero).setHeader("N° Orden").setAutoWidth(true);
+        gridOc.addColumn(o -> o.getProveedor() != null ? o.getProveedor().getNombre() : "-")
                 .setHeader("Proveedor").setFlexGrow(2);
-        grid.addColumn(OrdenDeCompra::getEstado).setHeader("Estado").setAutoWidth(true);
-        grid.addColumn(this::contarLineasPendientes).setHeader("Líneas pend.").setAutoWidth(true);
-        grid.addColumn(o -> sumarCantidadPendiente(o).stripTrailingZeros().toPlainString())
+        gridOc.addColumn(OrdenDeCompra::getEstado).setHeader("Estado").setAutoWidth(true);
+        gridOc.addColumn(this::contarLineasPendientes).setHeader("Líneas pend.").setAutoWidth(true);
+        gridOc.addColumn(o -> CANTIDAD.format(sumarCantidadPendiente(o)))
                 .setHeader("Cant. pendiente").setAutoWidth(true);
-        grid.addComponentColumn(o -> {
+        gridOc.addComponentColumn(o -> {
             Button btn = new Button("Recibir", VaadinIcon.DOWNLOAD.create(),
                     e -> seleccionarOrdenPendiente(o, dialog));
             btn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
             return btn;
-        }).setHeader("Acción").setAutoWidth(true);
+        }).setHeader("").setAutoWidth(true).setFlexGrow(0);
 
-        grid.setItems(pendientes);
-        grid.setHeight("380px");
-        grid.addItemDoubleClickListener(e -> seleccionarOrdenPendiente(e.getItem(), dialog));
+        gridOc.setItems(pendientes);
+        gridOc.setHeight("380px");
+        gridOc.addItemDoubleClickListener(e -> seleccionarOrdenPendiente(e.getItem(), dialog));
 
         txtFiltro.addValueChangeListener(e -> {
             String f = e.getValue() == null ? "" : e.getValue().trim().toLowerCase();
-            grid.getListDataView().setFilter(o
+            gridOc.getListDataView().setFilter(o
                     -> f.isEmpty()
                     || (o.getNumero() != null && o.getNumero().toLowerCase().contains(f))
                     || (o.getProveedor() != null && o.getProveedor().getNombre() != null
                     && o.getProveedor().getNombre().toLowerCase().contains(f)));
         });
 
-        VerticalLayout contenido = new VerticalLayout(txtFiltro, grid);
+        VerticalLayout contenido = new VerticalLayout(txtFiltro, gridOc);
         contenido.setPadding(false);
         contenido.setSpacing(true);
         dialog.add(contenido);
-
-        Button btnCerrar = new Button("Cerrar", e -> dialog.close());
-        dialog.getFooter().add(btnCerrar);
-
+        dialog.getFooter().add(new Button("Cerrar", e -> dialog.close()));
         dialog.open();
     }
 
@@ -369,7 +401,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
                 actualizarGridYTotales();
             }
             cbSuplidor.setReadOnly(false);
-            layoutDetalle.setVisible(true);
+            actualizarModo();
             return;
         }
 
@@ -387,7 +419,6 @@ public class RecepcionMercanciaView extends VerticalLayout {
         int sinEmpaque = 0;
 
         if (oc.getDetalleOrdendeDeCompraCollection() != null) {
-
             for (DetalleOrdendeDeCompra doc : oc.getDetalleOrdendeDeCompraCollection()) {
 
                 BigDecimal pendiente = doc.getPendiente() != null ? doc.getPendiente() : doc.getCantidad();
@@ -398,30 +429,21 @@ public class RecepcionMercanciaView extends VerticalLayout {
                 BigDecimal precio = doc.getPrecioUnitario() != null ? doc.getPrecioUnitario() : BigDecimal.ZERO;
 
                 DetalleRecepcionMercancia det = new DetalleRecepcionMercancia();
-
-                det.setCodigo(doc.getArticulo().getCodigo());
+                // codigo queda null (id de la fila en BD); el grid identifica las filas por instancia
                 det.setArticulo(doc.getArticulo());
                 det.setAlmacen(cbAlmacenDestino.getValue()); // se actualiza si luego eligen otro almacén
                 det.setDescripcionArticulo(doc.getDescripcionArticulo());
                 det.setCantidadRecibida(pendiente);       // sugerido: todo lo pendiente
                 det.setPrecioUnitario(precio);
-                // det.setDetalleOrdenDeCompra(doc);      // <-- recomendado: vínculo con la línea de la OC
 
-                // Empaque base por defecto (preferiblemente uno habilitado para compras)
                 ArticuloEmpaque emp = doc.getArticuloEmpaque();
-//                ArticuloEmpaque emp = buscarEmpaqueBase(doc.getArticulo());
-
                 BigDecimal factor = BigDecimal.ONE;
-
                 if (emp != null) {
-
                     det.setArticuloEmpaque(emp);
-
                     if (emp.getFactorConversion() != null) {
                         factor = emp.getFactorConversion();
                     }
                     if (emp.getUnidadEmpaque() != null) {
-
                         det.setUnidad(emp.getUnidadEmpaque());
                         det.setNombreUnidad(emp.getUnidadEmpaque().getDescripcion());
                     }
@@ -429,7 +451,6 @@ public class RecepcionMercanciaView extends VerticalLayout {
                     sinEmpaque++;
                 }
                 det.setFactorConversion(factor);
-                det.setCantidadFisicaBase(pendiente.multiply(factor));
 
                 // ITBIS: se conserva el % que tenía la línea en la orden
                 BigDecimal porc = BigDecimal.ZERO;
@@ -439,370 +460,226 @@ public class RecepcionMercanciaView extends VerticalLayout {
                             .divide(doc.getSubTotal(), 4, RoundingMode.HALF_UP);
                 }
 
-                BigDecimal sub = pendiente.multiply(precio).setScale(2, RoundingMode.HALF_UP);
-                BigDecimal itbis = sub.multiply(porc).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
-                det.setSubTotal(sub);
-                det.setItbis(itbis);
-                det.setTotal(sub.add(itbis));
-
                 detalles.add(det);
                 pendientePorDetalle.put(det, pendiente);
                 itbisPorcPorDetalle.put(det, porc);
+                calcularLinea(det);
             }
         }
 
-        // Con una OC seleccionada solo se recibe lo que la orden contiene
-        layoutDetalle.setVisible(false);
+        actualizarModo();
         actualizarGridYTotales();
 
         if (detalles.isEmpty()) {
-            Notification.show("La orden seleccionada no tiene artículos pendientes por recibir.",
-                    3500, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_WARNING);
+            ClaseUtil.mostrarNotificacion("La orden seleccionada no tiene artículos pendientes por recibir.",
+                    NotificationVariant.LUMO_WARNING);
         } else if (sinEmpaque > 0) {
-            Notification.show(sinEmpaque + " artículo(s) no tienen empaque configurado; se asumió factor 1.",
-                    4000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_WARNING);
+            ClaseUtil.mostrarNotificacion(sinEmpaque + " artículo(s) no tienen empaque configurado; se asumió factor 1.",
+                    NotificationVariant.LUMO_WARNING);
         }
-    }
-
-    private ArticuloEmpaque buscarEmpaqueBase(Articulo articulo) {
-        List<ArticuloEmpaque> empaques = articuloEmpaqueService.getPorArticulo(articulo.getCodigo());
-        if (empaques == null || empaques.isEmpty()) {
-            return null;
-        }
-        return empaques.stream()
-                .filter(e -> Boolean.TRUE.equals(e.getEsEmpaqueBase()) && Boolean.TRUE.equals(e.getSeCompraEn()))
-                .findFirst()
-                .or(() -> empaques.stream().filter(e -> Boolean.TRUE.equals(e.getEsEmpaqueBase())).findFirst())
-                .orElse(empaques.get(0));
     }
 
     // =====================================================================
-    // AGREGAR DETALLE MANUAL (cuando el origen no es una orden de compra)
+    // AGREGAR ARTÍCULO (recepción manual)
     // =====================================================================
-    private void crearSeccionAgregarDetalle() {
-        layoutDetalle = new HorizontalLayout();
-        layoutDetalle.setWidthFull();
-        layoutDetalle.setAlignItems(FlexComponent.Alignment.BASELINE);
-
-        cbArticulo.setItems(articuloService.getLista());
-        cbArticulo.setItemLabelGenerator(a -> a.getCodigo() + " - " + a.getDescripcion());
-        cbArticulo.setPlaceholder("Buscar artículo...");
-        cbArticulo.setWidth("20%");
-
-        cbEmpaque.setItemLabelGenerator(e -> {
-            String unidad = e.getUnidadEmpaque() != null ? e.getUnidadEmpaque().getDescripcion() : "Sin unidad";
-            BigDecimal f = e.getFactorConversion() != null ? e.getFactorConversion() : BigDecimal.ONE;
-            return unidad + " (x" + f.stripTrailingZeros().toPlainString() + ")";
-        });
-        cbEmpaque.setPlaceholder("Seleccionar Empaque...");
-        cbEmpaque.setWidth("18%");
-
-        cbArticulo.addValueChangeListener(e -> {
-            Articulo artSel = e.getValue();
-            cbEmpaque.clear();
-            cbEmpaque.setItems(List.of());
-
-            if (artSel == null) {
-                return;
+    private void agregarArticulo() {
+        if (!barraArticulos.isVisible()) {
+            return; // con orden de compra no se agregan artículos (F2 sigue activo)
+        }
+        if (cbAlmacenDestino.getValue() == null) {
+            ClaseUtil.mostrarNotificacion("Seleccione el almacén destino antes de agregar artículos",
+                    NotificationVariant.LUMO_WARNING);
+            cbAlmacenDestino.focus();
+            return;
+        }
+        new ArticuloDialogoFilteringView(articuloService, articulo -> {
+            if (articulo != null) {
+                new EmpaqueSeleccionDialogo(articulo, articuloEmpaqueService, empaque -> {
+                    if (empaque != null) {
+                        agregarLinea(articulo, empaque);
+                    }
+                }).open();
             }
-
-            txtDescripcion.setValue(artSel.getDescripcion());
-
-            List<ArticuloEmpaque> todos = articuloEmpaqueService.getPorArticulo(artSel.getCodigo());
-            if (todos == null || todos.isEmpty()) {
-                Notification.show("El artículo " + artSel.getCodigo() + " no tiene empaques configurados.",
-                        3500, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_WARNING);
-                return;
-            }
-
-            // Preferir los habilitados para compra; si ninguno lo está, mostrar todos
-            List<ArticuloEmpaque> empaquesCompra = todos.stream()
-                    .filter(emp -> Boolean.TRUE.equals(emp.getSeCompraEn()))
-                    .toList();
-            List<ArticuloEmpaque> disponibles = empaquesCompra.isEmpty() ? todos : empaquesCompra;
-
-            cbEmpaque.setItems(disponibles);
-
-            disponibles.stream()
-                    .filter(emp -> Boolean.TRUE.equals(emp.getEsEmpaqueBase()))
-                    .findFirst()
-                    .or(() -> disponibles.stream().findFirst())
-                    .ifPresent(cbEmpaque::setValue);
-
-            numCantidad.focus();
-        });
-
-        cbEmpaque.addValueChangeListener(e -> {
-            ArticuloEmpaque empSel = e.getValue();
-            if (empSel != null && empSel.getPrecioCompra() != null) {
-                numPrecio.setValue(empSel.getPrecioCompra().doubleValue());
-            } else if (cbArticulo.getValue() != null && cbArticulo.getValue().getPrecioCompra() != null) {
-                numPrecio.setValue(cbArticulo.getValue().getPrecioCompra().doubleValue());
-            }
-        });
-
-        txtDescripcion.setWidth("22%");
-        numCantidad.setMin(0.01);
-        numCantidad.setValue(1.0);
-        numCantidad.setWidth("10%");
-        numCantidad.addKeyPressListener(Key.ENTER, e -> agregarDetalleAGrid());
-
-        numPrecio.setMin(0);
-        numPrecio.setWidth("12%");
-        numItbisPorc.setValue(18.0);
-        numItbisPorc.setWidth("8%");
-
-        btnAgregarDetalle.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        btnAgregarDetalle.addClickListener(e -> agregarDetalleAGrid());
-
-        layoutDetalle.add(cbArticulo, cbEmpaque, txtDescripcion, numCantidad, numPrecio, numItbisPorc, btnAgregarDetalle);
-        add(layoutDetalle);
+        }).open();
     }
 
-    private void agregarDetalleAGrid() {
-        try {
-            if (cbAlmacenDestino.isEmpty()) {
-                Notification.show("Seleccione un almacén destino antes de agregar artículos.", 3000, Notification.Position.MIDDLE)
-                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                cbAlmacenDestino.focus();
-                return;
-            }
-
-            if (cbArticulo.isEmpty() || cbEmpaque.isEmpty() || numCantidad.getValue() == null || numPrecio.getValue() == null) {
-                Notification.show("Seleccione artículo, empaque, cantidad y precio válidos.", 3000, Notification.Position.MIDDLE)
-                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
-                return;
-            }
-
-            Articulo artSel = cbArticulo.getValue();
-            ArticuloEmpaque empSel = cbEmpaque.getValue();
-            Almacen almacenSel = cbAlmacenDestino.getValue();
-            String desc = txtDescripcion.getValue() != null ? txtDescripcion.getValue().trim() : artSel.getDescripcion();
-
-            boolean yaExiste = detalles.stream().anyMatch(d
-                    -> d.getArticulo() != null && d.getArticulo().getCodigo().equals(artSel.getCodigo())
-                    && d.getArticuloEmpaque() != null && d.getArticuloEmpaque().getCodigo().equals(empSel.getCodigo())
-            );
-
-            if (yaExiste) {
-                Notification.show("Esta presentación del artículo ya fue agregada.", 3000, Notification.Position.MIDDLE)
-                        .addThemeVariants(NotificationVariant.LUMO_WARNING);
-                return;
-            }
-
-            BigDecimal cantRecibida = BigDecimal.valueOf(numCantidad.getValue());
-            BigDecimal factor = empSel.getFactorConversion() != null ? empSel.getFactorConversion() : BigDecimal.ONE;
-            BigDecimal cantFisicaBase = cantRecibida.multiply(factor);
-
-            BigDecimal precEmpaque = BigDecimal.valueOf(numPrecio.getValue());
-            BigDecimal porcItbis = BigDecimal.valueOf(numItbisPorc.getValue() != null ? numItbisPorc.getValue() : 0.0);
-
-            BigDecimal sub = cantRecibida.multiply(precEmpaque).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal itbis = sub.multiply(porcItbis).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
-            DetalleRecepcionMercancia det = new DetalleRecepcionMercancia();
-            det.setCodigo(artSel.getCodigo());
-            det.setArticulo(artSel);
-            det.setArticuloEmpaque(empSel);
-            det.setAlmacen(almacenSel);
-            det.setFactorConversion(factor);
-            det.setCantidadFisicaBase(cantFisicaBase);
-
-            if (empSel.getUnidadEmpaque() != null) {
-                det.setUnidad(empSel.getUnidadEmpaque());
-                det.setNombreUnidad(empSel.getUnidadEmpaque().getDescripcion());
-            }
-
-            det.setDescripcionArticulo(desc);
-            det.setCantidadRecibida(cantRecibida);
-            det.setPrecioUnitario(precEmpaque);
-            det.setSubTotal(sub);
-            det.setItbis(itbis);
-            det.setTotal(sub.add(itbis));
-
-            detalles.add(det);
-            itbisPorcPorDetalle.put(det, porcItbis);
-            actualizarGridYTotales();
-            limpiarFormularioDetalle();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Notification.show("Error al agregar el detalle: " + e.getMessage(), 4000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+    private void agregarLinea(Articulo articulo, ArticuloEmpaque empaque) {
+        boolean yaExiste = detalles.stream().anyMatch(d -> d.getArticulo() != null
+                && Objects.equals(d.getArticulo().getCodigo(), articulo.getCodigo())
+                && d.getArticuloEmpaque() != null
+                && Objects.equals(d.getArticuloEmpaque().getCodigo(), empaque.getCodigo()));
+        if (yaExiste) {
+            ClaseUtil.mostrarNotificacion("Esta presentación del artículo ya fue agregada; cambie la cantidad en la lista.",
+                    NotificationVariant.LUMO_WARNING);
+            return;
         }
+
+        BigDecimal factor = empaque.getFactorConversion() != null ? empaque.getFactorConversion() : BigDecimal.ONE;
+        BigDecimal precio = empaque.getPrecioCompra() != null ? empaque.getPrecioCompra()
+                : articulo.getPrecioCompra() != null ? articulo.getPrecioCompra().multiply(factor) : BigDecimal.ZERO;
+
+        DetalleRecepcionMercancia det = new DetalleRecepcionMercancia();
+        // codigo queda null (id de la fila en BD); el grid identifica las filas por instancia
+        det.setArticulo(articulo);
+        det.setArticuloEmpaque(empaque);
+        det.setAlmacen(cbAlmacenDestino.getValue());
+        det.setFactorConversion(factor);
+        if (empaque.getUnidadEmpaque() != null) {
+            det.setUnidad(empaque.getUnidadEmpaque());
+            det.setNombreUnidad(empaque.getUnidadEmpaque().getDescripcion());
+        }
+        det.setDescripcionArticulo(articulo.getDescripcion());
+        det.setCantidadRecibida(BigDecimal.ONE);
+        det.setPrecioUnitario(precio);
+
+        detalles.add(det);
+        itbisPorcPorDetalle.put(det, articulo.getExentoItbis() ? BigDecimal.ZERO : ITBIS_DEFECTO);
+        calcularLinea(det);
+        actualizarGridYTotales();
     }
 
     // =====================================================================
     // GRID
     // =====================================================================
-    private void configurarGridDetalles() {
-        gridDetalles.addThemeVariants(GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_COMPACT);
+    private void configurarGrid() {
+        EstiloConsulta.aplicarGrid(grid);
+        grid.setWidthFull();
+        // Las líneas nuevas tienen codigo null y el equals de la entidad las daría todas por
+        // iguales (dos empaques del mismo artículo se pisaban): se identifican por instancia.
+        java.util.Map<DetalleRecepcionMercancia, Integer> ids = new IdentityHashMap<>();
+        grid.setItems(new com.vaadin.flow.data.provider.ListDataProvider<>(detalles) {
+            @Override
+            public Object getId(DetalleRecepcionMercancia item) {
+                return ids.computeIfAbsent(item, k -> ids.size() + 1);
+            }
+        });
 
-        gridDetalles.addColumn(d -> d.getArticulo() != null ? d.getArticulo().getCodigo() : "-").setHeader("Código").setAutoWidth(true);
-        gridDetalles.addColumn(DetalleRecepcionMercancia::getDescripcionArticulo).setHeader("Descripción").setFlexGrow(2);
-
-        gridDetalles.addColumn(d -> d.getAlmacen() != null ? d.getAlmacen().getNombre() : "-").setHeader("Almacén").setAutoWidth(true);
-        gridDetalles.addColumn(d -> d.getArticuloEmpaque() != null && d.getArticuloEmpaque().getUnidadEmpaque() != null
-                ? d.getArticuloEmpaque().getUnidadEmpaque().getDescripcion() : "-").setHeader("Presentación").setAutoWidth(true);
+        grid.addColumn(d -> d.getArticulo() != null ? d.getArticulo().getCodigo() : "-")
+                .setHeader("Código").setAutoWidth(true).setFlexGrow(0);
+        grid.addColumn(DetalleRecepcionMercancia::getDescripcionArticulo).setHeader("Artículo")
+                .setAutoWidth(true).setFlexGrow(2);
+        grid.addColumn(d -> d.getArticuloEmpaque() != null && d.getArticuloEmpaque().getUnidadEmpaque() != null
+                ? d.getArticuloEmpaque().getUnidadEmpaque().getDescripcion() + " ×" + CANTIDAD.format(factor(d))
+                : "-").setHeader("Empaque").setAutoWidth(true);
 
         // Cantidad pendiente según la orden (solo visible si viene de una OC)
-        gridDetalles.addColumn(d -> {
+        colPendienteOc = grid.addColumn(d -> {
             BigDecimal p = pendientePorDetalle.get(d);
-            return p != null ? p.stripTrailingZeros().toPlainString() : "-";
+            return p != null ? CANTIDAD.format(p) : "-";
         }).setHeader("Pendiente OC").setAutoWidth(true);
 
-        // Edición de Cantidad Recibida (no puede superar lo pendiente de la orden)
-        gridDetalles.addComponentColumn(d -> {
-            NumberField fieldCant = new NumberField();
-            fieldCant.setValue(d.getCantidadRecibida() != null ? d.getCantidadRecibida().doubleValue() : 1.0);
-            fieldCant.setMin(0.01);
-            fieldCant.setWidth("90px");
-            fieldCant.addValueChangeListener(e -> {
-                if (!e.isFromClient() || e.getValue() == null || e.getValue() <= 0) {
-                    return;
-                }
-                BigDecimal nueva = BigDecimal.valueOf(e.getValue());
-                BigDecimal max = pendientePorDetalle.get(d);
-                if (max != null && nueva.compareTo(max) > 0) {
-                    Notification.show("No puede recibir más de lo pendiente en la orden (" + max.stripTrailingZeros().toPlainString() + ").",
-                            3500, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
-                    fieldCant.setValue(d.getCantidadRecibida().doubleValue());
-                    return;
-                }
-                recalcularFila(d, nueva, d.getPrecioUnitario());
-            });
-            return fieldCant;
-        }).setHeader("Cant. Recibida").setAutoWidth(true);
+        // Cantidad recibida: no puede superar lo pendiente de la orden
+        grid.addComponentColumn(d -> numero(d.getCantidadRecibida(), "90px", v -> {
+            BigDecimal max = pendientePorDetalle.get(d);
+            if (v.signum() <= 0) {
+                ClaseUtil.mostrarNotificacion("La cantidad debe ser mayor que cero", NotificationVariant.LUMO_WARNING);
+                return;
+            }
+            if (max != null && v.compareTo(max) > 0) {
+                ClaseUtil.mostrarNotificacion("No puede recibir más de lo pendiente en la orden ("
+                        + CANTIDAD.format(max) + ")", NotificationVariant.LUMO_ERROR);
+                return;
+            }
+            d.setCantidadRecibida(v);
+        }, d)).setHeader("Cantidad").setAutoWidth(true);
 
-        gridDetalles.addColumn(d -> d.getCantidadFisicaBase() + " (Base)").setHeader("Stock Físico").setAutoWidth(true);
+        grid.addColumn(d -> d.getCantidadFisicaBase() != null ? CANTIDAD.format(d.getCantidadFisicaBase()) : "0")
+                .setHeader("Unid. base").setAutoWidth(true);
 
-        // Control de lotes: número de lote (vacío = automático) y vencimiento, solo para artículos con lote
-        gridDetalles.addComponentColumn(d -> {
-            TextField txtLote = new TextField();
-            txtLote.setWidth("120px");
-            txtLote.setMaxLength(50);
-            boolean conLote = d.getArticulo() != null && d.getArticulo().isControlaLote();
-            txtLote.setEnabled(conLote);
-            txtLote.setPlaceholder(conLote ? "Automático" : "No aplica");
-            txtLote.setValue(d.getNumeroLote() != null ? d.getNumeroLote() : "");
-            txtLote.addValueChangeListener(e -> d.setNumeroLote(
-                    e.getValue() == null || e.getValue().isBlank() ? null : e.getValue().trim().toUpperCase()));
-            return txtLote;
-        }).setHeader("Lote").setAutoWidth(true);
+        // Control de lotes: número (vacío = automático) y vencimiento, solo artículos con lote
+        grid.addComponentColumn(d -> LoteUi.numeroLote(d.getArticulo(), d.getNumeroLote(), d::setNumeroLote))
+                .setHeader("Lote").setAutoWidth(true);
+        grid.addComponentColumn(d -> LoteUi.vencimiento(d.getArticulo(), d.getFechaVencimientoLote(),
+                d::setFechaVencimientoLote)).setHeader("Vence").setAutoWidth(true);
 
-        gridDetalles.addComponentColumn(d -> {
-            DatePicker dpVence = new DatePicker();
-            dpVence.setWidth("150px");
-            boolean conLote = d.getArticulo() != null && d.getArticulo().isControlaLote();
-            dpVence.setEnabled(conLote);
-            dpVence.setMin(LocalDate.now());
-            Integer dias = d.getArticulo() != null ? d.getArticulo().getDiasVencimiento() : null;
-            dpVence.setPlaceholder(!conLote ? "No aplica"
-                    : (dias != null && dias > 0 ? "Hoy + " + dias + " días" : "Sin vencimiento"));
-            dpVence.setValue(d.getFechaVencimientoLote());
-            dpVence.addValueChangeListener(e -> d.setFechaVencimientoLote(e.getValue()));
-            return dpVence;
-        }).setHeader("Vence").setAutoWidth(true);
+        grid.addComponentColumn(d -> numero(d.getPrecioUnitario(), "110px", d::setPrecioUnitario, d))
+                .setHeader("Costo unit.").setAutoWidth(true);
+        grid.addComponentColumn(d -> numero(itbisPorcPorDetalle.getOrDefault(d, BigDecimal.ZERO), "70px",
+                v -> itbisPorcPorDetalle.put(d, v), d)).setHeader("% ITBIS").setAutoWidth(true);
+        EstiloConsulta.monto(grid.addColumn(d -> EstiloConsulta.moneda(d.getItbis()))).setHeader("ITBIS")
+                .setAutoWidth(true);
+        EstiloConsulta.monto(grid.addColumn(d -> EstiloConsulta.moneda(d.getTotal()))).setHeader("Total")
+                .setAutoWidth(true);
 
-        gridDetalles.addColumn(d -> String.format("RD$ %,.2f", d.getPrecioUnitario())).setHeader("P. Unitario").setAutoWidth(true);
-        gridDetalles.addColumn(d -> String.format("RD$ %,.2f", d.getItbis())).setHeader("ITBIS").setAutoWidth(true);
-        gridDetalles.addColumn(d -> String.format("RD$ %,.2f", d.getSubTotal())).setHeader("SubTotal").setAutoWidth(true);
-        gridDetalles.addColumn(d -> String.format("RD$ %,.2f", d.getTotal())).setHeader("Total").setAutoWidth(true);
-
-        gridDetalles.addComponentColumn(d -> {
-            Button btnEliminar = new Button(VaadinIcon.TRASH.create(), e -> {
-                detalles.remove(d);
+        grid.addComponentColumn(d -> {
+            Button quitar = new Button(VaadinIcon.TRASH.create(), e -> {
+                detalles.removeIf(x -> x == d);
                 pendientePorDetalle.remove(d);
                 itbisPorcPorDetalle.remove(d);
                 actualizarGridYTotales();
             });
-            btnEliminar.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY_INLINE);
-            return btnEliminar;
-        }).setHeader("Acciones").setAutoWidth(true);
-
-        gridDetalles.setItems(detalles);
-        gridDetalles.setHeight("280px");
-
-        add(gridDetalles);
+            quitar.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ERROR);
+            return quitar;
+        }).setHeader("").setAutoWidth(true).setFlexGrow(0);
     }
 
-    private void recalcularFila(DetalleRecepcionMercancia det, BigDecimal cantRecibida, BigDecimal prec) {
-        BigDecimal factor = det.getFactorConversion() != null ? det.getFactorConversion() : BigDecimal.ONE;
-        BigDecimal porcItbis = itbisPorcPorDetalle.getOrDefault(det, BigDecimal.ZERO);
+    /** Campo numérico de la grilla: aplica el valor al salir del campo y recalcula la línea. */
+    private BigDecimalField numero(BigDecimal valor, String ancho, Consumer<BigDecimal> alCambiar,
+            DetalleRecepcionMercancia d) {
+        BigDecimalField f = new BigDecimalField();
+        f.setWidth(ancho);
+        f.setValue(valor);
+        f.setValueChangeMode(ValueChangeMode.ON_BLUR);
+        f.addValueChangeListener(e -> {
+            if (!e.isFromClient()) {
+                return;
+            }
+            BigDecimal v = e.getValue() != null ? e.getValue() : BigDecimal.ZERO;
+            if (v.signum() < 0) {
+                v = BigDecimal.ZERO;
+            }
+            alCambiar.accept(v);
+            calcularLinea(d);
+            // Solo se refresca la fila editada (también devuelve el valor anterior si fue rechazado)
+            grid.getDataProvider().refreshItem(d);
+            actualizarTotales();
+        });
+        return f;
+    }
 
-        BigDecimal sub = cantRecibida.multiply(prec).setScale(2, RoundingMode.HALF_UP);
+    private static BigDecimal factor(DetalleRecepcionMercancia d) {
+        return d.getFactorConversion() != null && d.getFactorConversion().signum() > 0
+                ? d.getFactorConversion() : BigDecimal.ONE;
+    }
+
+    /** Unidades base, subtotal, ITBIS y total de la línea. */
+    private void calcularLinea(DetalleRecepcionMercancia d) {
+        BigDecimal cant = d.getCantidadRecibida() != null ? d.getCantidadRecibida() : BigDecimal.ZERO;
+        BigDecimal precio = d.getPrecioUnitario() != null ? d.getPrecioUnitario() : BigDecimal.ZERO;
+        BigDecimal porcItbis = itbisPorcPorDetalle.getOrDefault(d, BigDecimal.ZERO);
+
+        BigDecimal sub = cant.multiply(precio).setScale(2, RoundingMode.HALF_UP);
         BigDecimal itbis = sub.multiply(porcItbis).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
-        det.setCantidadRecibida(cantRecibida);
-        det.setCantidadFisicaBase(cantRecibida.multiply(factor));
-        det.setPrecioUnitario(prec);
-        det.setSubTotal(sub);
-        det.setItbis(itbis);
-        det.setTotal(sub.add(itbis));
-
-        // Solo se refresca la fila editada (refreshAll haría perder el foco al editar)
-        gridDetalles.getDataProvider().refreshItem(det);
-        actualizarTotales();
+        d.setCantidadFisicaBase(cant.multiply(factor(d)));
+        d.setSubTotal(sub);
+        d.setItbis(itbis);
+        d.setTotal(sub.add(itbis));
     }
 
     private void actualizarGridYTotales() {
-        gridDetalles.getDataProvider().refreshAll();
+        grid.getDataProvider().refreshAll();
         actualizarTotales();
     }
 
     private void actualizarTotales() {
-        BigDecimal subG = detalles.stream().map(DetalleRecepcionMercancia::getSubTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal itbisG = detalles.stream().map(DetalleRecepcionMercancia::getItbis).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalG = subG.add(itbisG);
-
-        lblSubTotal.setText(String.format("RD$ %,.2f", subG));
-        lblItbis.setText(String.format("RD$ %,.2f", itbisG));
-        lblTotal.setText(String.format("RD$ %,.2f", totalG));
-    }
-
-    // =====================================================================
-    // TOTALES Y ACCIONES
-    // =====================================================================
-    private void crearSeccionTotalesYAcciones() {
-        HorizontalLayout layoutInferior = new HorizontalLayout();
-        layoutInferior.setWidthFull();
-        layoutInferior.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
-        layoutInferior.setAlignItems(FlexComponent.Alignment.END);
-
-        FormLayout layoutTotales = new FormLayout();
-        layoutTotales.addFormItem(lblSubTotal, "SubTotal:");
-        layoutTotales.addFormItem(lblItbis, "ITBIS:");
-        layoutTotales.addFormItem(lblTotal, "Total Entrada:");
-
-        btnGuardar.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        btnGuardar.addClickListener(e -> {
-
-            procesarRecepcion();
-        });
-
-        btnCancelar.addClickListener(e -> getUI().ifPresent(ui
-                -> UI.getCurrent().navigate(ConsultaRecepcionMercanciaView.class)));
-
-        HorizontalLayout layoutBotones = new HorizontalLayout(btnGuardar, btnCancelar);
-
-        layoutInferior.add(layoutBotones, layoutTotales);
-        add(layoutInferior);
+        BigDecimal sub = BigDecimal.ZERO;
+        BigDecimal itbis = BigDecimal.ZERO;
+        for (DetalleRecepcionMercancia d : detalles) {
+            sub = sub.add(d.getSubTotal() != null ? d.getSubTotal() : BigDecimal.ZERO);
+            itbis = itbis.add(d.getItbis() != null ? d.getItbis() : BigDecimal.ZERO);
+        }
+        lblSubTotal.setText(EstiloConsulta.moneda(sub));
+        lblItbis.setText(EstiloConsulta.moneda(itbis));
+        lblTotal.setText(EstiloConsulta.moneda(sub.add(itbis)));
     }
 
     private void cargarDatosIniciales() {
-        txtNumero.setValue("REC-" + System.currentTimeMillis() / 1000);
-        txtNumero.setReadOnly(true);
-
-        // Seleccionar "Orden de compra" como origen por defecto (dispara cambiarTipoOrigen)
+        // "Orden de compra" como origen por defecto (dispara cambiarTipoOrigen)
         cbTipoDocumento.getListDataView().getItems()
-                .filter(t -> t.getCodigo() == 8)
+                .filter(t -> ORIGEN_ORDEN_COMPRA.equals(t.getCodigo()))
                 .findFirst()
-                .ifPresentOrElse(cbTipoDocumento::setValue, () -> {
-
-                    cambiarTipoOrigen(8);
-
-                });
+                .ifPresentOrElse(cbTipoDocumento::setValue, () -> cambiarTipoOrigen(ORIGEN_ORDEN_COMPRA));
     }
 
     // =====================================================================
@@ -810,143 +687,156 @@ public class RecepcionMercanciaView extends VerticalLayout {
     // =====================================================================
     private void procesarRecepcion() {
 
-        if (cbAlmacenDestino.isEmpty()) {
-            Notification.show("Seleccione el Almacén Destino.", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
-            return;
-        }
-
         if (cbSuplidor.isEmpty()) {
-            Notification.show("Seleccione un Suplidor.", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+            ClaseUtil.mostrarNotificacion("Seleccione el proveedor", NotificationVariant.LUMO_WARNING);
+            cbSuplidor.focus();
             return;
         }
-
+        if (cbAlmacenDestino.isEmpty()) {
+            ClaseUtil.mostrarNotificacion("Seleccione el almacén destino", NotificationVariant.LUMO_WARNING);
+            cbAlmacenDestino.focus();
+            return;
+        }
         if (cbCondicionPago.isEmpty()) {
-            Notification.show("Seleccione la Condición de Pago.", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+            ClaseUtil.mostrarNotificacion("Seleccione la condición de pago", NotificationVariant.LUMO_WARNING);
             cbCondicionPago.focus();
             return;
         }
-
-        if (txtComentario.getValue().isEmpty()) {
-
-            Notification.show("Tiene que digitar un comentario ", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+        if (txtComentario.getValue() == null || txtComentario.getValue().isBlank()) {
+            ClaseUtil.mostrarNotificacion("Digite un comentario", NotificationVariant.LUMO_WARNING);
+            txtComentario.focus();
             return;
         }
-
         if (detalles.isEmpty()) {
-            Notification.show("Agregue al menos un artículo recibido.", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+            ClaseUtil.mostrarNotificacion("Agregue al menos un artículo recibido", NotificationVariant.LUMO_WARNING);
             return;
         }
-        // Lotes: un perecedero sin días de vida útil necesita la fecha de vencimiento del lote
+
         for (DetalleRecepcionMercancia d : detalles) {
-            if (d.getArticulo() != null && d.getArticulo().isControlaLote() && d.getArticulo().getPerecedero()
+            if (d.getCantidadRecibida() == null || d.getCantidadRecibida().signum() <= 0) {
+                ClaseUtil.mostrarNotificacion("La cantidad de '" + d.getDescripcionArticulo()
+                        + "' debe ser mayor que cero", NotificationVariant.LUMO_WARNING);
+                return;
+            }
+            // Validación final contra lo pendiente de la orden
+            BigDecimal max = pendientePorDetalle.get(d);
+            if (max != null && d.getCantidadRecibida().compareTo(max) > 0) {
+                ClaseUtil.mostrarNotificacion("La cantidad de '" + d.getDescripcionArticulo()
+                        + "' supera lo pendiente en la orden", NotificationVariant.LUMO_ERROR);
+                return;
+            }
+            // Lotes: un perecedero sin días de vida útil necesita la fecha de vencimiento del lote
+            if (d.getArticulo() != null && d.getArticulo().isControlaLote()
+                    && Boolean.TRUE.equals(d.getArticulo().getPerecedero())
                     && d.getFechaVencimientoLote() == null
                     && (d.getArticulo().getDiasVencimiento() == null || d.getArticulo().getDiasVencimiento() <= 0)) {
-                Notification.show("Indique la fecha de vencimiento del lote de '" + d.getDescripcionArticulo() + "'.",
-                        3500, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+                ClaseUtil.mostrarNotificacion("Indique la fecha de vencimiento del lote de '"
+                        + d.getDescripcionArticulo() + "'", NotificationVariant.LUMO_WARNING);
                 return;
             }
             if (d.getFechaVencimientoLote() != null && d.getFechaVencimientoLote().isBefore(LocalDate.now())) {
-                Notification.show("El lote de '" + d.getDescripcionArticulo() + "' ya está vencido; no se puede recibir.",
-                        3500, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+                ClaseUtil.mostrarNotificacion("El lote de '" + d.getDescripcionArticulo()
+                        + "' ya está vencido; no se puede recibir", NotificationVariant.LUMO_ERROR);
                 return;
             }
         }
 
-        // Validación final contra lo pendiente de la orden
-        for (DetalleRecepcionMercancia d : detalles) {
-
-            BigDecimal max = pendientePorDetalle.get(d);
-
-            if (max != null && d.getCantidadRecibida().compareTo(max) > 0) {
-
-                Notification.show("La cantidad de '" + d.getDescripcionArticulo() + "' supera lo pendiente en la orden.",
-                        3500, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
-                return;
-            }
-        }
-
+        btnGuardar.setEnabled(false);
+        // Lo que digitó el usuario en cada línea: si el proceso falla se restaura (el servicio
+        // escribe en estas mismas instancias el lote creado, que la transacción revierte).
+        Map<DetalleRecepcionMercancia, Object[]> loteDigitado = new IdentityHashMap<>();
+        detalles.forEach(d -> loteDigitado.put(d, new Object[]{d.getNumeroLote(), d.getFechaVencimientoLote()}));
+        boolean procesada = false;
         try {
-
             OrdenDeCompra oc = cbOrdenCompra.getValue();
 
             RecepcionMercancia rec = new RecepcionMercancia();
-
-            rec.setNumeroDocumento(txtNumero.getValue());
             rec.setFecha(Date.from(dtFecha.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant()));
             rec.setTipoDocumento(cbTipoDocumento.getValue());
             rec.setNombreDocumento(cbTipoDocumento.getValue() != null ? cbTipoDocumento.getValue().getNombre() : "");
-            rec.setEstadoDocumento(this.essDocumentoService.getEstado(2));
-            rec.setNombreEstado(this.essDocumentoService.getEstado(2).getNombre());
-
+            rec.setEstadoDocumento(estadoDocumentoService.getEstado(2));
+            rec.setNombreEstado(estadoDocumentoService.getEstado(2).getNombre());
             rec.setAlmacen(cbAlmacenDestino.getValue());
             rec.setProveedor(cbSuplidor.getValue());
             rec.setCondicionPago(cbCondicionPago.getValue());
             rec.setNombreUsuario("Admin");
             rec.setUsuario(new Usuario(1));
             rec.setNombreProveedor(cbSuplidor.getValue().getNombre());
-            rec.setComentario(txtComentario.getValue());
+            rec.setComentario(txtComentario.getValue().trim());
 
-            // Referencia al documento origen SIN pisar el número ni el tipo de la recepción.
-            // AJUSTA estos setters a los campos reales de tu entidad RecepcionMercancia:
             if (oc != null) {
-
+                rec.setNumeroDocumento("REC-" + System.currentTimeMillis() / 1000);
                 rec.setOrdenCompra(oc);
                 rec.setNumeroOc(oc.getCodigo().toString());
-
             } else {
-
                 rec.setNumeroDocumento(txtDocOrigen.getValue());
             }
 
-            BigDecimal subG = detalles.stream().map(DetalleRecepcionMercancia::getSubTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal itbisG = detalles.stream().map(DetalleRecepcionMercancia::getItbis).reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            rec.setSubtotal(subG);
-            rec.setTotalItbis(itbisG);
-            rec.setTotal(subG.add(itbisG));
-
+            BigDecimal sub = BigDecimal.ZERO;
+            BigDecimal itbis = BigDecimal.ZERO;
+            for (DetalleRecepcionMercancia d : detalles) {
+                sub = sub.add(d.getSubTotal());
+                itbis = itbis.add(d.getItbis());
+            }
+            rec.setSubtotal(sub);
+            rec.setTotalItbis(itbis);
+            rec.setTotal(sub.add(itbis));
             rec.setDetalleRecepcionMercanciaCollection(detalles);
 
-            // Transaccional: inventario + actualización de pendiente/estado de la OC (ver servicio)
-            java.util.List<Integer> articulosRecibidos = detalles.stream()
+            List<Integer> articulosRecibidos = detalles.stream()
                     .filter(d -> d.getArticulo() != null)
                     .map(d -> d.getArticulo().getCodigo())
                     .toList();
 
+            // Transaccional: inventario + lotes + factura de compra + pendiente/estado de la OC
             recepcionService.procesarRecepcion(rec);
+            procesada = true;
 
-            ClaseUtil.mostrarNotificacion(" Recepción procesada exitosamente.", NotificationVariant.LUMO_PRIMARY);
-
+            ClaseUtil.mostrarNotificacion("Recepción procesada exitosamente", NotificationVariant.LUMO_SUCCESS);
             limpiarFormularioCompleto();
 
             // Con el costo promedio ya actualizado, avisar si algo quedó vendiéndose con pérdida
             mostrarAvisoPerdida(recepcionService.empaquesVendiendoConPerdida(articulosRecibidos));
 
-        } catch (Exception ex) {
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            ClaseUtil.mostrarNotificacion(ex.getMessage(), NotificationVariant.LUMO_ERROR);
+        } catch (RuntimeException ex) {
             ex.printStackTrace();
-            Notification.show("Error al procesar la recepción: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            ClaseUtil.mostrarNotificacion("No se pudo procesar la recepción: " + ex.getMessage(),
+                    NotificationVariant.LUMO_ERROR);
+        } finally {
+            if (!procesada) {
+                // Reintento limpio: sin id ni lote de la transacción revertida
+                for (DetalleRecepcionMercancia d : detalles) {
+                    Object[] v = loteDigitado.get(d);
+                    d.setCodigo(null);
+                    d.setRecepcionMercancia(null);
+                    d.setLote(null);
+                    if (v != null) {
+                        d.setNumeroLote((String) v[0]);
+                        d.setFechaVencimientoLote((LocalDate) v[1]);
+                    }
+                }
+                grid.getDataProvider().refreshAll();
+            }
+            btnGuardar.setEnabled(true);
         }
     }
 
-    private void mostrarAvisoPerdida(java.util.List<String> alertas) {
-
+    private void mostrarAvisoPerdida(List<String> alertas) {
         if (alertas == null || alertas.isEmpty()) {
             return;
         }
-
-        com.vaadin.flow.component.dialog.Dialog dlg = new com.vaadin.flow.component.dialog.Dialog();
+        Dialog dlg = new Dialog();
         dlg.setHeaderTitle("⚠ Precios por debajo del costo");
         dlg.setWidth("560px");
 
-        com.vaadin.flow.component.html.Paragraph intro = new com.vaadin.flow.component.html.Paragraph(
+        Paragraph intro = new Paragraph(
                 "Con el nuevo costo de esta compra, estos productos se están vendiendo al costo o con pérdida. "
                 + "Revise su precio de venta en el mantenimiento de artículos:");
-
-        com.vaadin.flow.component.html.UnorderedList lista = new com.vaadin.flow.component.html.UnorderedList();
-        alertas.forEach(a -> lista.add(new com.vaadin.flow.component.html.ListItem(a)));
+        UnorderedList lista = new UnorderedList();
+        alertas.forEach(a -> lista.add(new ListItem(a)));
         lista.getStyle().set("color", "var(--lumo-error-text-color)");
-
         dlg.add(intro, lista);
 
         Button btnOk = new Button("Entendido", ev -> dlg.close());
@@ -961,7 +851,6 @@ public class RecepcionMercanciaView extends VerticalLayout {
         itbisPorcPorDetalle.clear();
         actualizarGridYTotales();
 
-        txtNumero.setValue("REC-" + System.currentTimeMillis() / 1000);
         cbOrdenCompra.clear();
         if (layoutOrden.isVisible()) {
             cargarOrdenesPendientes(); // refrescar: la OC recibida puede haber quedado completa
@@ -974,16 +863,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
         dtFecha.setValue(LocalDate.now());
         txtComentario.clear();
 
-        layoutDetalle.setVisible(!layoutOrden.isVisible());
-        limpiarFormularioDetalle();
+        actualizarModo();
         cbTipoDocumento.focus();
-    }
-
-    private void limpiarFormularioDetalle() {
-        cbArticulo.clear();
-        cbEmpaque.clear();
-        txtDescripcion.clear();
-        numCantidad.setValue(1.0);
-        numPrecio.clear();
     }
 }

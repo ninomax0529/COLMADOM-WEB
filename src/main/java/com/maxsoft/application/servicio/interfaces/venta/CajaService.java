@@ -29,6 +29,10 @@ public interface CajaService {
     String TIPO_PAGO_PROVEEDOR = "PAGO_PROVEEDOR";
     /** Reverso de un pago a proveedor (anulación de recibo de egreso): el efectivo vuelve. */
     String TIPO_ANULACION_PAGO_PROVEEDOR = "ANULACION_PAGO_PROVEEDOR";
+    /** Reembolso en efectivo de un proveedor por una devolución de mercancía: entra a la gaveta. */
+    String TIPO_REEMBOLSO_PROVEEDOR = "REEMBOLSO_PROVEEDOR";
+    /** Reverso de un reembolso de proveedor (devolución anulada): el efectivo sale. */
+    String TIPO_ANULACION_REEMBOLSO_PROVEEDOR = "ANULACION_REEMBOLSO_PROVEEDOR";
     /** Abonos / pagos en efectivo de clientes a su libreta (CxC). */
     String TIPO_COBRO_CXC = "COBRO_CXC";
     /** Reverso de un cobro CxC en efectivo (anulación de recibo de ingreso): el efectivo sale. */
@@ -86,6 +90,8 @@ public interface CajaService {
             case "POS_" + TIPO_ABONO_MOTORISTA -> "Abono de motorista (faltante)";
             case "POS_" + TIPO_PAGO_PROVEEDOR -> "Pago a proveedor";
             case "POS_" + TIPO_ANULACION_PAGO_PROVEEDOR -> "Anulación pago proveedor";
+            case "POS_" + TIPO_REEMBOLSO_PROVEEDOR -> "Reembolso de proveedor (devolución)";
+            case "POS_" + TIPO_ANULACION_REEMBOLSO_PROVEEDOR -> "Anulación reembolso de proveedor";
             case "POS_" + TIPO_COBRO_CXC -> "Abono de cliente (CxC)";
             case "POS_" + TIPO_ANULACION_COBRO_CXC -> "Anulación abono (CxC)";
             case "POS_" + TIPO_FONDO_EXTRA -> "Fondo extra";

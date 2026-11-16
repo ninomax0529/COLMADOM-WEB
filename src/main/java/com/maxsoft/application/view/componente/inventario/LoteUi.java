@@ -72,6 +72,9 @@ public final class LoteUi {
         txt.setEnabled(conLote);
         txt.setPlaceholder(conLote ? "Automático" : "No aplica");
         txt.setValue(actual != null ? actual : "");
+        // Se guarda mientras se escribe (no solo al salir del campo): si la fila se redibuja o
+        // se pulsa Procesar directamente, el número ya está en la línea.
+        txt.setValueChangeMode(com.vaadin.flow.data.value.ValueChangeMode.LAZY);
         txt.addValueChangeListener(e -> alCambiar.accept(
                 e.getValue() == null || e.getValue().isBlank() ? null : e.getValue().trim().toUpperCase()));
         return txt;

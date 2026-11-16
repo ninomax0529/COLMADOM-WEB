@@ -144,8 +144,14 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                             subTotal, itbis, total, tm, tp, numDocumento, cantidadEntrante,
                             usuario, obj.getComentario(), lote);
 
-                    if (movs.get(0).getLote() != null) {
-                        detalle.setLote(movs.get(0).getLote());
+                    // Lote de la línea: el de la entrada, no el SIN-LOTE que pudo reponer
+                    Lote loteLinea = movs.stream().map(MovimientoInventario::getLote)
+                            .filter(l -> l != null && !LoteService.NUMERO_SIN_LOTE.equals(l.getNumeroLote()))
+                            .findFirst().orElse(lote != null ? lote : movs.get(0).getLote());
+                    if (loteLinea != null) {
+                        detalle.setLote(loteLinea);
+                        detalle.setNumeroLote(loteLinea.getNumeroLote());
+                        detalle.setFechaVencimientoLote(loteLinea.getFechaVencimiento());
                     }
                 }
             }
@@ -368,7 +374,12 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                             costoBase, recepcion.getProveedor(), "REC-" + recepcion.getCodigo(), usuario);
                     det.setLote(lote);
                 }
+                // Número y vencimiento reales del lote (también cuando fue automático)
+                det.setNumeroLote(lote.getNumeroLote());
+                det.setFechaVencimientoLote(lote.getFechaVencimiento());
                 detEntrada.setLote(lote);
+                detEntrada.setNumeroLote(lote.getNumeroLote());
+                detEntrada.setFechaVencimientoLote(lote.getFechaVencimiento());
             }
 
             detallesEntrada.add(detEntrada);
@@ -523,6 +534,44 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
     }
 
     // --- Métodos Helper ---
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public EntradaInventario crearEntradaPorDevolucionProveedor(DevolucionProveedor devolucion,
+            List<DetalleDevolucionProveedor> detalles, boolean reposicion, String usuario) {
+
+        String user = usuario != null && !usuario.isBlank() ? usuario : "SISTEMA";
+        String comentario = reposicion
+                ? "Reposición del proveedor (cambio) " + devolucion.getNumero()
+                : "Reverso por anulación de la devolución a proveedor " + devolucion.getNumero();
+        EntradaInventario entrada = inicializarCabeceraBase(10,
+                (reposicion ? "" : "ANU-") + devolucion.getNumero(), user, comentario);
+
+        List<DetalleEntradaInventario> lineas = new ArrayList<>();
+        for (DetalleDevolucionProveedor det : detalles) {
+            Lote lote = reposicion ? det.getLoteNuevo() : det.getLote();
+            BigDecimal base = det.getCantidadBase();
+            if (base.signum() <= 0) {
+                continue;
+            }
+            Almacen almacen = devolucion.getAlmacen();
+            BigDecimal stock = articuloAlmacenService
+                    .buscarPorArticuloYAlmacen(det.getArticulo().getCodigo(), almacen.getCodigo())
+                    .map(ArticuloAlmacen::getExistencia).orElse(BigDecimal.ZERO);
+            DetalleEntradaInventario d = buildDetalleEntradaBase(entrada, det.getArticulo(), det.getArticuloEmpaque(),
+                    det.getFactorConversion(), base, det.getItbis(), det.getSubTotal(), det.getTotal(),
+                    det.getCantidad(), stock, almacen, almacen.getNombre(),
+                    det.getArticuloEmpaque().getUnidadEmpaque() != null
+                    ? det.getArticuloEmpaque().getUnidadEmpaque().getDescripcion() : null);
+            d.setCostoUnitario(det.getCostoUnitario());
+            d.setPrecioCompra(det.getCostoUnitario());
+            d.setLote(lote);
+            d.setUsarCantidadFisicaBase(true);
+            lineas.add(d);
+        }
+        entrada.setDetalleEntradaInventarioCollection(lineas);
+        return guardar(entrada, user);
+    }
+
     private EntradaInventario inicializarCabeceraBase(Integer tipoDocumento, String numDocumento, String usuario, String comentario) {
         EntradaInventario entrada = new EntradaInventario();
         Date fechaActual = new Date();

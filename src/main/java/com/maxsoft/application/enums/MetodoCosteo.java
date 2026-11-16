@@ -39,4 +39,17 @@ public enum MetodoCosteo {
     public String getSiglasIngles() {
         return siglasIngles;
     }
+
+    /** Valor que se guarda en articulo.metodo_de_costeo: PEPS=1, PROMEDIO_PONDERADO=2, UEPS=3. */
+    public int getCodigo() {
+        return ordinal() + 1;
+    }
+
+    /** Método guardado en el artículo; null o desconocido = PROMEDIO_PONDERADO (el usual en un colmado). */
+    public static MetodoCosteo desdeCodigo(Integer codigo) {
+        if (codigo != null && codigo >= 1 && codigo <= values().length) {
+            return values()[codigo - 1];
+        }
+        return PROMEDIO_PONDERADO;
+    }
 }

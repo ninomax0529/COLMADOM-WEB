@@ -263,6 +263,9 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
 
                 o.setCodigo(null); // Asegurar que sea una inserción nueva
                 o.setRecepcionMercancia(recepcion);
+                // El lote lo decide este proceso (número/vencimiento digitados o automático); un
+                // lote que traiga la línea puede venir de un intento anterior revertido.
+                o.setLote(null);
             });
         }
 

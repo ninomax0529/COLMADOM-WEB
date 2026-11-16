@@ -83,6 +83,8 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
     private final Checkbox chkExistenciaNegativa = new Checkbox("Permitir vender sin existencia (existencia negativa)");
     private final Checkbox chkPerecedero = new Checkbox("Perecedero (maneja fecha de vencimiento)");
     private final IntegerField txtDiasVencimiento = new IntegerField("Días de vida útil");
+    private final com.vaadin.flow.component.datepicker.DatePicker dpFechaVencimiento
+            = new com.vaadin.flow.component.datepicker.DatePicker("Fecha de vencimiento");
     private final Checkbox chkControlaLote = new Checkbox("Controla lotes (existencia por lote y vencimiento; sale primero lo que vence primero)");
     private final BigDecimalField txtPuntoReorden = new BigDecimalField("Punto de reorden (unidad base)");
     private final ComboBox<MetodoCosteo> cbMetodoCosteo = new ComboBox<>("Método de costeo");
@@ -262,12 +264,18 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
     private void configurarFormularioInventario() {
 
         cbMetodoCosteo.setItems(MetodoCosteo.values());
+        cbMetodoCosteo.setItemLabelGenerator(MetodoCosteo::getDescripcionEspanol);
         cbMetodoCosteo.setAllowCustomValue(false);
         cbMetodoCosteo.setRequiredIndicatorVisible(true);
 
         txtDiasVencimiento.setMin(1);
         txtDiasVencimiento.setStepButtonsVisible(true);
         txtDiasVencimiento.setHelperText("Días desde la entrada hasta el vencimiento");
+
+        dpFechaVencimiento.setLocale(new java.util.Locale("es", "DO"));
+        dpFechaVencimiento.setReadOnly(true);
+        dpFechaVencimiento.setHelperText("Calculada: hoy + días de vida útil");
+        txtDiasVencimiento.addValueChangeListener(e -> calcularFechaVencimiento());
 
         txtPuntoReorden.setHelperText("Cuando la existencia total baje de este valor conviene reponer");
 
@@ -285,7 +293,7 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 
         FormLayout form = new FormLayout();
         form.add(chkInventariable, chkExistenciaNegativa, cbMetodoCosteo, txtPuntoReorden,
-                chkPerecedero, txtDiasVencimiento, chkControlaLote, txtCodigoBarraPrincipal);
+                chkPerecedero, txtDiasVencimiento, dpFechaVencimiento, chkControlaLote, txtCodigoBarraPrincipal);
 
         form.setColspan(chkInventariable, 2);
         form.setColspan(chkExistenciaNegativa, 2);
@@ -309,13 +317,34 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
                 a -> Boolean.TRUE.equals(a.getPerecedero()), Articulo::setPerecedero);
 
         binder.bind(txtDiasVencimiento, Articulo::getDiasVencimiento, Articulo::setDiasVencimiento);
+        // articulo.fecha_vencimiento (DATE): JPA puede devolver java.sql.Date, que no admite toInstant()
+        binder.bind(dpFechaVencimiento,
+                a -> a.getFechaVencimiento() == null ? null
+                : a.getFechaVencimiento() instanceof java.sql.Date sd ? sd.toLocalDate()
+                : a.getFechaVencimiento().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate(),
+                (a, f) -> a.setFechaVencimiento(f != null ? java.sql.Date.valueOf(f) : null));
         binder.bind(chkControlaLote, Articulo::isControlaLote, Articulo::setControlaLote);
 //        binder.bind(txtPuntoReorden, Articulo::getPuntoReorden, Articulo::setPuntoReorden);
-//        binder.bind(cbMetodoCosteo, Articulo::getMetodoCosteo, Articulo::setMetodoCosteo);
+        // En BD es un entero (metodo_de_costeo); un artículo sin método muestra Promedio ponderado
+        binder.bind(cbMetodoCosteo, a -> MetodoCosteo.desdeCodigo(a.getMetodoDeCosteo()),
+                (a, m) -> a.setMetodoDeCosteo(m != null ? m.getCodigo() : null));
         binder.bind(txtCodigoBarraPrincipal,
                 a -> a.getCodigoDeBarra() == null ? "" : a.getCodigoDeBarra(), Articulo::setCodigoDeBarra);
 
         containerTabInventario.add(form);
+    }
+
+    /**
+     * Fecha de vencimiento del artículo = hoy + días de vida útil (solo
+     * perecederos con días > 0; si no, queda vacía).
+     */
+    private void calcularFechaVencimiento() {
+        Integer dias = txtDiasVencimiento.getValue();
+        boolean aplica = chkInventariable.getValue() && chkPerecedero.getValue() && dias != null && dias > 0;
+        java.time.LocalDate fecha = aplica ? java.time.LocalDate.now().plusDays(dias) : null;
+        if (!java.util.Objects.equals(fecha, dpFechaVencimiento.getValue())) {
+            dpFechaVencimiento.setValue(fecha);
+        }
     }
 
     /**
@@ -332,6 +361,8 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         txtPuntoReorden.setEnabled(inventariable);
         chkPerecedero.setEnabled(inventariable);
         txtDiasVencimiento.setEnabled(inventariable && chkPerecedero.getValue());
+        dpFechaVencimiento.setEnabled(inventariable && chkPerecedero.getValue());
+        calcularFechaVencimiento();
         chkControlaLote.setEnabled(inventariable);
     }
 
@@ -880,7 +911,7 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         }
 
         articuloActual.setInventariable(chkInventariable.getValue());
-//        articuloActual.setMetodoDeCosteo(cbMetodoCosteo.getValue();
+        calcularFechaVencimiento(); // hoy + días, al día de hoy
 
         if (binder.writeBeanIfValid(articuloActual)) {
 

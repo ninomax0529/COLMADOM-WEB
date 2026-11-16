@@ -65,7 +65,8 @@ public class EstadoDeCuentaView extends VerticalLayout {
         cbCliente.setWidth("380px");
         cbCliente.addValueChangeListener(e -> cargar(e.getValue()));
 
-        tarjetas.addClassName("fv-tarjetas");
+        // Una sola fila horizontal, como las demás consultas
+        tarjetas.addClassNames("fv-tarjetas", "fv-tarjetas-fila");
 
         configurarGridMovimientos();
         configurarGridHistorial();

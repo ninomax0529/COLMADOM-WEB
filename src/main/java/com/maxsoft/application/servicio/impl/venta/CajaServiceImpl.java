@@ -360,6 +360,11 @@ public class CajaServiceImpl implements CajaService {
                     pagosProveedores = pagosProveedores.subtract(monto.abs());
                 case "POS_" + TIPO_ANULACION_PAGO_PROVEEDOR ->
                     pagosProveedores = pagosProveedores.add(monto.abs());
+                // Reembolso de proveedor por devolución: neto de proveedores (entra efectivo)
+                case "POS_" + TIPO_REEMBOLSO_PROVEEDOR ->
+                    pagosProveedores = pagosProveedores.add(monto.abs());
+                case "POS_" + TIPO_ANULACION_REEMBOLSO_PROVEEDOR ->
+                    pagosProveedores = pagosProveedores.subtract(monto.abs());
                 // --- Movimientos manuales de caja chica ---
                 case "RETIRO", "GASTO_MENOR" ->
                     otros = otros.subtract(monto.abs());

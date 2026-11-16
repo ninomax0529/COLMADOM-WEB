@@ -67,8 +67,12 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
     private final ArticuloAlmacenService existenciaService;
     @Autowired
     private com.maxsoft.application.servicio.interfaces.inventario.LoteService loteService;
+    @Autowired
+    private com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService empaqueService;
 
     private final List<DetalleSalidaInventario> listDet = new ArrayList<>();
+    private final java.util.Map<DetalleSalidaInventario, Integer> idsFila = new java.util.IdentityHashMap<>();
+    private int secuenciaFila;
 
     @Autowired
     public RegistroSalidaDeIventarioView(SalidaInventarioService salidaInvService,
@@ -129,13 +133,9 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         for (DetalleSalidaInventario det : listDet) {
             det.setAlmacen(nuevoAlmacen);
             det.setNombreAlmacen(nuevoAlmacen.getNombre());
-
-            BigDecimal stockBaseEnAlmacen = obtenerExistenciaPorAlmacen(det.getArticulo(), nuevoAlmacen);
-            det.setExistenciaAnterior(stockBaseEnAlmacen);
-
-            recalcularExistenciaFila(det);
         }
 
+        recalcularExistencias();
         grid.getDataProvider().refreshAll();
     }
 
@@ -162,14 +162,32 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         return factor;
     }
 
-    private void recalcularExistenciaFila(DetalleSalidaInventario det) {
+    /**
+     * Existencia actual y nueva (unidad base) de cada fila, acumulada por
+     * artículo en el orden de la lista: si el mismo artículo sale en varias
+     * filas (p. ej. unidad y caja), la segunda parte de lo que dejó la
+     * primera, igual que en el kardex. La existencia se lee del almacén en
+     * cada cálculo para no mostrar un valor viejo.
+     */
+    private void recalcularExistencias() {
+        Almacen almacen = cbAlmacen.getValue();
+        java.util.Map<Integer, BigDecimal> restante = new java.util.HashMap<>();
 
-        BigDecimal factor = obtenerFactorConversion(det.getArticuloEmpaque());
-        BigDecimal cantidadEmpaque = det.getCantidad() != null ? det.getCantidad() : BigDecimal.ZERO;
-        BigDecimal cantidadEnUnidadBase = cantidadEmpaque.multiply(factor);
+        for (DetalleSalidaInventario det : listDet) {
+            Articulo articulo = det.getArticulo();
+            if (articulo == null || articulo.getCodigo() == null) {
+                continue;
+            }
+            BigDecimal antes = restante.computeIfAbsent(articulo.getCodigo(),
+                    cod -> obtenerExistenciaPorAlmacen(articulo, almacen));
 
-        BigDecimal existenciaAnteriorBase = det.getExistenciaAnterior() != null ? det.getExistenciaAnterior() : BigDecimal.ZERO;
-        det.setExistencia(existenciaAnteriorBase.subtract(cantidadEnUnidadBase));
+            BigDecimal cantidad = det.getCantidad() != null ? det.getCantidad() : BigDecimal.ZERO;
+            BigDecimal despues = antes.subtract(cantidad.multiply(obtenerFactorConversion(det.getArticuloEmpaque())));
+
+            det.setExistenciaAnterior(antes);
+            det.setExistencia(despues);
+            restante.put(articulo.getCodigo(), despues);
+        }
     }
 
     private void abrirDialogoSeleccionArticulo() {
@@ -194,8 +212,8 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
     // Evalúa si el artículo tiene múltiples empaques para desplegar la ventana de elección
     private void procesarSeleccionArticulo(Articulo articulo) {
 
-        List<ArticuloEmpaque> listaEmpaques
-                = articulo.getArticuloEmpaqueCollection().stream().toList();
+        // Se consultan por servicio: la colección del artículo es lazy y aquí no hay sesión
+        List<ArticuloEmpaque> listaEmpaques = empaqueService.getPorArticulo(articulo.getCodigo());
 
         if (listaEmpaques != null && listaEmpaques.size() > 1) {
 
@@ -268,9 +286,15 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
             }
         }
 
+        if (empaqueSeleccionado == null) {
+            ClaseUtil.mostrarNotificacion("El artículo '" + articulo.getDescripcion()
+                    + "' no tiene empaques configurados.", NotificationVariant.LUMO_WARNING);
+            return;
+        }
+
         DetalleSalidaInventario det = new DetalleSalidaInventario();
 
-        det.setCodigo(empaqueSeleccionado.getCodigo());
+        // codigo queda null (es el id de la fila en BD); el grid identifica las filas por instancia
         det.setArticuloEmpaque(empaqueSeleccionado);
         det.setUnidad(empaqueSeleccionado.getUnidadEmpaque());
         det.setFactorConversion(obtenerFactorConversion(empaqueSeleccionado));
@@ -279,28 +303,29 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         det.setDescripcionArticulo(articulo.getDescripcion());
         det.setAlmacen(almacenSeleccionado);
         det.setNombreAlmacen(almacenSeleccionado.getNombre());
-        det.setPrecioCompra(empaqueSeleccionado.getPrecioCompra() != null ? empaqueSeleccionado.getPrecioCompra() : BigDecimal.ZERO);
+        det.setPrecioCompra(empaqueSeleccionado.getPrecioCompra() != null ? empaqueSeleccionado.getPrecioCompra()
+                : articulo.getPrecioCompra() != null ? articulo.getPrecioCompra().multiply(det.getFactorConversion())
+                : BigDecimal.ZERO);
+        // El servicio valora el kardex con el costo unitario (por empaque)
+        det.setCostoUnitario(det.getPrecioCompra());
 
-        // 1. Asignar la existencia previa real del almacén (en UMM)
-        det.setExistenciaAnterior(stockDisponibleBase);
         det.setCantidad(BigDecimal.ZERO);
         det.setCantidadFisicaBase(BigDecimal.ZERO);
 
-        // 2. Recalcular la nueva existencia disponible (ExistenciaAnterior - (Cantidad * Factor))
-        recalcularExistenciaFila(det);
-
-        // 3. Totales económicos iniciales
+        // Totales económicos iniciales
         det.setSubTotal(BigDecimal.ZERO);
         det.setItbis(BigDecimal.ZERO);
         det.setTotal(BigDecimal.ZERO);
 
         listDet.add(det);
+        // Existencia actual / nueva de todas las filas (acumulada por artículo)
+        recalcularExistencias();
         grid.getDataProvider().refreshAll();
     }
 
     private BigDecimal calcularCantidadTotalBaseEnGrid(Articulo articulo, DetalleSalidaInventario itemExcluir) {
         return listDet.stream()
-                .filter(d -> !d.equals(itemExcluir) && d.getArticulo() != null && d.getArticulo().getCodigo().equals(articulo.getCodigo()))
+                .filter(d -> d != itemExcluir && d.getArticulo() != null && d.getArticulo().getCodigo().equals(articulo.getCodigo()))
                 .map(d -> {
                     BigDecimal cant = d.getCantidad() != null ? d.getCantidad() : BigDecimal.ZERO;
                     BigDecimal factor = obtenerFactorConversion(d.getArticuloEmpaque());
@@ -314,7 +339,16 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         grid.setHeightFull();
         grid.setWidthFull();
 
-        GridListDataView<DetalleSalidaInventario> dataView = grid.setItems(listDet);
+        // Las filas nuevas tienen codigo null y el equals de la entidad las daría
+        // todas por iguales: el grid las identifica por instancia.
+        com.vaadin.flow.data.provider.ListDataProvider<DetalleSalidaInventario> proveedor
+                = new com.vaadin.flow.data.provider.ListDataProvider<>(listDet) {
+            @Override
+            public Object getId(DetalleSalidaInventario item) {
+                return idsFila.computeIfAbsent(item, k -> ++secuenciaFila);
+            }
+        };
+        GridListDataView<DetalleSalidaInventario> dataView = grid.setItems(proveedor);
 
         grid.addColumn(DetalleSalidaInventario::getDescripcionArticulo)
                 .setHeader("Artículo")
@@ -356,7 +390,9 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
                 ConfirmDialog dialog = new ConfirmDialog(
                         "¿Seguro que desea remover '" + item.getDescripcionArticulo() + "' de la salida?",
                         () -> {
-                            listDet.remove(item);
+                            listDet.removeIf(d -> d == item);
+                            idsFila.remove(item);
+                            recalcularExistencias();
                             grid.getDataProvider().refreshAll();
                         },
                         () -> {
@@ -375,7 +411,8 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
             }
 
             boolean matchDesc = det.getDescripcionArticulo() != null && det.getDescripcionArticulo().toLowerCase().contains(term);
-            boolean matchCod = det.getCodigo() != null && det.getCodigo().toString().contains(term);
+            boolean matchCod = det.getArticulo() != null && det.getArticulo().getCodigo() != null
+                    && det.getArticulo().getCodigo().toString().contains(term);
             return matchDesc || matchCod;
         }));
 
@@ -406,8 +443,8 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
             if (itemSeleccionado != null && itemSeleccionado.getArticulo() != null) {
 
-                List<ArticuloEmpaque> opcionesEmpaque = itemSeleccionado.getArticulo()
-                        .getArticuloEmpaqueCollection().stream().toList();
+                List<ArticuloEmpaque> opcionesEmpaque = empaqueService.getPorArticulo(
+                        itemSeleccionado.getArticulo().getCodigo());
 
                 cbEmpaqueEditor.setItems(opcionesEmpaque != null ? opcionesEmpaque : new ArrayList<>());
                 cbEmpaqueEditor.setValue(itemSeleccionado.getArticuloEmpaque());
@@ -429,7 +466,8 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
             }
 
             if (validarYActualizarDetalle(itemActual, itemActual.getCantidad(), nuevoEmpaque)) {
-                grid.getDataProvider().refreshItem(itemActual);
+                // Las demás filas del mismo artículo también cambian (existencia acumulada)
+                refrescarFilasDelArticulo(itemActual);
             } else {
                 cbEmpaqueEditor.setValue(itemActual.getArticuloEmpaque());
             }
@@ -446,15 +484,27 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
 
             if (cant.compareTo(BigDecimal.ZERO) <= 0) {
                 Notification.show("La cantidad debe ser mayor a cero", 2500, Position.MIDDLE);
+                if (itemActual.getCantidad() != null && itemActual.getCantidad().signum() > 0) {
+                    cantidadField.setValue(itemActual.getCantidad());
+                }
                 return;
             }
 
             if (validarYActualizarDetalle(itemActual, cant, itemActual.getArticuloEmpaque())) {
-                grid.getDataProvider().refreshItem(itemActual);
+                // Las demás filas del mismo artículo también cambian (existencia acumulada)
+                refrescarFilasDelArticulo(itemActual);
             } else {
                 cantidadField.setValue(itemActual.getCantidad());
             }
         });
+    }
+
+    /** Refresca solo las filas del artículo (refreshAll cerraría el editor de la fila). */
+    private void refrescarFilasDelArticulo(DetalleSalidaInventario item) {
+        listDet.stream()
+                .filter(d -> d.getArticulo() != null && item.getArticulo() != null
+                && java.util.Objects.equals(d.getArticulo().getCodigo(), item.getArticulo().getCodigo()))
+                .forEach(d -> grid.getDataProvider().refreshItem(d));
     }
 
     private boolean validarYActualizarDetalle(DetalleSalidaInventario itemActual, BigDecimal nuevaCantidad, ArticuloEmpaque nuevoEmpaque) {
@@ -478,15 +528,26 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
             }
         }
 
+        // Si cambió el empaque, el costo pasa a ser el del nuevo empaque (una caja no cuesta lo que una unidad)
+        boolean cambioEmpaque = nuevoEmpaque != null && (itemActual.getArticuloEmpaque() == null
+                || !java.util.Objects.equals(itemActual.getArticuloEmpaque().getCodigo(), nuevoEmpaque.getCodigo()));
+        if (cambioEmpaque) {
+            BigDecimal costoEmpaque = nuevoEmpaque.getPrecioCompra() != null ? nuevoEmpaque.getPrecioCompra()
+                    : articulo != null && articulo.getPrecioCompra() != null
+                    ? articulo.getPrecioCompra().multiply(factor) : BigDecimal.ZERO;
+            itemActual.setPrecioCompra(costoEmpaque);
+        }
+        itemActual.setCostoUnitario(itemActual.getPrecioCompra());
+
         itemActual.setCantidad(nuevaCantidad);
         itemActual.setArticuloEmpaque(nuevoEmpaque);
         itemActual.setFactorConversion(factor);
 
-        // Recalcular existencia proyectada
-        recalcularExistenciaFila(itemActual);
-
         // Actualizar cantidad física en UMM
         itemActual.setCantidadFisicaBase(cantidadEnBase);
+
+        // Recalcular existencia proyectada (todas las filas del artículo)
+        recalcularExistencias();
 
         // Cálculos de montos
         BigDecimal precio = itemActual.getPrecioCompra() != null ? itemActual.getPrecioCompra() : BigDecimal.ZERO;
@@ -549,17 +610,36 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
             Notification.show("Salida #" + guardada.getCodigo() + " procesada y descontada del inventario correctamente.", 3000, Position.TOP_CENTER);
 
             listDet.clear();
+            idsFila.clear();
             txtObservacion.clear();
             grid.getDataProvider().refreshAll();
 
         } catch (IllegalStateException ex) {
+            limpiarIntentoFallido();
             Notification.show(ex.getMessage(), 5000, Position.MIDDLE);
         } catch (IllegalArgumentException ex) {
+            limpiarIntentoFallido();
             Notification.show(ex.getMessage(), 4000, Position.TOP_CENTER);
         } catch (Exception e) {
+            limpiarIntentoFallido();
             Notification.show("Error inesperado al guardar la salida: " + e.getMessage(), 4000, Position.TOP_CENTER);
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Si el guardado falla, la transacción se revierte pero las filas pueden
+     * quedar con el id que JPA les asignó; sin limpiarlo, el siguiente intento
+     * fallaría con "detached entity passed to persist".
+     */
+    private void limpiarIntentoFallido() {
+        for (DetalleSalidaInventario det : listDet) {
+            det.setCodigo(null);
+            det.setSalidaInventario(null);
+            det.setMovimientosGenerados(null);
+        }
+        recalcularExistencias();
+        grid.getDataProvider().refreshAll();
     }
 }
 

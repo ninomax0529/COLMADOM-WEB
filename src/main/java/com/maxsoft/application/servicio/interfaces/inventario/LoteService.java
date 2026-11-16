@@ -32,15 +32,28 @@ public interface LoteService {
     }
 
     /**
-     * Devuelve el lote con ese número para el artículo, o lo crea. Si el
-     * número viene vacío se usa el lote automático del día (L + AAAAMMDD).
-     * Si no se indica vencimiento y el artículo tiene días de vida útil, se
-     * calcula hoy + días.
+     * Devuelve el lote con ese número para el artículo, o lo crea. Si no se
+     * indica vencimiento y el artículo tiene días de vida útil, se calcula hoy
+     * + días.
+     * <p>
+     * Si el número viene vacío se usa el lote automático del día (L +
+     * AAAAMMDD) que tenga el mismo vencimiento; si el del día tiene otro
+     * vencimiento se crea L20261116-2, -3... (nunca se cambia la fecha de un
+     * lote que ya existe).
      *
-     * @throws IllegalArgumentException el lote ya existe con otro vencimiento
+     * @throws IllegalArgumentException el lote indicado ya existe con otro vencimiento
      */
     Lote obtenerOCrearLote(Articulo articulo, String numeroLote, LocalDate fechaVencimiento,
             BigDecimal costoUnitario, Proveedor proveedor, String documentoOrigen, String usuario);
+
+    /**
+     * Cambia (o quita, con null) el vencimiento de un lote. Afecta al lote en
+     * todos los almacenes. Sirve sobre todo para el lote INICIAL, que se crea
+     * sin vencimiento al activar el control de lotes.
+     *
+     * @throws IllegalArgumentException el lote no existe o es SIN-LOTE
+     */
+    Lote cambiarVencimiento(Integer codigoLote, LocalDate fechaVencimiento, String usuario);
 
     /**
      * Reparte una salida entre los lotes del almacén.
@@ -56,6 +69,14 @@ public interface LoteService {
      * @throws IllegalStateException el lote indicado no tiene suficiente
      */
     List<Tramo> repartirSalida(Articulo articulo, Almacen almacen, BigDecimal cantidad, Lote loteIndicado);
+
+    /**
+     * Si el lote SIN-LOTE del artículo está en negativo en el almacén (se
+     * vendió sin existencia), devuelve el tramo de una entrada que repone ese
+     * faltante: hasta {@code cantidad} unidades base. Si no hay faltante,
+     * null. Bloquea la fila del SIN-LOTE. No mueve existencias.
+     */
+    Tramo cubrirSinLote(Articulo articulo, Almacen almacen, BigDecimal cantidad);
 
     /**
      * Suma (delta positivo) o resta (negativo) existencia al lote en el

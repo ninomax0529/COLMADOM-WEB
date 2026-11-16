@@ -31,6 +31,14 @@ public class LoteServiceImpl implements LoteService {
     private static final DateTimeFormatter FORMATO_LOTE_AUTOMATICO = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+    /** tipo_documento 3 = AJUSTE DE INVENTARIO (filas de kardex del cuadre de lotes). */
+    private static final int TIPO_DOCUMENTO_AJUSTE = 3;
+
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.maxsoft.application.repo.MovimientoInventarioRepo movimientoRepo;
+
     private final LoteRepo loteRepo;
     private final LoteAlmacenRepo loteAlmacenRepo;
     private final ArticuloAlmacenRepo articuloAlmacenRepo;
@@ -58,7 +66,8 @@ public class LoteServiceImpl implements LoteService {
 
         LocalDate hoy = LocalDate.now();
         String numero = numeroLote == null ? "" : numeroLote.trim().toUpperCase();
-        if (numero.isEmpty()) {
+        boolean automatico = numero.isEmpty();
+        if (automatico) {
             numero = "L" + hoy.format(FORMATO_LOTE_AUTOMATICO);
         }
         if (numero.length() > 50) {
@@ -73,7 +82,32 @@ public class LoteServiceImpl implements LoteService {
             vence = hoy.plusDays(articulo.getDiasVencimiento());
         }
 
-        Lote existente = loteRepo.findByArticuloCodigoAndNumeroLote(articulo.getCodigo(), numero).orElse(null);
+        if (automatico) {
+            // Lote del día con el mismo vencimiento; si no hay, el siguiente número libre (L...-2, -3)
+            final LocalDate venceFinal = vence;
+            final String base = numero;
+            List<Lote> delDia = loteRepo.findConPrefijo(articulo.getCodigo(), base).stream()
+                    .filter(l -> l.getNumeroLote().equals(base) || l.getNumeroLote().matches(
+                    java.util.regex.Pattern.quote(base) + "-\\d+"))
+                    .toList();
+            Lote igual = delDia.stream().filter(l -> Objects.equals(l.getFechaVencimiento(), venceFinal))
+                    .findFirst().orElse(null);
+            if (igual != null) {
+                return igual;
+            }
+            if (!delDia.isEmpty()) {
+                int mayor = 1;
+                for (Lote l : delDia) {
+                    if (!l.getNumeroLote().equals(base)) {
+                        mayor = Math.max(mayor, Integer.parseInt(l.getNumeroLote().substring(base.length() + 1)));
+                    }
+                }
+                numero = base + "-" + (mayor + 1);
+            }
+        }
+
+        Lote existente = automatico ? null
+                : loteRepo.findByArticuloCodigoAndNumeroLote(articulo.getCodigo(), numero).orElse(null);
         if (existente != null) {
             if (fechaVencimiento != null && existente.getFechaVencimiento() != null
                     && !fechaVencimiento.equals(existente.getFechaVencimiento())) {
@@ -98,6 +132,20 @@ public class LoteServiceImpl implements LoteService {
         lote.setDocumentoOrigen(documentoOrigen);
         lote.setActivo(true);
         lote.setCreadoPor(usuario != null && !usuario.isBlank() ? usuario : "SISTEMA");
+        return loteRepo.save(lote);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Lote cambiarVencimiento(Integer codigoLote, LocalDate fechaVencimiento, String usuario) {
+        Lote lote = codigoLote == null ? null : loteRepo.findById(codigoLote).orElse(null);
+        if (lote == null) {
+            throw new IllegalArgumentException("El lote no existe.");
+        }
+        if (NUMERO_SIN_LOTE.equals(lote.getNumeroLote())) {
+            throw new IllegalArgumentException("El lote SIN-LOTE no lleva vencimiento: es lo vendido sin existencia.");
+        }
+        lote.setFechaVencimiento(fechaVencimiento);
         return loteRepo.save(lote);
     }
 
@@ -163,6 +211,24 @@ public class LoteServiceImpl implements LoteService {
         return tramos;
     }
 
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public Tramo cubrirSinLote(Articulo articulo, Almacen almacen, BigDecimal cantidad) {
+
+        if (articulo == null || almacen == null || cantidad == null || cantidad.signum() <= 0) {
+            return null;
+        }
+        Lote sinLote = loteRepo.findByArticuloCodigoAndNumeroLote(articulo.getCodigo(), NUMERO_SIN_LOTE).orElse(null);
+        if (sinLote == null) {
+            return null;
+        }
+        LoteAlmacen fila = loteAlmacenRepo.findParaActualizar(sinLote.getCodigo(), almacen.getCodigo()).orElse(null);
+        if (fila == null || fila.getExistencia().signum() >= 0) {
+            return null;
+        }
+        return new Tramo(sinLote, cantidad.min(fila.getExistencia().negate()), false);
+    }
+
     // ============================================================
     // EXISTENCIAS
     // ============================================================
@@ -213,7 +279,36 @@ public class LoteServiceImpl implements LoteService {
         }
         Lote inicial = obtenerOCrearLote(articulo, Lote.NUMERO_INICIAL, null, articulo.getPrecioCompra(),
                 null, Lote.NUMERO_INICIAL, usuario);
-        moverExistencia(inicial, almacen, diferencia);
+        BigDecimal[] exLote = moverExistencia(inicial, almacen, diferencia);
+
+        // Rastro en el kardex. Cantidad 0 y la misma existencia antes y después: el
+        // artículo no cambia (solo se reparte entre lotes), así que los reportes que suman
+        // el kardex no se alteran; el cambio del lote queda en existencia_lote_*.
+        MovimientoInventario mov = new MovimientoInventario();
+        mov.setArticulo(articulo);
+        mov.setAlmacen(almacen);
+        mov.setTipoMovimiento(entityManager.getReference(com.maxsoft.application.modelo.TipoMovimiento.class,
+                diferencia.signum() > 0 ? 1 : 2));
+        mov.setTipoDocumento(entityManager.getReference(com.maxsoft.application.modelo.TipoDocumento.class,
+                TIPO_DOCUMENTO_AJUSTE));
+        mov.setNumeroDocumento("CUADRE-LOTE");
+        mov.setCantidad(BigDecimal.ZERO);
+        mov.setCantidadEmpaque(BigDecimal.ZERO);
+        mov.setFactorConversion(BigDecimal.ONE);
+        mov.setSubTotal(BigDecimal.ZERO);
+        mov.setItbis(BigDecimal.ZERO);
+        mov.setTotal(BigDecimal.ZERO);
+        mov.setExistenciaAnterior(existencia);
+        mov.setExistenciaNueva(existencia);
+        mov.setLote(inicial);
+        mov.setExistenciaLoteAnterior(exLote[0]);
+        mov.setExistenciaLoteNueva(exLote[1]);
+        mov.setFechaMovimiento(new java.util.Date());
+        mov.setUsuario(usuario != null && !usuario.isBlank() ? usuario : "SISTEMA");
+        mov.setObservacion("Cuadre de lotes: " + (diferencia.signum() > 0 ? "+" : "")
+                + diferencia.stripTrailingZeros().toPlainString()
+                + " al lote INICIAL (la suma de los lotes no era igual a la existencia del almacén)");
+        movimientoRepo.save(mov);
         return true;
     }
 

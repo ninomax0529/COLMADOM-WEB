@@ -180,6 +180,101 @@ class LotesFase2Test {
         System.out.println(">>> TODO OK (se revierte al terminar)");
     }
 
+    @Test
+    void loteAutomaticoDelDiaConOtroVencimientoCreaOtroNumero() {
+        Articulo art = articuloRepo.findById(4).orElseThrow();
+        String base = "L" + LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+        LocalDate v1 = LocalDate.now().plusYears(7);
+        LocalDate v2 = LocalDate.now().plusYears(8);
+
+        Lote a = loteService.obtenerOCrearLote(art, "", v1, null, null, "TEST", "PRUEBA");
+        Lote b = loteService.obtenerOCrearLote(art, null, v2, null, null, "TEST", "PRUEBA");
+        Lote c = loteService.obtenerOCrearLote(art, " ", v1, null, null, "TEST", "PRUEBA");
+        System.out.println(">>> Lotes automáticos: " + a.getNumeroLote() + " (" + a.getFechaVencimiento() + "), "
+                + b.getNumeroLote() + " (" + b.getFechaVencimiento() + "), otra vez v1 -> " + c.getNumeroLote());
+
+        assertTrue(a.getNumeroLote().startsWith(base) && b.getNumeroLote().startsWith(base + "-"));
+        assertNotEquals(a.getCodigo(), b.getCodigo());
+        assertEquals(a.getCodigo(), c.getCodigo(), "mismo vencimiento = mismo lote");
+        assertEquals(v1, a.getFechaVencimiento(), "no se cambia la fecha del lote existente");
+        assertEquals(v2, b.getFechaVencimiento());
+    }
+
+    @Test
+    void cambiarVencimientoDeLote() {
+        Articulo art = articuloRepo.findById(4).orElseThrow();
+        Lote lote = loteService.obtenerOCrearLote(art, "PRUEBA-VENCE", null, null, null, "TEST", "PRUEBA");
+        LocalDate nueva = LocalDate.now().plusDays(45);
+        loteService.cambiarVencimiento(lote.getCodigo(), nueva, "PRUEBA");
+        em.flush();
+        em.clear();
+        assertEquals(nueva, em.find(Lote.class, lote.getCodigo()).getFechaVencimiento());
+        loteService.cambiarVencimiento(lote.getCodigo(), null, "PRUEBA");
+        em.flush();
+        em.clear();
+        assertNull(em.find(Lote.class, lote.getCodigo()).getFechaVencimiento());
+
+        Lote sinLote = loteService.obtenerOCrearLote(art, LoteService.NUMERO_SIN_LOTE, null, null, null, "TEST", "PRUEBA");
+        assertThrows(IllegalArgumentException.class,
+                () -> loteService.cambiarVencimiento(sinLote.getCodigo(), nueva, "PRUEBA"));
+    }
+
+    @Test
+    void entradaReponePrimeroElSinLoteNegativo() {
+        final int A = 4;
+        Articulo art = articuloRepo.findById(A).orElseThrow();
+        art.setPermitirVentaSinExistencia(true);
+        articuloRepo.saveAndFlush(art);
+        loteService.sincronizarLotes(art, "PRUEBA");
+
+        // Vender 3 más de lo que hay: SIN-LOTE queda en -3
+        BigDecimal ex = existencia(A, 1);
+        BigDecimal venta = ex.max(BigDecimal.ZERO).add(bd(3));
+        movimientoService.registrarMovimientoConLote(art, alm1, null, BigDecimal.ONE, venta, null, null, null,
+                salida, docVenta, "TEST-SL1", venta, "PRUEBA", "venta sin existencia", null);
+        Lote sinLote = loteService.obtenerOCrearLote(art, LoteService.NUMERO_SIN_LOTE, null, null, null, "T", "PRUEBA");
+        BigDecimal deficit = exLote(sinLote, alm1);
+        assertTrue(deficit.signum() < 0, "SIN-LOTE en negativo");
+
+        // Entra 5 sin lote: primero repone el faltante, el resto al lote del día
+        List<MovimientoInventario> e = movimientoService.registrarMovimientoConLote(art, alm1, null, BigDecimal.ONE,
+                bd(5), bd(50), bd(0), bd(50), entrada, docEntrada, "TEST-E-SL", bd(5), "PRUEBA", "entrada", null);
+        imprimir("Entrada con SIN-LOTE " + deficit, e);
+        BigDecimal repuesto = deficit.negate().min(bd(5));
+        assertEquals(0, exLote(sinLote, alm1).compareTo(deficit.add(repuesto)));
+        assertEquals(0, e.stream().map(MovimientoInventario::getCantidad).reduce(BigDecimal.ZERO, BigDecimal::add)
+                .compareTo(bd(5)), "las filas del kardex suman lo que entró");
+        assertTrue(!LoteService.NUMERO_SIN_LOTE.equals(e.get(0).getLote().getNumeroLote()),
+                "la primera fila es el lote de la entrada");
+        assertCuadra(A);
+    }
+
+    @Test
+    void cuadreDeLotesDejaRastroEnKardex() {
+        final int A = 4;
+        Articulo art = articuloRepo.findById(A).orElseThrow();
+        loteService.sincronizarLotes(art, "PRUEBA");
+        em.flush();
+        // Descuadre: la existencia del almacén sube 4 sin pasar por los lotes
+        em.createNativeQuery("update articulo_almacen set existencia = existencia + 4 where articulo = 4 and almacen = 1")
+                .executeUpdate();
+        em.clear();
+        art = articuloRepo.findById(A).orElseThrow();
+        assertEquals(1, loteService.sincronizarLotes(art, "PRUEBA"));
+        em.flush();
+
+        Object[] r = (Object[]) em.createNativeQuery("select cantidad, existencia_anterior, existencia_nueva,"
+                + " existencia_lote_nueva - existencia_lote_anterior, tipo_documento from movimiento_inventario"
+                + " where articulo = 4 and almacen = 1 and numero_documento = 'CUADRE-LOTE'"
+                + " order by codigo desc limit 1").getSingleResult();
+        System.out.println(">>> Kardex del cuadre: cantidad=" + r[0] + " existencia " + r[1] + "->" + r[2]
+                + " lote +" + r[3] + " tipo_doc=" + r[4]);
+        assertEquals(0, new BigDecimal(r[0].toString()).signum(), "no altera la existencia del kardex");
+        assertEquals(0, new BigDecimal(r[1].toString()).compareTo(new BigDecimal(r[2].toString())));
+        assertEquals(0, new BigDecimal(r[3].toString()).compareTo(bd(4)));
+        assertCuadra(A);
+    }
+
     private void assertCuadra(int articulo) {
         em.flush();
         List<Object[]> descuadres = loteService.getDescuadres();

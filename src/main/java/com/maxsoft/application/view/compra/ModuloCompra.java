@@ -50,12 +50,16 @@ public class ModuloCompra extends AppLayout {
         RouterLink linkProveedorView = createLink(VaadinIcon.DASHBOARD, "Proveedor", ProveedorView.class);
         RouterLink linkConsultaRecepcionMercanciaView = createLink(VaadinIcon.DASHBOARD, "Recepcion Mercancia", ConsultaRecepcionMercanciaView.class);
 
+        RouterLink linkDevolucion = createLink(VaadinIcon.TRUCK, "Devolución a proveedor",
+                com.maxsoft.application.view.compra.devolucion.ConsultaDevolucionProveedorView.class);
+
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
         ////
 //        // Layout vertical que contiene los enlaces del menú
         VerticalLayout menuLayout = new VerticalLayout(      
                 linkOrdenDeConsultaCompraView,
                 linkConsultaRecepcionMercanciaView,
+                linkDevolucion,
                 linkProveedorView,
                 linkModulo);
 

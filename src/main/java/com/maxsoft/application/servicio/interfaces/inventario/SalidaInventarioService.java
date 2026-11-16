@@ -51,4 +51,12 @@ public interface SalidaInventarioService {
     /** Saca del inventario lo que entró con una recepción que se está anulando. */
     SalidaInventario crearSalidaPorAnulacionRecepcion(com.maxsoft.application.modelo.RecepcionMercancia recepcion,
             List<com.maxsoft.application.modelo.DetalleRecepcionMercancia> detalles, String usuario, String motivo);
+
+    /**
+     * Salida por devolución a proveedor: cada línea sale de su lote (desdeLoteNuevo = false)
+     * o, al anular un cambio, de la reposición que entró (desdeLoteNuevo = true).
+     */
+    SalidaInventario crearSalidaPorDevolucionProveedor(com.maxsoft.application.modelo.DevolucionProveedor devolucion,
+            List<com.maxsoft.application.modelo.DetalleDevolucionProveedor> detalles, boolean desdeLoteNuevo,
+            String usuario);
 }

@@ -22,6 +22,11 @@ public interface LoteRepo extends JpaRepository<Lote, Integer> {
     @Query("select count(l) from Lote l where l.articulo.codigo = :articulo and l.numeroLote like concat(:prefijo, '%')")
     long contarConPrefijo(@Param("articulo") Integer codigoArticulo, @Param("prefijo") String prefijo);
 
+    /** Lotes del artículo cuyo número empieza con el prefijo (lotes automáticos del día: L20261116, L20261116-2...). */
+    @Query("select l from Lote l where l.articulo.codigo = :articulo and l.numeroLote like concat(:prefijo, '%')"
+            + " order by l.codigo")
+    List<Lote> findConPrefijo(@Param("articulo") Integer codigoArticulo, @Param("prefijo") String prefijo);
+
     /** Lotes con existencia que vencen hasta la fecha indicada (incluye los ya vencidos). */
     @Query("select distinct l from LoteAlmacen la join la.lote l"
             + " where la.existencia > 0 and l.fechaVencimiento is not null and l.fechaVencimiento <= :hasta"

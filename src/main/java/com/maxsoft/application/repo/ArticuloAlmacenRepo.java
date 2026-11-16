@@ -26,6 +26,16 @@ public interface ArticuloAlmacenRepo extends JpaRepository<ArticuloAlmacen, Inte
     Optional<ArticuloAlmacen> buscarPorArticuloYAlmacen(@Param("idArticulo") Integer idArticulo,
             @Param("idAlmacen") Integer idAlmacen);
 
+    /**
+     * Igual que buscarPorArticuloYAlmacen pero bloquea la fila (SELECT ... FOR
+     * UPDATE) hasta que termine la transacción: dos cajas que mueven el mismo
+     * artículo a la vez esperan su turno en vez de pisarse la existencia.
+     */
+    @Query(value = "select existencia from articulo_almacen where articulo = :idArticulo and almacen = :idAlmacen"
+            + " for update", nativeQuery = true)
+    Optional<java.math.BigDecimal> bloquearExistencia(@Param("idArticulo") Integer idArticulo,
+            @Param("idAlmacen") Integer idAlmacen);
+
     @Query("SELECT aa FROM ArticuloAlmacen aa "
             + "JOIN FETCH aa.articulo a "
             + "JOIN FETCH aa.almacen alm "
