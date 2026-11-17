@@ -56,6 +56,8 @@ import java.util.Objects;
 @PageTitle("Registro Factura de Compra")
 @Route(value = "compra/registroFactura")
 public class RegistroFacturaDeCompraView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistroFacturaDeCompraView.class);
+
 
     private static final String USUARIO_ACTUAL = "ADMIN";
 
@@ -321,7 +323,7 @@ public class RegistroFacturaDeCompraView extends VerticalLayout {
     private BigDecimal itbisDe(Articulo articulo) {
 
         return (articulo != null && articulo.getItbisGravado() != null)
-                ? BigDecimal.valueOf(articulo.getItbisGravado())
+                ? articulo.getItbisGravado()
                 : BigDecimal.ZERO;
     }
 
@@ -656,7 +658,7 @@ public class RegistroFacturaDeCompraView extends VerticalLayout {
             Notification.show(ex.getMessage(), 5000, Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_WARNING);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error inesperado", e);
             Notification.show("Error al guardar la factura de compra: " + e.getMessage(), 4000, Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }

@@ -486,6 +486,8 @@ import java.util.stream.Collectors;
 @PageTitle("Ajuste de Inventario")
 @Route(value = "inventario/consultaAjuste")
 public class ConsultaAjusteInventarioView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ConsultaAjusteInventarioView.class);
+
 
     private static final DateTimeFormatter FORMATO_FECHA
             = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -683,7 +685,7 @@ public class ConsultaAjusteInventarioView extends VerticalLayout {
             limpiarDetalle();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("Error consultando ajustes: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }

@@ -29,6 +29,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class PanelProducto extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PanelProducto.class);
+
 
     private ComboBox<Articulo> searchBox;
     FacturaDeVentaService facturaDeVentaService;
@@ -76,7 +78,7 @@ public class PanelProducto extends VerticalLayout {
                     onAbrirMovimientoPos.run();
                 }
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
             }
         });
         
@@ -168,7 +170,7 @@ public class PanelProducto extends VerticalLayout {
             // Buscar factura en la base de datos
             FacturaDeVenta factura = this.facturaDeVentaService.getFactura(Integer.parseInt(codigo.trim()));
 
-            System.out.println("facturaOpt:"+factura.getAnulada());
+            log.debug("facturaOpt:"+factura.getAnulada());
             if (factura != null) {
            
                 if (Boolean.TRUE.equals(factura.getAnulada())) {

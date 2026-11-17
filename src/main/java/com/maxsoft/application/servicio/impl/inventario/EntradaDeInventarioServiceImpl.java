@@ -253,6 +253,8 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         EntradaInventario entrada = inicializarCabeceraBase(3, "AJ-" + ajuste.getCodigo(), usuario, observacion);
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();
+        // Línea del ajuste -> línea de la entrada, para escribir de vuelta el lote usado
+        java.util.Map<DetalleAjusteInventario, DetalleEntradaInventario> porLinea = new java.util.IdentityHashMap<>();
 
         for (DetalleAjusteInventario det : detalleAju) {
 
@@ -277,11 +279,22 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                 detEntrada.setNumeroLote(det.getNumeroLote());
                 detEntrada.setFechaVencimientoLote(det.getFechaVencimientoLote());
                 detallesEntrada.add(detEntrada);
+                porLinea.put(det, detEntrada);
             }
         }
 
         entrada.setDetalleEntradaInventarioCollection(detallesEntrada);
-        return guardar(entrada, entrada.getNombreUsuario());
+        EntradaInventario guardada = guardar(entrada, entrada.getNombreUsuario());
+
+        // El ajuste también guarda el lote en que entró (incluido el automático del día)
+        porLinea.forEach((det, detEntrada) -> {
+            if (detEntrada.getLote() != null) {
+                det.setLote(detEntrada.getLote());
+                det.setNumeroLote(detEntrada.getNumeroLote());
+                det.setFechaVencimientoLote(detEntrada.getFechaVencimientoLote());
+            }
+        });
+        return guardada;
     }
 
     @Override
@@ -398,7 +411,8 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         String comentario = "Entrada por Traslado de Mercancia #" + traslado.getCodigo() + ". "
                 + (traslado.getObservacion() != null ? traslado.getObservacion() : "");
 
-        EntradaInventario entrada = inicializarCabeceraBase(3, "AJ-" + traslado.getCodigo(), usuario, comentario);
+        // Tipo 4 = TRANSFERENCIA DE INVENTARIO (antes salía como ajuste "AJ-n" y chocaba con los ajustes)
+        EntradaInventario entrada = inicializarCabeceraBase(4, "TR-" + traslado.getCodigo(), usuario, comentario);
         Almacen almacenDestino = traslado.getAlmacenDestino();
 
         List<DetalleEntradaInventario> detallesEntrada = new ArrayList<>();

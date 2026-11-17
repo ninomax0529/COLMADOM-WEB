@@ -28,6 +28,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 @PageTitle("Consulta Articulos")
 @Route("consulta-articulos")
 public class ConsultaArticuloDgView extends Dialog {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ConsultaArticuloDgView.class);
+
     
 
     private Grid<Articulo> grid;
@@ -76,13 +78,13 @@ public class ConsultaArticuloDgView extends Dialog {
 
                 setArticulo(grid.getSelectionModel().getFirstSelectedItem().get());
 
-                System.out.println("no es null");
+                log.debug("no es null");
                 dialogCallback.onConfirm(getArticulo());
 
                 close();
 
             } else {
-                System.out.println(" es  null ");
+                log.debug(" es  null ");
 
                 close();
             }

@@ -42,6 +42,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SalidaInventarioServiceImpl implements SalidaInventarioService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SalidaInventarioServiceImpl.class);
+
 
     private final SalidaInventarioRepo salidaRepo;
     private final ArticuloRepo articuloRepo;
@@ -80,8 +82,10 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
         // 1. Guardar la cabecera del documento de salida
         SalidaInventario salidaGuardada = salidaRepo.save(obj);
 
-        String numDocumento = "SAL-" + (salidaGuardada.getNumeroDocumento() != null
-                ? salidaGuardada.getNumeroDocumento()
+        // Número propio de la salida (como ENT-n en las entradas). Antes usaba el número del
+        // documento origen y el traslado #1 y la factura #1 quedaban ambos como "SAL-1".
+        String numDocumento = "SAL-" + (salidaGuardada.getCodigo() != null
+                ? salidaGuardada.getCodigo()
                 : System.currentTimeMillis());
 
         // Corregido: getTipoMovimiento (se eliminó la 'a' extra)
@@ -100,8 +104,8 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
                 if (articuloProxy != null && articuloProxy.getCodigo() != null) {
 
-                    System.out.println("Factor " + detalle.getFactorConversion());
-                    System.out.println("CantidaBase " + detalle.getCantidadFisicaBase());
+                    log.debug("Factor " + detalle.getFactorConversion());
+                    log.debug("CantidaBase " + detalle.getCantidadFisicaBase());
 
                     Articulo articulo = articuloRepo.findById(articuloProxy.getCodigo())
                             .orElse(articuloProxy);
@@ -178,7 +182,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
 
         if (!listaDEtFactura.isEmpty()) {
 
-            System.out.println("listaDEtFactura " + listaDEtFactura.size());
+            log.debug("listaDEtFactura " + listaDEtFactura.size());
 
             for (DetalleFacturaDeVenta detFactura : listaDEtFactura) {
 
@@ -248,6 +252,7 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 + (ajuste.getObservacion() != null ? ajuste.getObservacion() : ""));
 
         List<DetalleSalidaInventario> detallesSalida = new ArrayList<>();
+        java.util.Map<DetalleAjusteInventario, DetalleSalidaInventario> porLinea = new java.util.IdentityHashMap<>();
 
         if (detalles != null) {
 
@@ -282,13 +287,24 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setLote(det.getLote()); // ajuste negativo: lote elegido, o FEFO si es null
 
                 detallesSalida.add(detSalida);
+                porLinea.put(det, detSalida);
 //                }
             }
         }
 
         salida.setDetalleSalidaInventarioCollection(detallesSalida);
 
-        return guardar(salida, nombreUsuario);
+        SalidaInventario guardada = guardar(salida, nombreUsuario);
+
+        // Si salió de un solo lote (FEFO), el ajuste también lo guarda
+        porLinea.forEach((det, detSalida) -> {
+            if (det.getLote() == null && detSalida.getLote() != null) {
+                det.setLote(detSalida.getLote());
+                det.setNumeroLote(detSalida.getLote().getNumeroLote());
+                det.setFechaVencimientoLote(detSalida.getLote().getFechaVencimiento());
+            }
+        });
+        return guardada;
     }
 
     @Override

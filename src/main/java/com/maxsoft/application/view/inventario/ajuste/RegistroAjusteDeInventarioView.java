@@ -55,6 +55,8 @@ import java.util.Objects;
 @PageTitle("Registro Ajuste de Inventario Multi-Empaque")
 @Route(value = "inventario/registroAjuste")
 public class RegistroAjusteDeInventarioView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistroAjusteDeInventarioView.class);
+
 
     private final Grid<DetalleAjusteInventario> grid = new Grid<>(DetalleAjusteInventario.class, false);
     private Editor<DetalleAjusteInventario> editor;
@@ -123,7 +125,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
 
                 procesarGuardado();
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
             }
         });
         botonera.getCancelar().addClickListener(e -> getUI().ifPresent(ui -> ui.getPage().getHistory().back()));
@@ -337,11 +339,11 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         // 3. Montos financieros requeridos (evitan la falla del Validator @NotNull)
         BigDecimal subTotal = cantEfectiva.multiply(precioUnitario);
 
-        double porcentajeItbis = (item.getArticulo() != null && item.getArticulo().getItbisGravado() != null)
+        BigDecimal porcentajeItbis = (item.getArticulo() != null && item.getArticulo().getItbisGravado() != null)
                 ? item.getArticulo().getItbisGravado()
-                : 0.0;
+                : BigDecimal.ZERO;
 
-        BigDecimal itbis = subTotal.multiply(BigDecimal.valueOf(porcentajeItbis / 100.0));
+        BigDecimal itbis = subTotal.multiply(porcentajeItbis.movePointLeft(2));
 
         item.setSubTotal(subTotal);
         item.setItbis(itbis);
@@ -513,7 +515,9 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
             if (nuevoEmpaque.getUnidadEmpaque() != null) {
                 itemActual.setNombreUnidad(nuevoEmpaque.getUnidadEmpaque().getDescripcion());
             }
-            itemActual.setNuevaExistencia(calcularNuevaExistencia(itemActual.getExistencia(), itemActual.getCantidad(), nuevoEmpaque));
+            itemActual.setFactorConversion(nuevoEmpaque.getFactorConversion());
+            // Cambia el empaque: también cambian el costo y los montos de la línea
+            recalcularTotalesYExistenciaFila(itemActual, itemActual.getCantidad(), nuevoEmpaque);
 
             grid.getDataProvider().refreshItem(itemActual);
         });
@@ -537,8 +541,8 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
                 DetalleAjusteInventario item = editor.getItem();
 
                 if (cbTipoAjuste.getValue() != null) {
-                    item.setCantidad(cant);
-                    item.setNuevaExistencia(calcularNuevaExistencia(item.getExistencia(), cant, item.getArticuloEmpaque()));
+                    // Recalcula existencia y también subtotal/ITBIS/total (antes quedaban los de cantidad 1)
+                    recalcularTotalesYExistenciaFila(item, cant, item.getArticuloEmpaque());
                 } else {
                     ClaseUtil.mostrarNotificacion("Tiene que seleccionar el tipo de ajuste", NotificationVariant.LUMO_WARNING);
                     item.setCantidad(BigDecimal.ZERO);
@@ -575,7 +579,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
         try {
             String usuarioActual = "ADMIN";
 
-            System.out.println("txtObservacion.getValue()" + txtObservacion.getValue());
+            log.debug("txtObservacion.getValue()" + txtObservacion.getValue());
             AjusteInventario ajuste = new AjusteInventario();
 
             ajuste.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
@@ -600,7 +604,7 @@ public class RegistroAjusteDeInventarioView extends VerticalLayout {
             Notification.show(ex.getMessage(), 4000, Position.MIDDLE);
         } catch (Exception e) {
             Notification.show("Error al guardar el ajuste: " + e.getMessage(), 4000, Position.TOP_CENTER);
-            e.printStackTrace();
+            log.error("Error inesperado", e);
         }
     }
 }

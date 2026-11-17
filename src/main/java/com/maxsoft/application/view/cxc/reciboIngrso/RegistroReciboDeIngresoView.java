@@ -47,6 +47,8 @@ import java.util.stream.Collectors;
 @PageTitle("Registro Recibo de Egreso")
 @Route(value = "cxc/registroReciboIngreso")
 public class RegistroReciboDeIngresoView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistroReciboDeIngresoView.class);
+
 
     private static final String USUARIO_ACTUAL = "ADMIN";
 
@@ -219,7 +221,7 @@ public class RegistroReciboDeIngresoView extends VerticalLayout {
                     Notification.show("El Cliente no tiene facturas pendientes de pago.", 3000, Position.MIDDLE);
                 }
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
                 Notification.show("Error consultando facturas pendientes: " + ex.getMessage(), 4000, Position.TOP_CENTER)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }
@@ -521,7 +523,7 @@ public class RegistroReciboDeIngresoView extends VerticalLayout {
             Notification.show(ex.getMessage(), 5000, Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_WARNING);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error inesperado", e);
             Notification.show("Error al guardar el recibo de egreso: " + e.getMessage(), 4000, Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }

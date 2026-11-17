@@ -56,6 +56,8 @@ import java.util.List;
 @PageTitle("Registrar de Artículos")
 @Route(value = "inventario/registrarArticulov4")
 public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlParameter<String> {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistrarArticuloViewV4.class);
+
 
     private static final List<MetodoCosteo> METODOS_COSTEO = new ArrayList<>();
 
@@ -75,6 +77,9 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
     private final BigDecimalField txtPrecioCompra = new BigDecimalField("Precio Compra Base");
     private final BigDecimalField txtPrecioVenta = new BigDecimalField("Precio Venta Base");
     private final BigDecimalField txtExistencia = new BigDecimalField("Existencia General Base");
+    // ITBIS (incluido en el precio de venta): exento = no lleva ITBIS; si no, su tasa
+    private final Checkbox chkExentoItbis = new Checkbox("Exento de ITBIS");
+    private final BigDecimalField txtTasaItbis = new BigDecimalField("ITBIS (%)");
     private final IntegerField txtCodigo = new IntegerField("Código");
     private final RadioButtonGroup<UnidadDeVenta> rbbGrupo = new RadioButtonGroup<>();
 
@@ -188,7 +193,7 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
                 guardarArticulo();
 
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
             }
 
         });
@@ -241,7 +246,27 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         HorizontalLayout hlArt = new HorizontalLayout(txtCodigo, txtDescripcion);
         hlArt.addAndExpand(txtDescripcion);
 
-        FormLayout formLayout = new FormLayout(hlArt, hbPrecio, rbbGrupo);
+        txtTasaItbis.setWidth("120px");
+        txtTasaItbis.setHelperText("Incluido en el precio");
+        chkExentoItbis.addValueChangeListener(e -> {
+            txtTasaItbis.setEnabled(!Boolean.TRUE.equals(e.getValue()));
+            if (Boolean.TRUE.equals(e.getValue())) {
+                txtTasaItbis.setValue(BigDecimal.ZERO);
+            } else if (txtTasaItbis.getValue() == null || txtTasaItbis.getValue().signum() == 0) {
+                txtTasaItbis.setValue(com.maxsoft.application.util.CalculoFacturaUtil.ITBIS_DEFECTO);
+            }
+        });
+        HorizontalLayout hbItbis = new HorizontalLayout(chkExentoItbis, txtTasaItbis);
+        hbItbis.setAlignItems(com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment.BASELINE);
+
+        FormLayout formLayout = new FormLayout(hlArt, hbPrecio, hbItbis, rbbGrupo);
+
+        binder.bind(chkExentoItbis, Articulo::getExentoItbis, Articulo::setExentoItbis);
+        binder.bind(txtTasaItbis,
+                Articulo::getItbisGravado,
+                (a, v) -> a.setItbisGravado(a.getExentoItbis() ? BigDecimal.ZERO
+                        : (v != null && v.signum() > 0 ? v
+                        : com.maxsoft.application.util.CalculoFacturaUtil.ITBIS_DEFECTO)));
 
         binder.bind(txtCodigo, Articulo::getCodigo, Articulo::setCodigo);
         binder.bind(txtDescripcion, Articulo::getDescripcion, Articulo::setDescripcion);
@@ -451,6 +476,9 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         }
         if (articulo.getPerecedero() == true) {
             articulo.setPerecedero(false);
+        }
+        if (articulo.getItbisGravado() == null) {
+            articulo.setItbisGravado(com.maxsoft.application.util.CalculoFacturaUtil.ITBIS_DEFECTO);
         }
 
 //        if (articulo.getMetodoCosteo() == null) {
@@ -885,6 +913,11 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         }
 
         binder.setBean(articulo);
+        txtTasaItbis.setEnabled(!articulo.getExentoItbis());
+        if (!articulo.getExentoItbis() && articulo.getItbisGravado() == null) {
+            // Artículo viejo sin tasa: se muestra la tasa con que vende el POS
+            txtTasaItbis.setValue(com.maxsoft.application.util.CalculoFacturaUtil.ITBIS_DEFECTO);
+        }
         actualizarEstadoCamposInventario();
         actualizarEstadoCamposCompra();
 
@@ -980,7 +1013,7 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 //                Notification.show("Debe agregar al menos un empaque/presentación para el artículo", 3000, Notification.Position.MIDDLE);
 //                return;
             } else {
-                System.out.println("listaEmpaques" + listaEmpaques.size());
+                log.debug("listaEmpaques" + listaEmpaques.size());
             }
 
             try {
@@ -1001,7 +1034,7 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
                 Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
             } catch (Exception e) {
                 Notification.show("Error al procesar la transacción: " + e.getMessage(), 4000, Notification.Position.MIDDLE);
-                e.printStackTrace();
+                log.error("Error inesperado", e);
             }
 
         } else {

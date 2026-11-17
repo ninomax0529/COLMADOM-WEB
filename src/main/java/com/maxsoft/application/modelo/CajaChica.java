@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.modelo;
 
+import java.math.BigDecimal;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -49,17 +50,17 @@ public class CajaChica implements Serializable {
     @Basic(optional = false)
     @NotNull
     @Column(name = "monto_apertura")
-    private double montoApertura;
+    private BigDecimal montoApertura;
     @Column(name = "fecha_cierre")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCierre;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "monto_cierre")
-    private Double montoCierre;
+    private BigDecimal montoCierre;
     @Column(name = "monto_cierre_esperado")
-    private Double montoCierreEsperado;
+    private BigDecimal montoCierreEsperado;
     @Column(name = "monto_cierre_real")
-    private Double montoCierreReal;
+    private BigDecimal montoCierreReal;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 200)
@@ -80,7 +81,7 @@ public class CajaChica implements Serializable {
         this.codigo = codigo;
     }
 
-    public CajaChica(Integer codigo, String puntoDeVenta, Date fechaApertura, double montoApertura, String usuarioApertura, boolean abierta) {
+    public CajaChica(Integer codigo, String puntoDeVenta, Date fechaApertura, BigDecimal montoApertura, String usuarioApertura, boolean abierta) {
         this.codigo = codigo;
         this.puntoDeVenta = puntoDeVenta;
         this.fechaApertura = fechaApertura;
@@ -113,11 +114,11 @@ public class CajaChica implements Serializable {
         this.fechaApertura = fechaApertura;
     }
 
-    public double getMontoApertura() {
+    public BigDecimal getMontoApertura() {
         return montoApertura;
     }
 
-    public void setMontoApertura(double montoApertura) {
+    public void setMontoApertura(BigDecimal montoApertura) {
         this.montoApertura = montoApertura;
     }
 
@@ -129,27 +130,27 @@ public class CajaChica implements Serializable {
         this.fechaCierre = fechaCierre;
     }
 
-    public Double getMontoCierre() {
+    public BigDecimal getMontoCierre() {
         return montoCierre;
     }
 
-    public void setMontoCierre(Double montoCierre) {
+    public void setMontoCierre(BigDecimal montoCierre) {
         this.montoCierre = montoCierre;
     }
 
-    public Double getMontoCierreEsperado() {
+    public BigDecimal getMontoCierreEsperado() {
         return montoCierreEsperado;
     }
 
-    public void setMontoCierreEsperado(Double montoCierreEsperado) {
+    public void setMontoCierreEsperado(BigDecimal montoCierreEsperado) {
         this.montoCierreEsperado = montoCierreEsperado;
     }
 
-    public Double getMontoCierreReal() {
+    public BigDecimal getMontoCierreReal() {
         return montoCierreReal;
     }
 
-    public void setMontoCierreReal(Double montoCierreReal) {
+    public void setMontoCierreReal(BigDecimal montoCierreReal) {
         this.montoCierreReal = montoCierreReal;
     }
 

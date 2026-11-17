@@ -47,6 +47,8 @@ import java.util.stream.Collectors;
 @PageTitle("Merma de Inventario")
 @Route(value = "inventario/merma")
 public class MermaView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MermaView.class);
+
 
     private static final DateTimeFormatter FORMATO_FECHA
             = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -229,7 +231,7 @@ public class MermaView extends VerticalLayout {
             limpiarDetalle();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("Error consultando mermas: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }

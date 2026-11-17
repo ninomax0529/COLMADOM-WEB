@@ -62,6 +62,8 @@ import java.util.Objects;
 @PageTitle("Liquidación de Delivery")
 @Route(value = "delivery/liquidacionDelivery")
 public class LiquidacionDeliveryView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(LiquidacionDeliveryView.class);
+
 
     /** Si no hay caja abierta (no hay cajero), se registra con este usuario. */
     private static final String USUARIO_POR_DEFECTO = "ADMIN";
@@ -191,7 +193,7 @@ public class LiquidacionDeliveryView extends VerticalLayout {
         try {
             cajaAbierta = cajaService.obtenerCajaAbierta().orElse(null);
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             cajaAbierta = null;
         }
         avisoCaja.setVisible(cajaAbierta == null);
@@ -244,13 +246,13 @@ public class LiquidacionDeliveryView extends VerticalLayout {
         try {
             pendientesPorMotorista = liquidacionService.getPendientesPorMotorista();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             pendientesPorMotorista = new HashMap<>();
         }
         try {
             deudasMotoristas = liquidacionService.getDeudasMotoristas();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             deudasMotoristas = new HashMap<>();
         }
 
@@ -369,7 +371,7 @@ public class LiquidacionDeliveryView extends VerticalLayout {
                     ? new ArrayList<>()
                     : new ArrayList<>(liquidacionService.getPedidosPendientes(motorista.getCodigo()));
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             pedidosActuales = new ArrayList<>();
             notificar("Error consultando los pedidos pendientes: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
@@ -441,7 +443,7 @@ public class LiquidacionDeliveryView extends VerticalLayout {
         try {
             deuda = liquidacionService.getDeudaMotorista(motorista.getCodigo());
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             notificar("No se pudo consultar la deuda: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
             return;
         }
@@ -494,7 +496,7 @@ public class LiquidacionDeliveryView extends VerticalLayout {
                 notificar(ex.getMessage(), NotificationVariant.LUMO_WARNING);
                 confirmar.setEnabled(true);
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
                 notificar("Error al registrar el abono: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
                 confirmar.setEnabled(true);
             }
@@ -518,7 +520,7 @@ public class LiquidacionDeliveryView extends VerticalLayout {
             movimientos = liquidacionService.getCuentaMotorista(motorista.getCodigo());
             deuda = liquidacionService.getDeudaMotorista(motorista.getCodigo());
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             notificar("No se pudo consultar la cuenta: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
             return;
         }
@@ -936,7 +938,7 @@ public class LiquidacionDeliveryView extends VerticalLayout {
             }
             return false;
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             notificar("Error al liquidar: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
             return false;
         }
@@ -976,7 +978,7 @@ public class LiquidacionDeliveryView extends VerticalLayout {
             try {
                 ImpresionHtmlUtil.imprimir(UI.getCurrent(), liquidacionService.generarComprobanteHtml(liq.getCodigo()));
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
                 notificar("No se pudo imprimir: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
             }
             d.close();

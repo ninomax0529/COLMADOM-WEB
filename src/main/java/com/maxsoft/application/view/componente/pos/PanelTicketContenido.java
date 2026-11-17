@@ -183,7 +183,7 @@ public class PanelTicketContenido extends VerticalLayout {
         if (descuento.signum() > 0) {
             sb.append("  ·  Desc. RD$ ").append(FORMATO_MONEDA.format(descuento));
         }
-        sb.append("  ·  ITBIS RD$ ").append(FORMATO_MONEDA.format(itbis));
+        sb.append("  ·  ITBIS incluido RD$ ").append(FORMATO_MONEDA.format(itbis));
         lblResumen.setText(sb.toString());
 
         // Filtro: solo con varias líneas, o mientras tenga texto escrito

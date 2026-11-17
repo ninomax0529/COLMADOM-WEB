@@ -22,6 +22,8 @@ import java.util.List;
 //@Route("grid-column-filtering")
 @Route(value = "consultaArticulos")
 public final class ArticuloDialogoFilteringView extends Dialog {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ArticuloDialogoFilteringView.class);
+
 
     /**
      * @return the articulo
@@ -60,13 +62,13 @@ public final class ArticuloDialogoFilteringView extends Dialog {
 
                 setArticulo(grid.getSelectionModel().getFirstSelectedItem().get());
 
-                System.out.println("no es null");
+                log.debug("no es null");
                 dialogCallback.onConfirm(getArticulo());
 
                 close();
 
             } else {
-                System.out.println(" es  null ");
+                log.debug(" es  null ");
 
                 close();
             }

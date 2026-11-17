@@ -24,6 +24,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
 public class DialogoVentaFiada extends Dialog {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DialogoVentaFiada.class);
+
 
     private ComboBox<String> comboCliente;
     private Button btnLocal;
@@ -127,7 +129,7 @@ public class DialogoVentaFiada extends Dialog {
         }
 
         // Aquí pones tu lógica para guardar en la base de datos
-        System.out.println("Venta guardada para: " + comboCliente.getValue() + " Tipo: " + tipoEntrega);
+        log.debug("Venta guardada para: " + comboCliente.getValue() + " Tipo: " + tipoEntrega);
 
         close(); // Cierra la ventana automáticamente al terminar
     }

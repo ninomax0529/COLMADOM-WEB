@@ -49,6 +49,8 @@ import java.util.stream.Collectors;
 @Route(value = "inventario/entrada")
 
 public class EntradaDeIventarioView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EntradaDeIventarioView.class);
+
 
     private static final DateTimeFormatter FORMATO_FECHA
             = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -199,7 +201,7 @@ public class EntradaDeIventarioView extends VerticalLayout {
             limpiarDetalle();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("Error consultando entradas: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }

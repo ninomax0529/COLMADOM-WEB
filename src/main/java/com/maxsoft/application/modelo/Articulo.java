@@ -129,21 +129,21 @@ public class Articulo implements Serializable {
     @Column(name = "precio_venta")
     private BigDecimal precioVenta;
     @Column(name = "precio_venta_con_itbis")
-    private Double precioVentaConItbis;
+    private BigDecimal precioVentaConItbis;
     @Column(name = "precio_venta_anterior")
-    private Double precioVentaAnterior;
+    private BigDecimal precioVentaAnterior;
     @Column(name = "tipo_articulo")
     private Integer tipoArticulo;
     @Column(name = "margen_beneficio")
-    private Double margenBeneficio;
+    private BigDecimal margenBeneficio;
     @Column(name = "porciento_utilidad")
-    private Double porcientoUtilidad;
+    private BigDecimal porcientoUtilidad;
     @Column(name = "linea_articulo")
     private Integer lineaArticulo;
     @Column(name = "secuencia_documento")
     private Integer secuenciaDocumento;
     @Column(name = "itbis_gravado")
-    private Double itbisGravado;
+    private BigDecimal itbisGravado;
     @Column(name = "fecha_creacion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
@@ -275,19 +275,19 @@ public class Articulo implements Serializable {
         this.precioVenta = precioVenta;
     }
 
-    public Double getPrecioVentaConItbis() {
+    public BigDecimal getPrecioVentaConItbis() {
         return precioVentaConItbis;
     }
 
-    public void setPrecioVentaConItbis(Double precioVentaConItbis) {
+    public void setPrecioVentaConItbis(BigDecimal precioVentaConItbis) {
         this.precioVentaConItbis = precioVentaConItbis;
     }
 
-    public Double getPrecioVentaAnterior() {
+    public BigDecimal getPrecioVentaAnterior() {
         return precioVentaAnterior;
     }
 
-    public void setPrecioVentaAnterior(Double precioVentaAnterior) {
+    public void setPrecioVentaAnterior(BigDecimal precioVentaAnterior) {
         this.precioVentaAnterior = precioVentaAnterior;
     }
 
@@ -316,19 +316,19 @@ public class Articulo implements Serializable {
         this.tipoArticulo = tipoArticulo;
     }
 
-    public Double getMargenBeneficio() {
+    public BigDecimal getMargenBeneficio() {
         return margenBeneficio;
     }
 
-    public void setMargenBeneficio(Double margenBeneficio) {
+    public void setMargenBeneficio(BigDecimal margenBeneficio) {
         this.margenBeneficio = margenBeneficio;
     }
 
-    public Double getPorcientoUtilidad() {
+    public BigDecimal getPorcientoUtilidad() {
         return porcientoUtilidad;
     }
 
-    public void setPorcientoUtilidad(Double porcientoUtilidad) {
+    public void setPorcientoUtilidad(BigDecimal porcientoUtilidad) {
         this.porcientoUtilidad = porcientoUtilidad;
     }
 
@@ -382,11 +382,11 @@ public class Articulo implements Serializable {
         this.secuenciaDocumento = secuenciaDocumento;
     }
 
-    public Double getItbisGravado() {
+    public BigDecimal getItbisGravado() {
         return itbisGravado;
     }
 
-    public void setItbisGravado(Double itbisGravado) {
+    public void setItbisGravado(BigDecimal itbisGravado) {
         this.itbisGravado = itbisGravado;
     }
 

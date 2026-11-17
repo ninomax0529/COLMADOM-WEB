@@ -69,13 +69,14 @@ public class FacturaDeCompraServiceImpl implements FacturaDeCompraService {
         int diasCredito = proveedor.getPlazo().getDias();
         Date fechaVenci = ClaseUtil.asDate(LocalDate.now().plusDays(diasCredito));
         // Asignación de estados según condición de pago
+        // Estado: 1 = PENDIENTE, 2 = PAGADA. Nace pendiente; si es de contado, el
+        // recibo de egreso que se genera enseguida la pasa a PAGADA.
         if (recepcionGuardada.getCondicionPago().getCodigo() == 2) {//Credito
             factura.setFechaVencimiento(fechaVenci);
-            factura.setEstado(new EstadoFactura(2));
         } else {
             factura.setFechaVencimiento(new Date());
-            factura.setEstado(new EstadoFactura(1));
         }
+        factura.setEstado(new EstadoFactura(1));
 
         List<DetalleFacturaDeCompra> detallesFact = new ArrayList<>();
 

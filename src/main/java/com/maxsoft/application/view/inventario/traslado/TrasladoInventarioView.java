@@ -52,6 +52,8 @@ import java.util.Objects;
 @PageTitle("Traslado de Inventario | MaxSoft ERP")
 @Route(value = "inventario/registroTraslado")
 public class TrasladoInventarioView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TrasladoInventarioView.class);
+
 
     // Servicios / Repositorios
     private final TrasladoInventarioService trasladoService;
@@ -201,12 +203,16 @@ public class TrasladoInventarioView extends VerticalLayout {
 
         // Cantidad equivalente en la unidad base del sistema
         BigDecimal cantidadEnUnidadBase = cantidadEmpaque.multiply(factor);
+        // cantidad_fisica_base es la cantidad trasladada; la "nueva existencia" del
+        // origen se calcula solo para mostrarla (ver nuevaExistenciaOrigen).
         det.setCantidadFisicaBase(cantidadEnUnidadBase);
+    }
 
-        BigDecimal existenciaAnteriorBase = det.getExistenciaAnterior() != null ? det.getExistenciaAnterior() : BigDecimal.ZERO;
-
-        // Nueva existencia restante en almacén origen tras el despacho/traslado
-        det.setCantidadFisicaBase(existenciaAnteriorBase.subtract(cantidadEnUnidadBase));
+    /** Existencia que le queda al almacén origen después del traslado (solo para la pantalla). */
+    private static BigDecimal nuevaExistenciaOrigen(DetalleTrasladoInventario det) {
+        BigDecimal anterior = det.getExistenciaAnterior() != null ? det.getExistenciaAnterior() : BigDecimal.ZERO;
+        BigDecimal base = det.getCantidadFisicaBase() != null ? det.getCantidadFisicaBase() : BigDecimal.ZERO;
+        return anterior.subtract(base);
     }
 
     private void abrirDialogoSeleccionArticulo() {
@@ -382,7 +388,7 @@ public class TrasladoInventarioView extends VerticalLayout {
                 .setHeader("Existencia Actual (UMM)")
                 .setAutoWidth(true);
 
-        gridDetalle.addColumn(DetalleTrasladoInventario::getCantidadFisicaBase)
+        gridDetalle.addColumn(TrasladoInventarioView::nuevaExistenciaOrigen)
                 .setHeader("Nueva Existencia (UMM)")
                 .setAutoWidth(true);
 
@@ -548,7 +554,7 @@ public class TrasladoInventarioView extends VerticalLayout {
             try {
                 procesarTraslado();
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
             }
         });
 
@@ -625,7 +631,7 @@ public class TrasladoInventarioView extends VerticalLayout {
             limpiarFormulario();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("Error al procesar traslado: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }

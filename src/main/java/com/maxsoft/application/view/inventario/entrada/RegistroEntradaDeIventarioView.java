@@ -51,6 +51,8 @@ import java.util.Objects;
 @PageTitle("Registro Entrada de Inventario (Multi-Empaque)")
 @Route(value = "inventario/registroEntrada")
 public class RegistroEntradaDeIventarioView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistroEntradaDeIventarioView.class);
+
 
     private final Grid<DetalleEntradaInventario> grid = new Grid<>(DetalleEntradaInventario.class, false);
     private Editor<DetalleEntradaInventario> editor;
@@ -459,7 +461,7 @@ public class RegistroEntradaDeIventarioView extends VerticalLayout {
 
         } catch (Exception e) {
             Notification.show("Error guardando la entrada: " + e.getMessage(), 3000, Position.TOP_CENTER);
-            e.printStackTrace();
+            log.error("Error inesperado", e);
         }
     }
 }

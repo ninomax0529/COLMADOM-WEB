@@ -57,6 +57,8 @@ import java.util.stream.Collectors;
 @PageTitle("Factura de Venta")
 @Route(value = "cxc/FacturaVenta")
 public class FacturaDeVentaView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FacturaDeVentaView.class);
+
 
     private static final DateTimeFormatter FORMATO_FECHA
             = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -238,7 +240,7 @@ public class FacturaDeVentaView extends VerticalLayout {
             limpiarDetalle();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("Error consultando facturas: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }

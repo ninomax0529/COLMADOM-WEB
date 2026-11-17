@@ -1,7 +1,6 @@
 package com.maxsoft.application;
 
 //import com.example.application.data.SamplePersonRepository;
-import com.maxsoft.application.configuracion.MysqlConnection;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.shared.communication.PushMode;
@@ -27,6 +26,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 //@Push()
 @Push(value = PushMode.AUTOMATIC, transport = Transport.WEBSOCKET_XHR) // Puedes usar solo @Push si quieres default
 public class Application implements AppShellConfigurator {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Application.class);
+
      
     //para  buscar libreria duplicadas : mvn dependency:tree > deps.txt
     // mvn versions:display-dependency-updates
@@ -37,8 +38,6 @@ public class Application implements AppShellConfigurator {
     public static void main(String[] args) {
 
         SpringApplication.run(Application.class, args);
-        
-        MysqlConnection.getConnection();
 
         TimeZone.setDefault(TimeZone.getTimeZone("America/Santo_Domingo"));
 
@@ -47,12 +46,12 @@ public class Application implements AppShellConfigurator {
         long allocatedMemory = runtime.totalMemory();
         long freeMemory = runtime.freeMemory();
 
-        System.out.println("Max Memory: " + maxMemory / 1024 / 1024 + " MB");
-        System.out.println("Allocated Memory: " + allocatedMemory / 1024 / 1024 + " MB");
-        System.out.println("Free Memory in allocated: " + freeMemory / 1024 / 1024 + " MB");
-        System.out.println("Used Memory: " + (allocatedMemory - freeMemory) / 1024 / 1024 + " MB");
+        log.debug("Max Memory: " + maxMemory / 1024 / 1024 + " MB");
+        log.debug("Allocated Memory: " + allocatedMemory / 1024 / 1024 + " MB");
+        log.debug("Free Memory in allocated: " + freeMemory / 1024 / 1024 + " MB");
+        log.debug("Used Memory: " + (allocatedMemory - freeMemory) / 1024 / 1024 + " MB");
         
-        System.out.println("Prueba 1: " );
+        log.debug("Prueba 1: ");
 
     }
 

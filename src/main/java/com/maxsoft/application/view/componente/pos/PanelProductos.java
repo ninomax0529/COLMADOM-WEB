@@ -31,6 +31,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class PanelProductos extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PanelProductos.class);
+
 
     /**
      * Cuántas tarjetas se dibujan por lote en el catálogo rápido. El resto se
@@ -113,7 +115,7 @@ public class PanelProductos extends VerticalLayout {
                     onAbrirMovimientoPos.run();
                 }
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
             }
         });
 

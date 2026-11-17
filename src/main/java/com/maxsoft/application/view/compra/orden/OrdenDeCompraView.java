@@ -48,6 +48,8 @@ import java.util.Map;
 @PageTitle("Nueva Orden de Compra")
 @Route(value = "compra/ordenCompra")
 public class OrdenDeCompraView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OrdenDeCompraView.class);
+
 
     private final OrdenDeCompraService ordenCompraService;
     private final ProveedorService proveedorService;
@@ -319,7 +321,7 @@ public class OrdenDeCompraView extends VerticalLayout {
             limpiarFormularioDetalle();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             Notification.show("Error al agregar el detalle: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }
@@ -537,7 +539,7 @@ public class OrdenDeCompraView extends VerticalLayout {
             limpiarFormularioCompleto();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             Notification.show("Error al guardar la orden: " + ex.getMessage(), 4000, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }

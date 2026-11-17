@@ -49,6 +49,8 @@ import java.util.List;
 @Route(value = "cxc/reciboDeIngreso")
 @PageTitle("Consulta Recibo de Ingreso")
 public class ReciboDeIngresoView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ReciboDeIngresoView.class);
+
 
     private static final String TODOS = "TODOS";
     private static final String VIGENTE = "VIGENTE";
@@ -233,7 +235,7 @@ public class ReciboDeIngresoView extends VerticalLayout {
             limpiarDetalle();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("Error consultando recibos: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }

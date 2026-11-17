@@ -20,6 +20,8 @@ import org.springframework.core.io.ClassPathResource;
  * @author Maximiliano
  */
 public class RptFaturaVenta {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RptFaturaVenta.class);
+
 
     public RptFaturaVenta() {
     }
@@ -42,22 +44,22 @@ public class RptFaturaVenta {
             }
 
 //            String subreportPath = new ClassPathResource("/reporte/EntradaMateriales/").getFile().getAbsolutePath();
-            System.out.println("reportStream : " + reportStream);
+            log.debug("reportStream : " + reportStream);
             // Parámetros para el informe
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("factura", factura);
             parameters.put("SUBREPORT_DIR", subreportPath + "/");
 
-            System.out.println("jasperPrint : ");
+            log.debug("jasperPrint : ");
 
 //             Exportar el informe a PDF
-            System.out.println(" dataSource.getConnection() : " + dataSource);
+            log.debug(" dataSource.getConnection() : " + dataSource);
             byte[] pdfContent = JasperRunManager.runReportToPdf(reportStream, parameters, dataSource);
 
             pdfResource = new StreamResource("informe.pdf", () -> new ByteArrayInputStream(pdfContent));
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error inesperado", e);
         }
 
         return pdfResource;

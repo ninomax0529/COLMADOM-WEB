@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class FiltroUtil {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FiltroUtil.class);
+
 
     /**
      * Verifica si un elemento existe en la lista
@@ -46,16 +48,16 @@ public class FiltroUtil {
         List<String> nombres = List.of("Ana", "Luis", "María", "Pedro", "Luis");
 
         // 1. Verificar existencia
-        System.out.println("¿Existe 30? " + existeElemento(numeros, 30));   // true
-        System.out.println("¿Existe Juan? " + existeElemento(nombres, "Juan")); // false
+        log.debug("¿Existe 30? " + existeElemento(numeros, 30));   // true
+        log.debug("¿Existe Juan? " + existeElemento(nombres, "Juan")); // false
 
         // 2. Obtener todos los elementos coincidentes
-        System.out.println("Coincidencias de 30: " + filtrarElementos(numeros, 30)); // [30, 30]
-        System.out.println("Coincidencias de Luis: " + filtrarElementos(nombres, "Luis")); // [Luis, Luis]
+        log.debug("Coincidencias de 30: " + filtrarElementos(numeros, 30)); // [30, 30]
+        log.debug("Coincidencias de Luis: " + filtrarElementos(nombres, "Luis")); // [Luis, Luis]
 
         // 3. Obtener solo el primer elemento coincidente
-        System.out.println("Primer 30 encontrado: " + primerElemento(numeros, 30).orElse(null)); // 30
-        System.out.println("Primer Luis encontrado: " + primerElemento(nombres, "Luis").orElse(null)); // Luis
-        System.out.println("Primer Juan encontrado: " + primerElemento(nombres, "Juan").orElse(null)); // null
+        log.debug("Primer 30 encontrado: " + primerElemento(numeros, 30).orElse(null)); // 30
+        log.debug("Primer Luis encontrado: " + primerElemento(nombres, "Luis").orElse(null)); // Luis
+        log.debug("Primer Juan encontrado: " + primerElemento(nombres, "Juan").orElse(null)); // null
     }
 }

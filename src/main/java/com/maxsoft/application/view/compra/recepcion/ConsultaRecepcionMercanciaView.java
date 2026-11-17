@@ -52,6 +52,8 @@ import java.util.List;
 @Route(value = "compra/consultaRecepcion")
 @PageTitle("Consulta de Recepciones de Mercancía")
 public class ConsultaRecepcionMercanciaView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ConsultaRecepcionMercanciaView.class);
+
 
     private final RecepcionMercanciaService recepcionService;
     private final ProveedorService proveedorService;
@@ -249,7 +251,7 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
             limpiarDetalle();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("Error consultando recepciones: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }
@@ -551,7 +553,7 @@ public class ConsultaRecepcionMercanciaView extends VerticalLayout {
                         .addThemeVariants(NotificationVariant.LUMO_WARNING);
                 btnAnular.setEnabled(true);
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
                 Notification.show("Error al anular la recepción: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 btnAnular.setEnabled(true);

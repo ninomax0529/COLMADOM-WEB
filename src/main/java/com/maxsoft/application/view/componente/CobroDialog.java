@@ -20,6 +20,8 @@ import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 
 public class CobroDialog extends Dialog {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CobroDialog.class);
+
 
     private NumberField total = new NumberField();
     private NumberField recibido = new NumberField();
@@ -210,7 +212,7 @@ public class CobroDialog extends Dialog {
         // sonido (opcional)
         getElement().executeJs("new Audio('sounds/beep.mp3').play()");
 
-        System.out.println("Cobrado método: " + metodo);
+        log.debug("Cobrado método: " + metodo);
 
         close();
     }

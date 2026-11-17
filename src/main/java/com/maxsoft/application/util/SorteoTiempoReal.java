@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.util.Random;
 
 public class SorteoTiempoReal {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SorteoTiempoReal.class);
+
 
     private int premiosRestantes;
     private final LocalDateTime horaInicio;
@@ -74,13 +76,13 @@ public class SorteoTiempoReal {
         // Configuramos un sorteo con 5 premios que durará 1 hora
         SorteoTiempoReal sorteo = new SorteoTiempoReal(5, 1);
         
-        System.out.println("🚀 Sistema de Sorteo Iniciado...");
+        log.debug("🚀 Sistema de Sorteo Iniciado...");
         String[] participantes = {"Carlos", "Ana", "Luis", "Marta", "Jorge", "Sofia", "Pedro", "Elena"};
 
         // Simulamos que van llegando uno a uno con pequeñas pausas de tiempo
         for (String persona : participantes) {
             String resultado = sorteo.concursar(persona);
-            System.out.println(resultado);
+            log.debug(String.valueOf(resultado));
             
             // Pausa simulada de 1 segundo entre la llegada de cada participante
             Thread.sleep(1000); 

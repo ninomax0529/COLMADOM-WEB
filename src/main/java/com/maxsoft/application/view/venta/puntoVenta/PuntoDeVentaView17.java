@@ -89,6 +89,8 @@ import org.vaadin.lineawesome.LineAwesomeIconUrl;
 @Menu(order = 4, icon = LineAwesomeIconUrl.PENCIL_RULER_SOLID)
 public class PuntoDeVentaView17 extends HorizontalLayout
         implements BeforeEnterObserver, BeforeLeaveObserver {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PuntoDeVentaView17.class);
+
 
     // ============================================================
     // CONSTANTES
@@ -1022,8 +1024,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 DESCUENTO_POR_DEFECTO
         );
 
+        // Tasa del artículo: 0 si es exento de ITBIS, si no la suya o el 18 %
         nuevoDetalle.setPorcientoItbis(
-                ITBIS_POR_DEFECTO
+                com.maxsoft.application.util.CalculoFacturaUtil.tasaItbis(artculoEmpaque.getArticulo())
         );
 
         nuevoDetalle.setNombreAlmacen(
@@ -1093,51 +1096,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         BigDecimal cantidad
                 = decimalSeguro(item.getCantidad());
 
-        BigDecimal precio
-                = decimalSeguro(item.getPrecioVenta());
-
-        BigDecimal porcDesc
-                = decimalSeguro(item.getPorcientoDescuento());
-
-        BigDecimal porcItbis
-                = decimalSeguro(item.getPorcientoItbis());
-
-        BigDecimal subtotal
-                = cantidad.multiply(precio);
-
-        BigDecimal totalDescuento
-                = calcularPorcentaje(
-                        subtotal,
-                        porcDesc
-                );
-
-        BigDecimal subtotalConDescuento
-                = subtotal.subtract(totalDescuento);
-
-        BigDecimal totalItbis
-                = calcularPorcentaje(
-                        subtotalConDescuento,
-                        porcItbis
-                );
-
-        BigDecimal total
-                = subtotalConDescuento.add(totalItbis);
-
-        item.setSubTotal(
-                dinero(subtotal)
-        );
-
-        item.setTotalDescuento(
-                dinero(totalDescuento)
-        );
-
-        item.setTotalItbis(
-                dinero(totalItbis)
-        );
-
-        item.setTotal(
-                dinero(total)
-        );
+        // ITBIS incluido en el precio: total = lo que se cobra; el ITBIS se
+        // desglosa dentro (0 si el artículo es exento). Ver CalculoFacturaUtil.
+        com.maxsoft.application.util.CalculoFacturaUtil.calcularLineaItbisIncluido(item);
 
         // MULTI-EMPAQUE: la cantidad en unidad base siempre sigue a la cantidad
         item.setCantidadFisicaBase(
@@ -1317,7 +1278,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 .setFlexGrow(0);
 
         grid.addColumn(
-                item -> moneda(item.getSubTotal())
+                item -> moneda(item.getTotal())
         ).setHeader("Total")
                 .setTextAlign(ColumnTextAlign.END)
                 .setAutoWidth(true)
@@ -1652,7 +1613,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         } catch (Exception ex) {
 
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             Notification.show(
                     "Error procesando la factura. La venta se mantiene abierta.",
                     4000,
@@ -1763,7 +1724,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         } catch (Exception ex) {
 
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
 
             // La factura YA está guardada: se indica el número para poder
             // reimprimirla desde la consulta de facturas.
@@ -2676,7 +2637,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         } catch (Exception ex) {
 
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
 
             // Factura ya anulada, cerrada o cualquier error de negocio
             Notification.show(

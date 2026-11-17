@@ -100,6 +100,7 @@ public class ReciboDeEgresoServiceImpl implements ReciboDeEgresoService {
             factCompra.setFechaActualizacion(LocalDateTime.now());
             if (balanceActual.signum() == 0) {
                 factCompra.setEstado(new EstadoFactura(2));
+                factCompra.setNombreEstado("PAGADA");
             }
             totalRecibo = totalRecibo.add(det.getTotal());
         }
@@ -215,6 +216,7 @@ public class ReciboDeEgresoServiceImpl implements ReciboDeEgresoService {
             fact.setFechaActualizacion(LocalDateTime.now());
             if (fact.getTotalPendiente().signum() > 0) {
                 fact.setEstado(new EstadoFactura(1));
+                fact.setNombreEstado("PENDIENTE");
             }
             this.FacturaDeCompraService.guardar(fact);
         }
@@ -296,6 +298,7 @@ public class ReciboDeEgresoServiceImpl implements ReciboDeEgresoService {
         factCompra.setTotalPagado(factCompra.getTotal());
         factCompra.setTotalPendiente(BigDecimal.ZERO);
         factCompra.setEstado(new EstadoFactura(2));
+        factCompra.setNombreEstado("PAGADA");
         factCompra.setFechaActualizacion(LocalDateTime.now());
         this.FacturaDeCompraService.guardar(factCompra);
 

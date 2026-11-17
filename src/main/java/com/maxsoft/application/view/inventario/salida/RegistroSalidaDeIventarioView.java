@@ -49,6 +49,8 @@ import java.util.List;
 @PageTitle("Registro Salida de Inventario")
 @Route(value = "inventario/registroSalida")
 public class RegistroSalidaDeIventarioView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistroSalidaDeIventarioView.class);
+
 
     private final Grid<DetalleSalidaInventario> grid = new Grid<>(DetalleSalidaInventario.class, false);
     private Editor<DetalleSalidaInventario> editor;
@@ -553,11 +555,11 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         BigDecimal precio = itemActual.getPrecioCompra() != null ? itemActual.getPrecioCompra() : BigDecimal.ZERO;
         BigDecimal subTotal = (nuevaCantidad != null ? nuevaCantidad : BigDecimal.ZERO).multiply(precio);
 
-        double porcentajeItbis = itemActual.getArticulo() != null && itemActual.getArticulo().getItbisGravado() != null
+        BigDecimal porcentajeItbis = itemActual.getArticulo() != null && itemActual.getArticulo().getItbisGravado() != null
                 ? itemActual.getArticulo().getItbisGravado()
-                : 0.0;
+                : BigDecimal.ZERO;
 
-        BigDecimal itbis = subTotal.multiply(BigDecimal.valueOf(porcentajeItbis / 100.0));
+        BigDecimal itbis = subTotal.multiply(porcentajeItbis.movePointLeft(2));
 
         itemActual.setSubTotal(subTotal);
         itemActual.setItbis(itbis);
@@ -623,7 +625,7 @@ public class RegistroSalidaDeIventarioView extends VerticalLayout {
         } catch (Exception e) {
             limpiarIntentoFallido();
             Notification.show("Error inesperado al guardar la salida: " + e.getMessage(), 4000, Position.TOP_CENTER);
-            e.printStackTrace();
+            log.error("Error inesperado", e);
         }
     }
 

@@ -43,6 +43,8 @@ import java.util.stream.Collectors;
 @PageTitle("Consulta de Entradas de Inventario | MaxSoft ERP")
 @Route(value = "inventario/consultaEntrada")
 public class ConsultaEntradaInventarioView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ConsultaEntradaInventarioView.class);
+
 
     private static final DateTimeFormatter FORMATO_FECHA
             = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -276,7 +278,7 @@ public class ConsultaEntradaInventarioView extends VerticalLayout {
             cargarDetalle(null);
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("Error consultando entradas: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }
@@ -320,7 +322,7 @@ public class ConsultaEntradaInventarioView extends VerticalLayout {
             lblTituloDetalle.setText("Detalle de la entrada #" + entrada.getCodigo());
         } catch (RuntimeException ex) {
             // Normalmente LazyInitializationException si el servicio no trae el detalle
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("No se pudo cargar el detalle: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
 

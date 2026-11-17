@@ -57,6 +57,8 @@ import java.util.Objects;
 @PageTitle("Registro de Merma")
 @Route(value = "inventario/registroMerma")
 public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow.router.BeforeEnterObserver {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistroMermaView.class);
+
 
     /** Parámetro de URL: código del almacén cuyos lotes vencidos se cargan al entrar (?vencidos=1). */
     public static final String PARAM_VENCIDOS = "vencidos";
@@ -651,7 +653,7 @@ public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow
             Notification.show(ex.getMessage(), 5000, Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_WARNING);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error inesperado", e);
             Notification.show("Error al guardar la merma: " + e.getMessage(), 4000, Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         }

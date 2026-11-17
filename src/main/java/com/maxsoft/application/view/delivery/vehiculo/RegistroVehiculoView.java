@@ -33,6 +33,8 @@ import com.vaadin.flow.router.PageTitle;
 @PageTitle("Registro de Vehiculo")
 @Route(value = "delivery/registroDeVehiculo")
 public class RegistroVehiculoView extends VerticalLayout implements HasUrlParameter<String> {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistroVehiculoView.class);
+
 
     private final VehiculoService vehiculoService;
 
@@ -125,10 +127,10 @@ public class RegistroVehiculoView extends VerticalLayout implements HasUrlParame
 
         Vehiculo entidad = NavigationContext.retrieve(parameter, Vehiculo.class);
         if (entidad != null) {
-            System.out.println("Art :" + entidad);
+            log.debug("Art :" + entidad);
             editar(entidad);
         } else {
-            System.out.println("Error Art :" + entidad);
+            log.debug("Error Art :" + entidad);
             // manejar error si no se encuentra
         }
     }

@@ -30,6 +30,8 @@ import java.util.List;
  * nueva), rebaja su estado de cuenta y registra la entrada en caja.
  */
 public class DialogoAbonoLibreta extends Dialog {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DialogoAbonoLibreta.class);
+
 
     private static final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");
 
@@ -164,7 +166,7 @@ public class DialogoAbonoLibreta extends Dialog {
         } catch (IllegalArgumentException | IllegalStateException ex) {
             aviso(ex.getMessage());
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             Notification.show("No se pudo registrar el abono.", 3500, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
         } finally {

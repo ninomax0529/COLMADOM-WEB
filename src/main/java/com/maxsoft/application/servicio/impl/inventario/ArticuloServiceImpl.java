@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ArticuloServiceImpl implements ArticuloService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ArticuloServiceImpl.class);
+
 
     @Autowired
     ArticuloRepo repo;
@@ -98,8 +100,8 @@ public class ArticuloServiceImpl implements ArticuloService {
 
         if (listaAlmacenes.size() <= 0) {
 
-            System.out.println("listaAlmacenes.size() " + listaAlmacenes.size());
-            System.out.println("this.almacenService." + this.almacenService);
+            log.debug("listaAlmacenes.size() " + listaAlmacenes.size());
+            log.debug("this.almacenService." + this.almacenService);
             ArticuloAlmacen itemAlmacen = new ArticuloAlmacen();
 
             Almacen alm = this.almacenService.getAlmacen(1);//almacen para la  compra,almacen general

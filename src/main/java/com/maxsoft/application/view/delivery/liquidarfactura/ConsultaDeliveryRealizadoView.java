@@ -54,6 +54,8 @@ import java.util.List;
 @PageTitle("Deliveries Realizados | MaxSoft ERP")
 @Route(value = "delivery/consultaDelivery")
 public class ConsultaDeliveryRealizadoView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ConsultaDeliveryRealizadoView.class);
+
 
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter FORMATO_FECHA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a");
@@ -319,7 +321,7 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
             tabs.setSelectedIndex(1);
 
         } catch (RuntimeException ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             notificar("No se pudo cargar el detalle: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }
@@ -393,7 +395,7 @@ public class ConsultaDeliveryRealizadoView extends VerticalLayout {
             aplicarFiltros();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             notificar("Error consultando deliveries: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }

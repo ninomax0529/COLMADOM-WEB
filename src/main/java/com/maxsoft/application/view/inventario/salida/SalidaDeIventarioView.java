@@ -54,6 +54,8 @@ import javax.sql.DataSource;
 @Route(value = "inventario/salida")
 
 public class SalidaDeIventarioView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SalidaDeIventarioView.class);
+
 
     private static final DateTimeFormatter FORMATO_FECHA
             = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -212,7 +214,7 @@ public class SalidaDeIventarioView extends VerticalLayout {
             limpiarDetalle();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("Error consultando salidas: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }
@@ -342,7 +344,7 @@ public class SalidaDeIventarioView extends VerticalLayout {
 //                    }
 
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    log.error("Error inesperado", ex);
                     Notification.show("Error al generar el reporte", 3000, Notification.Position.TOP_CENTER);
                 }
 

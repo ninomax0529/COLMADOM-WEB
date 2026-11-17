@@ -32,6 +32,8 @@ import java.util.List;
 
 @Service
 public class MovimientoInventarioServiceImpl implements MovimientoInventarioService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MovimientoInventarioServiceImpl.class);
+
 
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
@@ -325,8 +327,8 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         ArticuloAlmacen artiAlm = this.articuloAlmacenService.buscarPorArticuloYAlmacen(articulo.getCodigo(), almacen.getCodigo())
                 .orElseThrow(() -> new EntityNotFoundException("El producto con ID " + articulo.getCodigo() + " no existe."));
 
-        System.out.println("artiAlm " + artiAlm.getNombreAlmacen()
-                + " " + artiAlm.getDescripcionArticulo() + " existencia actual " + artiAlm.getExistencia());
+        log.debug("artiAlm {} {} existencia actual {}", artiAlm.getNombreAlmacen(),
+                artiAlm.getDescripcionArticulo(), artiAlm.getExistencia());
 
         BigDecimal stockAnterior = artiAlm.getExistencia();
         BigDecimal stockNuevo;
@@ -364,7 +366,7 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
                 throw new IllegalArgumentException("Tipo de movimiento no válido: " + tipoMovimiento);
         }
 
-        System.out.println("stockNuevo:" + stockNuevo);
+        log.debug("stockNuevo:" + stockNuevo);
         // 3. Impactar el stock en la entidad Articulo
         articulo.setExistencia(stockNuevo);
         articuloRepo.save(articulo);

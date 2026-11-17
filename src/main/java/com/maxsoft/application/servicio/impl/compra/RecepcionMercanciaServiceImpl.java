@@ -37,6 +37,8 @@ import java.util.List;
 
 @Service
 public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RecepcionMercanciaServiceImpl.class);
+
 
     private final RecepcionMercanciaRepo recepcionRepo;
     private final ArticuloService articuloService;
@@ -290,7 +292,7 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
 
         if (facturaDeCompra.getCondicionPago().getCodigo() == 1) {//De contado
 
-            System.out.println("facturaDeCompra " + facturaDeCompra);
+            log.debug("facturaDeCompra " + facturaDeCompra);
             reciboEgresa = this.reciboDeEgresoService.procesarReciboDeEgreso(facturaDeCompra);
         }
 

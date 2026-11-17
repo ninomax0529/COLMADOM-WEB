@@ -37,6 +37,8 @@ import java.util.List;
 @PageTitle("Registrar Artículos")
 @Route(value = "inventario/registrarArticulo")
 public class RegistrarArticuloView extends VerticalLayout implements HasUrlParameter<String> {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistrarArticuloView.class);
+
 
     final ArticuloService articuloService;
     final UnidadDeVentaService unidaVentaService;
@@ -89,7 +91,7 @@ public class RegistrarArticuloView extends VerticalLayout implements HasUrlParam
                 guardarArticulo();
 
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
             }
 
         });

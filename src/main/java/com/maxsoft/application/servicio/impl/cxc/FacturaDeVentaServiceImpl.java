@@ -25,6 +25,7 @@ import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioSe
 import com.maxsoft.application.servicio.interfaces.venta.CajaService;
 import com.maxsoft.application.servicio.interfaces.cxc.FacturaDeVentaService;
 import com.maxsoft.application.view.venta.puntoVenta.TicketVenta;
+import com.maxsoft.application.util.CalculoFacturaUtil;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
@@ -159,9 +160,21 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         factura.setFechaActualizacion(new Date());
         factura.setNombreUsuario(nombreUsuario);
 
-        factura.setSubTotal(ticketVenta.getTotalAmount());
-        factura.setTotal(ticketVenta.getTotalAmount());
-        factura.setTotalItbis(BigDecimal.ZERO);
+        // ITBIS incluido en el precio: cada línea toma la tasa de su artículo según la
+        // ficha actual (0 si es exento) y desglosa el ITBIS dentro de lo cobrado.
+        BigDecimal sumaItbis = BigDecimal.ZERO;
+        for (DetalleFacturaDeVenta item : ticketVenta.getItems()) {
+            Articulo artActual = item.getArticulo() != null && item.getArticulo().getCodigo() != null
+                    ? articuloService.buscarPorCodigo(item.getArticulo().getCodigo()) : null;
+            item.setPorcientoItbis(CalculoFacturaUtil.tasaItbis(artActual != null ? artActual : item.getArticulo()));
+            CalculoFacturaUtil.calcularLineaItbisIncluido(item);
+            sumaItbis = sumaItbis.add(item.getTotalItbis());
+        }
+
+        BigDecimal totalCobrado = ticketVenta.getTotalAmount();
+        factura.setSubTotal(totalCobrado.subtract(sumaItbis));
+        factura.setTotal(totalCobrado);
+        factura.setTotalItbis(sumaItbis);
         factura.setPorcientoDescuento(BigDecimal.ZERO);
         factura.setPorcientoItbis(BigDecimal.ZERO);
 
@@ -182,6 +195,8 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             factura.setTotalDescuento(BigDecimal.ZERO);
             factura.setTotalPendiente(ticketVenta.getTotalAmount());
             factura.setTotalPagado(BigDecimal.ZERO);
+            // Crédito: queda PENDIENTE (1) hasta que un recibo la salde y la pase a PAGADA (2)
+            factura.setEstadoFactura(new com.maxsoft.application.modelo.EstadoFactura(1));
         }
 
         // Asignar bidireccionalidad en los ítems

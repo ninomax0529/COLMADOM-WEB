@@ -56,6 +56,8 @@ import java.util.List;
 @PageTitle("Liquidaciones de Delivery | MaxSoft ERP")
 @Route(value = "delivery/consultaLiquidaciones")
 public class ConsultaLiquidacionDeliveryView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ConsultaLiquidacionDeliveryView.class);
+
 
     private static final DateTimeFormatter FORMATO_FECHA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a");
     private static final String TODAS = "Todas";
@@ -287,7 +289,7 @@ public class ConsultaLiquidacionDeliveryView extends VerticalLayout {
             }
             tabs.setSelectedIndex(1);
         } catch (RuntimeException ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             notificar("No se pudo cargar el detalle: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }
@@ -310,7 +312,7 @@ public class ConsultaLiquidacionDeliveryView extends VerticalLayout {
         try {
             ImpresionHtmlUtil.imprimir(UI.getCurrent(), liquidacionService.generarComprobanteHtml(l.codigo()));
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             notificar("No se pudo imprimir: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }
@@ -382,7 +384,7 @@ public class ConsultaLiquidacionDeliveryView extends VerticalLayout {
                 notificar(ex.getMessage(), NotificationVariant.LUMO_WARNING);
                 confirmar.setEnabled(true);
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
                 notificar("Error al anular: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
                 confirmar.setEnabled(true);
             }
@@ -423,7 +425,7 @@ public class ConsultaLiquidacionDeliveryView extends VerticalLayout {
             limpiarDetalle();
             aplicarFiltros();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             notificar("Error consultando liquidaciones: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }

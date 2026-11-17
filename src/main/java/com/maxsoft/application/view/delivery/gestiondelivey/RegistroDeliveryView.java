@@ -39,6 +39,8 @@ import com.vaadin.flow.router.PageTitle;
 @PageTitle("Registro de Delivery")
 @Route(value = "delivery/registroDelivery")
 public class RegistroDeliveryView extends VerticalLayout implements HasUrlParameter<String> {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistroDeliveryView.class);
+
 
     private final DeliveryService deliveryService;
 
@@ -147,10 +149,10 @@ public class RegistroDeliveryView extends VerticalLayout implements HasUrlParame
 
         Delivery entidad = NavigationContext.retrieve(parameter, Delivery.class);
         if (entidad != null) {
-            System.out.println("Art :" + entidad);
+            log.debug("Art :" + entidad);
             editar(entidad);
         } else {
-            System.out.println("Error Art :" + entidad);
+            log.debug("Error Art :" + entidad);
             // manejar error si no se encuentra
         }
     }

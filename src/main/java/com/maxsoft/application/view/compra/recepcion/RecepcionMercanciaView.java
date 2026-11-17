@@ -71,6 +71,8 @@ import java.util.function.Consumer;
 @PageTitle("Recepción de Mercancía | MaxSoft ERP")
 @Route(value = "compra/recepcion")
 public class RecepcionMercanciaView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RecepcionMercanciaView.class);
+
 
     private static final Integer ORIGEN_ORDEN_COMPRA = 8;
     private static final BigDecimal ITBIS_DEFECTO = new BigDecimal("18");
@@ -801,7 +803,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
         } catch (IllegalArgumentException | IllegalStateException ex) {
             ClaseUtil.mostrarNotificacion(ex.getMessage(), NotificationVariant.LUMO_ERROR);
         } catch (RuntimeException ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             ClaseUtil.mostrarNotificacion("No se pudo procesar la recepción: " + ex.getMessage(),
                     NotificationVariant.LUMO_ERROR);
         } finally {

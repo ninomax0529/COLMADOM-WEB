@@ -30,12 +30,15 @@ COLMADOM-WEB es un sistema web de punto de venta / ERP para un colmado, construi
 ./mvnw test -Dtest=NombreClase#metodo   # una sola prueba
 ```
 
-Actualmente no hay pruebas en `src/test/java`. En Windows usar `mvnw.cmd`.
+En Windows usar `mvnw.cmd`. Pruebas en `src/test/java`: las de `venta/` (`CalculoFacturaUtilTest`, `ItbisIncluidoTest`) son unitarias y no usan BD; las demás son `@SpringBootTest` contra la BD real (`db_colmadom`), así que al correrlas también se aplican las migraciones de Flyway.
 
 ## Base de datos
 
-- MySQL 8 en `localhost:3307/db_colmadom` (credenciales en `src/main/resources/application.properties`, y duplicadas como constantes en `configuracion/MysqlConnection.java`, que se usa para JDBC directo —p. ej. JasperReports— y se invoca una vez al arrancar).
-- Hibernate **no** gestiona el esquema (`ddl-auto` no está en create/update). El volcado del esquema está en la raíz (`DB-Colmadom-AAAAMMDD.sql`); los cambios en entidades requieren DDL manual.
+- Configuración por perfiles: `application.properties` (común), `application-dev.properties` (credenciales locales, devmode, navegador, logs DEBUG) y `application-prod.properties` (credenciales por `DB_URL`/`DB_USER`/`DB_PASSWORD`, logs INFO en `logs/colmadom.log`). El perfil lo graba Maven vía `@spring.profiles.active@`: `dev` por defecto, `prod` con `-Pproduction`; se puede forzar con `SPRING_PROFILES_ACTIVE`.
+- MySQL 8 en `localhost:3307/db_colmadom` (credenciales de desarrollo en `application-dev.properties`). Todo acceso JDBC directo (p. ej. JasperReports en `ReporteServiceImpl`) usa el `DataSource` de Spring inyectado; no crear conexiones con `DriverManager` ni credenciales en código.
+- Hibernate **no** gestiona el esquema (`ddl-auto` no está en create/update). El volcado del esquema está en la raíz (`DB-Colmadom-AAAAMMDD.sql`).
+- Cambios de esquema con **Flyway**: crear `src/main/resources/db/migration/V<AAAAMMDD>__descripcion.sql` (si hay dos el mismo día, `V<AAAAMMDD>_2__…`); se aplica solo al arrancar. La BD existente quedó como baseline `20261112`; los scripts de `sql/` son históricos (ya aplicados) y no se deben editar.
+- Dinero, cantidades y tasas siempre en `BigDecimal` (columnas `DECIMAL`), nunca `double`. Los cálculos de línea van en `CalculoFacturaUtil`.
 - Los repositorios usan mucho `nativeQuery = true` con SQL en strings, así que al renombrar columnas/tablas hay que actualizar también esas consultas.
 
 ## Arquitectura
@@ -57,8 +60,12 @@ Todo el código está en `src/main/java/com/maxsoft/application`:
 - Las vistas de un módulo usan rutas con el prefijo del layout (p. ej. `@Route("delivery/liquidacionDelivery")`); así Vaadin las coloca dentro del AppLayout de ese módulo. Para agregar una vista a un módulo: darle el prefijo de ruta del módulo y añadir el enlace en `createDrawer()` del módulo.
 - Patrón común: vista de lista/consulta (`XxxView` / `ConsultaXxxView`) + vista de formulario (`RegistroXxxView`). Los objetos se pasan entre vistas con `NavigationContext.store(obj)` → clave → `NavigationContext.retrieve(clave, Tipo)` (uso único, mapa estático en memoria).
 - Server push habilitado (`@Push(AUTOMATIC, WEBSOCKET_XHR)` en `Application`) para vistas en tiempo real como el monitor de delivery. Tema: `src/main/frontend/themes/gestion-colmadom`.
-- Hay archivos que son versiones históricas (p. ej. `PuntoDeVentaView17`, `PuntoDeVentaViewV10/V11`, `CobrarComponentV1`, `ResumenVentaPanel1`); editar la versión actual sin sufijo salvo que se indique lo contrario.
+- Vistas vigentes con sufijo de versión: el POS es `venta/puntoVenta/PuntoDeVentaView17` (ruta `puntoDeVentav17`, en el menú) y el formulario de artículo es `inventario/articulo/RegistrarArticuloViewV4` (lo abre `ArticuloView`). Las versiones anteriores se borraron (están en el historial de git).
+
+## Convenciones
+
+- Logs con SLF4J: `private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(X.class);`. No usar `System.out` ni `printStackTrace`.
 
 ## Precauciones
 
-- El índice de git contiene `repo/FacturaDeVentaRepo.java` y `repo/FacturaDeventaRepo.java` (solo difieren en mayúsculas). En el sistema de archivos de Windows, que no distingue mayúsculas, chocan; tener cuidado al editar o hacer stage de cualquiera de los dos.
+- El repositorio de facturas de venta es `repo/FacturaDeventaRepo.java` (interfaz `FacturaDeventaRepo`). Antes el índice de git tenía una copia con otra capitalización (`FacturaDeVentaRepo.java`) que chocaba en Windows; ya se quitó, no volver a crearla.

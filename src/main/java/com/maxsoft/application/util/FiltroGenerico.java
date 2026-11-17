@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class FiltroGenerico {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FiltroGenerico.class);
+
 
     // Verifica si un elemento existe
     public static <T> boolean existeElemento(List<T> lista, T elementoBuscado) {
@@ -38,20 +40,20 @@ public class FiltroGenerico {
         List<String> nombres = List.of("Ana", "Luis", "María", "Pedro", "Luis");
 
         // Validar existencia
-        System.out.println("¿Existe 30? " + existeElemento(numeros, 30)); // true
-        System.out.println("¿Existe Juan? " + existeElemento(nombres, "Juan")); // false
+        log.debug("¿Existe 30? " + existeElemento(numeros, 30)); // true
+        log.debug("¿Existe Juan? " + existeElemento(nombres, "Juan")); // false
 
         // Filtrar coincidencias
-        System.out.println("Coincidencias de 30: " + filtrarElementos(numeros, 30)); // [30, 30]
-        System.out.println("Coincidencias de Luis: " + filtrarElementos(nombres, "Luis")); // [Luis, Luis]
+        log.debug("Coincidencias de 30: " + filtrarElementos(numeros, 30)); // [30, 30]
+        log.debug("Coincidencias de Luis: " + filtrarElementos(nombres, "Luis")); // [Luis, Luis]
 
         // Obtener el primer elemento encontrado
         Optional<Integer> primer30 = primerElemento(numeros, 30);
         Optional<String> primerLuis = primerElemento(nombres, "Luis");
         Optional<String> primerJuan = primerElemento(nombres, "Juan");
 
-        System.out.println("Primer 30 encontrado: " + primer30.orElse(null)); // 30
-        System.out.println("Primer Luis encontrado: " + primerLuis.orElse(null)); // Luis
-        System.out.println("Primer Juan encontrado: " + primerJuan.orElse(null)); // null
+        log.debug("Primer 30 encontrado: " + primer30.orElse(null)); // 30
+        log.debug("Primer Luis encontrado: " + primerLuis.orElse(null)); // Luis
+        log.debug("Primer Juan encontrado: " + primerJuan.orElse(null)); // null
     }
 }

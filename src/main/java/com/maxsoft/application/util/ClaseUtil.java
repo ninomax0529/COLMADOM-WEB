@@ -33,6 +33,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * @author maximilianoa-te
  */
 public class ClaseUtil {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ClaseUtil.class);
+
 
     private static SimpleDateFormat sdfH = new SimpleDateFormat("HH:mm");
     private static SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd");
@@ -68,7 +70,7 @@ public class ClaseUtil {
 
         long dias = DAYS.between(fechaIni, fechaFin);
 
-        System.out.println("Numero de dias: " + dias); // 365 dias
+        log.debug("Numero de dias: " + dias); // 365 dias
         return dias;
     }
 
@@ -76,7 +78,7 @@ public class ClaseUtil {
 
         long days = ldt1.until(ldt2, ChronoUnit.DAYS);
         long hours = ldt1.until(ldt2, ChronoUnit.HOURS);
-        System.out.println((hours % 24) + " horas.");
+        log.debug(String.valueOf((hours % 24) + " horas."));
 
         return hours;
     }
@@ -85,7 +87,7 @@ public class ClaseUtil {
 
         long days = ldt1.until(ldt2, ChronoUnit.DAYS);
         long hours = ldt1.until(ldt2, ChronoUnit.HOURS);
-        System.out.println(days + " dias ");
+        log.debug(String.valueOf(days + " dias "));
 
         return days;
     }
@@ -139,7 +141,7 @@ public class ClaseUtil {
             month = calendar.get(Calendar.DAY_OF_WEEK);
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
         }
 
         switch (month) {
@@ -197,66 +199,8 @@ public class ClaseUtil {
         NUMERICO_FORMAT = new DecimalFormat("#,##0.00", symbols);
     }
 
-    // ==========================================
-    // MÉTODOS DE CÁLCULO MONETARIO
-    // ==========================================
-    public static Double subTotal(Double cantidad, Double precio) {
-        if (cantidad == null || precio == null) {
-            return 0.0;
-        }
-        BigDecimal cant = BigDecimal.valueOf(cantidad);
-        BigDecimal prec = BigDecimal.valueOf(precio);
-        return redondear(cant.multiply(prec));
-    }
-
-    public static Double totalDescuento(Double subTotal, Double porcientoDescuento) {
-        if (subTotal == null || porcientoDescuento == null || porcientoDescuento <= 0) {
-            return 0.0;
-        }
-        BigDecimal st = BigDecimal.valueOf(subTotal);
-        BigDecimal porc = BigDecimal.valueOf(porcientoDescuento).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-        return redondear(st.multiply(porc));
-    }
-
-    public static Double totalItbis(Double subTotal, Double totalDescuento, Double porcientoItbis) {
-        if (subTotal == null || porcientoItbis == null || porcientoItbis <= 0) {
-            return 0.0;
-        }
-        double desc = (totalDescuento != null) ? totalDescuento : 0.0;
-
-        BigDecimal baseImponible = BigDecimal.valueOf(subTotal - desc);
-        if (baseImponible.compareTo(BigDecimal.ZERO) <= 0) {
-            return 0.0;
-        }
-
-        BigDecimal porc = BigDecimal.valueOf(porcientoItbis).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-        return redondear(baseImponible.multiply(porc));
-    }
-
-    public static Double total(Double subTotal, Double totalDescuento, Double totalItbis) {
-        double st = (subTotal != null) ? subTotal : 0.0;
-        double desc = (totalDescuento != null) ? totalDescuento : 0.0;
-        double itbis = (totalItbis != null) ? totalItbis : 0.0;
-
-        BigDecimal resultado = BigDecimal.valueOf(st)
-                .subtract(BigDecimal.valueOf(desc))
-                .add(BigDecimal.valueOf(itbis));
-        return redondear(resultado);
-    }
-
-    public static Double redondear(BigDecimal valor) {
-        if (valor == null) {
-            return 0.0;
-        }
-        return valor.setScale(2, RoundingMode.HALF_UP).doubleValue();
-    }
-
-    public static Double redondear(Double valor) {
-        if (valor == null) {
-            return 0.0;
-        }
-        return BigDecimal.valueOf(valor).setScale(2, RoundingMode.HALF_UP).doubleValue();
-    }
+    // Los cálculos monetarios (subtotal, descuento, ITBIS, total) están en
+    // CalculoFacturaUtil y usan BigDecimal.
 
     // ==========================================
     // FORMATEADORES MONETARIOS
@@ -443,7 +387,7 @@ public class ClaseUtil {
     public static void main(String[] args) {
 
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-        System.out.println("password : " + bCryptPasswordEncoder.encode("2025135321."));
+        log.debug("password : " + bCryptPasswordEncoder.encode("2025135321."));
 //        LocalDateTime ltdThen = LocalDateTime.parse("2021-04-03T06:00:00");
 //        LocalDateTime ltdNow = LocalDateTime.parse("2021-05-05T11:00:00");
 

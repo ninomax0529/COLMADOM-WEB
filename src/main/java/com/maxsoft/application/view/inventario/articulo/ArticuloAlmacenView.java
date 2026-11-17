@@ -45,6 +45,8 @@ import java.util.stream.Collectors;
 @PageTitle("Asignación de Artículos por Almacén")
 @Route(value = "inventario/articuloalmacen")
 public class ArticuloAlmacenView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ArticuloAlmacenView.class);
+
 
     private final Grid<ArticuloAlmacen> grid = new Grid<>(ArticuloAlmacen.class, false);
     private final TextField txtBuscar = new TextField();
@@ -266,10 +268,10 @@ public class ArticuloAlmacenView extends VerticalLayout {
                 dialog.close();
                 ClaseUtil.mostrarNotificacion("Configuración guardada correctamente", NotificationVariant.LUMO_SUCCESS);
             } catch (ValidationException ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
                 Notification.show("Complete todos los campos requeridos correctamente", 3000, Notification.Position.MIDDLE);
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("Error inesperado", ex);
                 Notification.show("Error al guardar: " + ex.getMessage(), 4000, Notification.Position.MIDDLE);
             }
         });

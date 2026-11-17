@@ -51,6 +51,8 @@ import java.util.List;
 @Route(value = "compra/consultaorden")
 @PageTitle("Consulta de Órdenes de Compra")
 public class ConsultaOrdenesDeCompraView extends VerticalLayout {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ConsultaOrdenesDeCompraView.class);
+
 
     private final OrdenDeCompraService ordenCompraService;
     private final ProveedorService proveedorService;
@@ -238,7 +240,7 @@ public class ConsultaOrdenesDeCompraView extends VerticalLayout {
             limpiarDetalle();
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error inesperado", ex);
             mostrarNotificacion("Error consultando órdenes: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
         }
     }

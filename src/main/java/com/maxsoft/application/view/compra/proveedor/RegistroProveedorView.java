@@ -32,6 +32,8 @@ import com.vaadin.flow.router.PageTitle;
 @PageTitle("Registro de Proveedor")
 @Route(value = "venta/RegistroProveedor")
 public class RegistroProveedorView extends VerticalLayout implements HasUrlParameter<String> {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RegistroProveedorView.class);
+
 
     private final ProveedorService proveedorService;
 
@@ -118,10 +120,10 @@ public class RegistroProveedorView extends VerticalLayout implements HasUrlParam
 
         Proveedor entidad = NavigationContext.retrieve(parameter, Proveedor.class);
         if (entidad != null) {
-            System.out.println("Art :" + entidad);
+            log.debug("Art :" + entidad);
             editar(entidad);
         } else {
-            System.out.println("Error Art :" + entidad);
+            log.debug("Error Art :" + entidad);
             // manejar error si no se encuentra
         }
     }

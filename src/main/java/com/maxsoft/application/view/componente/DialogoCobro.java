@@ -19,6 +19,8 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.NumberField;
 
 public class DialogoCobro extends Dialog {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DialogoCobro.class);
+
 
     private NumberField totalPagar = new NumberField("Total a Pagar");
     private NumberField montoRecibido = new NumberField("Monto Recibido");
@@ -161,7 +163,7 @@ public class DialogoCobro extends Dialog {
             return;
         }
 
-        System.out.println("Cobro realizado");
+        log.debug("Cobro realizado");
         close();
     }
 }

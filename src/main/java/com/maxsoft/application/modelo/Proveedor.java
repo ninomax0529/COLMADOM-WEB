@@ -4,6 +4,7 @@
  */
 package com.maxsoft.application.modelo;
 
+import java.math.BigDecimal;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -85,7 +86,7 @@ public class Proveedor implements Serializable {
     private Integer codigo;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "limite_credito")
-    private Double limiteCredito;
+    private BigDecimal limiteCredito;
     @Column(name = "fecha_cracion")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCracion;
@@ -123,11 +124,11 @@ public class Proveedor implements Serializable {
     }
 
 
-    public Double getLimiteCredito() {
+    public BigDecimal getLimiteCredito() {
         return limiteCredito;
     }
 
-    public void setLimiteCredito(Double limiteCredito) {
+    public void setLimiteCredito(BigDecimal limiteCredito) {
         this.limiteCredito = limiteCredito;
     }
 

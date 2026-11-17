@@ -34,7 +34,7 @@ public interface FacturaDeventaRepo extends JpaRepository<FacturaDeVenta, Intege
                        SELECT * FROM  factura_de_venta 
                        where  anulada=false
                         and  cliente=:cliente
-                        and  total_pendiente>0
+                        and BALANCE_PENDIENTE_FACT_VENTA(codigo)>0
                      
                         """;
     @Query(value = strPend, nativeQuery = true)
