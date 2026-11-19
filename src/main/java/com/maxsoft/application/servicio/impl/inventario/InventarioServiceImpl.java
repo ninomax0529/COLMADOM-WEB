@@ -35,7 +35,7 @@ public class InventarioServiceImpl implements InventarioService {
             return;
         }
 
-        BigDecimal existencia = articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
+        BigDecimal existencia = existenciaDe(articulo);
         BigDecimal req = cantidad != null ? cantidad : BigDecimal.ZERO;
 
         // cantidad viene en UNIDAD BASE (cantidad del empaque x factor de conversión)
@@ -44,5 +44,15 @@ public class InventarioServiceImpl implements InventarioService {
                     + "'. Disponible: " + existencia.stripTrailingZeros().toPlainString()
                     + ", solicitado: " + req.stripTrailingZeros().toPlainString() + " (unidad base).");
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal existenciaDisponible(Integer idArticulo) {
+        return articuloRepo.findById(idArticulo).map(this::existenciaDe).orElse(BigDecimal.ZERO);
+    }
+
+    private BigDecimal existenciaDe(Articulo articulo) {
+        return articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
     }
 }

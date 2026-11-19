@@ -11,4 +11,10 @@ public interface InventarioService {
      * @param cantidad cantidad requerida en UNIDAD BASE
      */
     void validarStockDisponible(Integer idArticulo, BigDecimal cantidad);
+
+    /**
+     * Existencia actual del artículo en unidad base (0 si no tiene). Es la
+     * misma que usa {@link #validarStockDisponible} al facturar.
+     */
+    BigDecimal existenciaDisponible(Integer idArticulo);
 }

@@ -7,7 +7,7 @@ import com.maxsoft.application.modelo.Cliente;
 import com.maxsoft.application.modelo.Delivery;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
-import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
+import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.servicio.interfaces.venta.CajaService;
@@ -98,11 +98,6 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     private static final int ESCALA_CALCULO = 4;
 
     /**
-     * Código del almacén contra el que el POS valida el stock al vender.
-     */
-    private static final int ALMACEN_STOCK_CODIGO = 2;
-
-    /**
      * Ruta a la que se vuelve si el cajero cierra el diálogo de apertura sin
      * abrir caja. No puede ser la propia ruta del POS (se reabriría el diálogo
      * en bucle). Es la misma ruta que usan los diálogos de apertura y cierre
@@ -122,7 +117,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     private final TipoVentaService tipoVentaService;
     private final EstadoFacturaService estadoFacturaService;
     private final FacturaDeVentaService factService;
-    private final ArticuloAlmacenService articuloAlmacenService;
+    /** Valida la existencia con la misma regla que se aplica al facturar. */
+    private final InventarioService inventarioService;
     /** Autorización de supervisor (p. ej. vender de un lote vencido). */
     @org.springframework.beans.factory.annotation.Autowired
     private com.maxsoft.application.servicio.interfaces.venta.AutorizacionService autorizacionService;
@@ -176,7 +172,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             DeliveryService deliveryService,
             TipoVentaService tipoVentaService,
             EstadoFacturaService estadoFacturaService,
-            ArticuloAlmacenService articuloAlmacenService,
+            InventarioService inventarioService,
             com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService reciboDeIngresoService
     ) {
 
@@ -191,7 +187,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         this.deliveryService = deliveryService;
         this.tipoVentaService = tipoVentaService;
         this.estadoFacturaService = estadoFacturaService;
-        this.articuloAlmacenService = articuloAlmacenService;
+        this.inventarioService = inventarioService;
 
         // "*" (teclado numérico) edita la cantidad de la línea seleccionada.
         // Es el ÚNICO registro de este atajo: antes también se registraba en
@@ -329,6 +325,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         instalarFocoPorClick();
 
         instalarAtajosAlt();
+
+        ScriptsNavegadorPos.instalarBloqueoRecarga(getElement());
+        sincronizarBloqueoRecarga();
 
         salidaConfirmada = false;
 
@@ -471,6 +470,34 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     public void atajoSeleccionarTicket(int posicion) {
 
         seleccionarTicketPorPosicion(posicion);
+    }
+
+    /** F5 / Ctrl+R con ventas sin cobrar: el navegador ya canceló la recarga. */
+    @ClientCallable
+    public void avisoRecargaBloqueada() {
+
+        long pendientes = contarVentasPendientes();
+
+        ClaseUtil.mostrarNotificacion(
+                "No se puede refrescar: hay " + pendientes
+                + (pendientes == 1 ? " venta" : " ventas")
+                + " con productos sin cobrar. Cóbrelas o cancélelas primero.",
+                NotificationVariant.LUMO_WARNING
+        );
+
+        enfocarBuscador();
+    }
+
+    /**
+     * Avisa al navegador si hay ventas con productos, para bloquear F5 /
+     * Ctrl+R y pedir confirmación al recargar o cerrar la pestaña.
+     */
+    private void sincronizarBloqueoRecarga() {
+
+        ScriptsNavegadorPos.marcarVentaConProductos(
+                getElement(),
+                contarVentasPendientes() > 0
+        );
     }
 
     private void renombrarTicketActivoDesdeAtajo() {
@@ -657,60 +684,16 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             return;
         }
 
-        // Advertencia discreta si el producto se venderá sin stock en sistema.
-        // Considera lo que ya hay en el ticket (todas las presentaciones del
-        // artículo) y el factor del empaque.
-        Articulo base = articuloEmpaque.getArticulo();
+        // Lo que ya hay en el ticket (todas las presentaciones del artículo)
+        // más lo que se agrega, en unidad base
+        BigDecimal requerido
+                = LineaPosUtil.cantidadBase(ticket.getItems(), articuloEmpaque)
+                        .add(cantidad.multiply(
+                                LineaPosUtil.factorConversion(articuloEmpaque)));
 
-        if (base != null && Boolean.TRUE.equals(base.getInventariable())) {
-
-            // Sin registro de existencia en el almacén se considera stock 0
-            BigDecimal stock
-                    = this.articuloAlmacenService
-                            .buscarPorArticuloYAlmacen(
-                                    base.getCodigo(),
-                                    ALMACEN_STOCK_CODIGO
-                            )
-                            .map(a -> a.getExistencia())
-                            .orElse(BigDecimal.ZERO);
-
-            BigDecimal requerido
-                    = LineaPosUtil.cantidadBase(ticket.getItems(), articuloEmpaque)
-                            .add(cantidad.multiply(
-                                    LineaPosUtil.factorConversion(articuloEmpaque)));
-
-            if (stock.compareTo(requerido) < 0
-                    && !Boolean.TRUE.equals(base.getPermitirVentaSinExistencia())) {
-
-                // El artículo no permite venta sin existencia: se bloquea aquí
-                // en lugar de fallar al cobrar (el kardex lo rechazaría).
-                Notification bloqueo = Notification.show(
-                        "⛔ " + articuloEmpaque.getNombreArticulo()
-                        + ": stock insuficiente ("
-                        + stock.stripTrailingZeros().toPlainString()
-                        + " disponible, se requieren "
-                        + requerido.stripTrailingZeros().toPlainString()
-                        + " en unidad base). Este artículo no permite venta sin existencia.",
-                        4000,
-                        Notification.Position.TOP_CENTER
-                );
-                bloqueo.addThemeVariants(NotificationVariant.LUMO_ERROR);
-                return;
-            }
-
-            if (stock.compareTo(requerido) < 0) {
-
-                Notification notif = Notification.show(
-                        "⚠️ Notificación: " + articuloEmpaque.getNombreArticulo()
-                        + " no tiene stock suficiente en sistema ("
-                        + stock.stripTrailingZeros().toPlainString()
-                        + " en unidad base). Se venderá en negativo.",
-                        3000,
-                        Notification.Position.TOP_CENTER
-                );
-
-                notif.addThemeVariants(NotificationVariant.LUMO_WARNING);
-            }
+        if (!hayExistencia(articuloEmpaque, requerido)) {
+            enfocarBuscador();
+            return;
         }
 
         Optional<DetalleFacturaDeVenta> existente
@@ -739,6 +722,60 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         actualizarTitulosPestanas();
 
         enfocarBuscador();
+    }
+
+    /**
+     * Valida la existencia ANTES de poner el producto en la venta, con la
+     * misma regla que aplica el cobro (InventarioService), para que el aviso
+     * salga al agregar y no al facturar.
+     * <ul>
+     * <li>No alcanza y el artículo no permite venta sin existencia: muestra el
+     * error y devuelve false (no se agrega).</li>
+     * <li>No alcanza pero sí lo permite: avisa que se venderá en negativo.</li>
+     * </ul>
+     *
+     * @param requeridoBase total del artículo en la venta, en unidad base
+     */
+    private boolean hayExistencia(ArticuloEmpaque empaque, BigDecimal requeridoBase) {
+
+        Articulo base = empaque == null ? null : empaque.getArticulo();
+
+        if (base == null || base.getCodigo() == null) {
+            return true;
+        }
+
+        try {
+            inventarioService.validarStockDisponible(base.getCodigo(), requeridoBase);
+        } catch (IllegalStateException e) {
+            Notification bloqueo = Notification.show(
+                    "⛔ " + e.getMessage() + " Este artículo no permite venta sin existencia.",
+                    5000,
+                    Notification.Position.TOP_CENTER
+            );
+            bloqueo.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            return false;
+        }
+
+        if (Boolean.TRUE.equals(base.getInventariable())) {
+
+            BigDecimal stock = inventarioService.existenciaDisponible(base.getCodigo());
+
+            if (stock.compareTo(requeridoBase) < 0) {
+
+                Notification notif = Notification.show(
+                        "⚠️ Notificación: " + empaque.getNombreArticulo()
+                        + " no tiene stock suficiente en sistema ("
+                        + stock.stripTrailingZeros().toPlainString()
+                        + " en unidad base). Se venderá en negativo.",
+                        3000,
+                        Notification.Position.TOP_CENTER
+                );
+
+                notif.addThemeVariants(NotificationVariant.LUMO_WARNING);
+            }
+        }
+
+        return true;
     }
 
     private void actualizarCantidadItem(
@@ -882,6 +919,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                             + (lineas > 0 ? " (" + lineas + ")" : "")
                     );
         }
+
+        // Se llama tras cada cambio de líneas o de ventas abiertas
+        sincronizarBloqueoRecarga();
     }
 
     private VerticalLayout construirContenidoPanelTicket(
@@ -1254,6 +1294,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         ticket.setEstadoFactura(null);
 
         ticket.updateUI();
+
+        // La venta quedó vacía (p. ej. después de cobrar)
+        sincronizarBloqueoRecarga();
     }
 
     private void confirmarEliminarTicket(
@@ -1389,6 +1432,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             return;
         }
 
+        // Para volver a ella si la nueva cantidad no tiene existencia
+        final BigDecimal cantidadAnterior = valorSeguro(item.getCantidad());
+
         DialogoEditarCantidad dialogo
                 = new DialogoEditarCantidad(
                         ticket,
@@ -1409,6 +1455,17 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
             if (event.isOpened()) {
                 return;
+            }
+
+            // Si subió la cantidad, se valida la existencia ahora y no al
+            // cobrar; si no alcanza, la línea vuelve a la cantidad anterior.
+            if (ticket.getItems().contains(item)
+                    && item.getArticuloEmpaque() != null
+                    && valorSeguro(item.getCantidad()).compareTo(cantidadAnterior) > 0
+                    && !hayExistencia(item.getArticuloEmpaque(),
+                            LineaPosUtil.cantidadBase(ticket.getItems(), item.getArticuloEmpaque()))) {
+
+                item.setCantidad(cantidadAnterior);
             }
 
             LineaPosUtil.recalcular(item);

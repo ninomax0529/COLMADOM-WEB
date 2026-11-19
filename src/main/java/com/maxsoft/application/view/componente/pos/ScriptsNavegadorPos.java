@@ -33,6 +33,10 @@ public final class ScriptsNavegadorPos {
      * <li>Alt+1 ... Alt+9: cambiar de venta</li>
      * </ul>
      *
+     * También cancela la acción del navegador para F2, F3 y F4 (F3 abría el
+     * "Buscar" del navegador), sin detener el evento: los atajos de Vaadin
+     * de esas teclas se siguen disparando.
+     *
      * Se detectan por la tecla FÍSICA (event.code) y en fase de captura, antes
      * que cualquier componente. Con el atajo de Vaadin, si el foco estaba en el
      * buscador, Alt+letra podía llegar como otro carácter (según el teclado o
@@ -79,6 +83,15 @@ public final class ScriptsNavegadorPos {
                 const manejador = e => {
                     // Si la vista ya no está en pantalla, se limpia el atajo
                     if (!vista.isConnected) { limpiar(); return; }
+
+                    // F2 (cobrar), F3 (fiar) y F4 (buscador) son del POS: se
+                    // cancela la acción del navegador (F3 abre "Buscar" en la
+                    // página) pero el evento sigue su camino, así que los atajos
+                    // de Vaadin se disparan igual.
+                    if (['F2', 'F3', 'F4'].includes(e.key) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+                        e.preventDefault();
+                        return;
+                    }
 
                     // AltGr cuenta como Alt (en algunos navegadores llega sin altKey)
                     const altGr = e.getModifierState && e.getModifierState('AltGraph');
@@ -127,6 +140,65 @@ public final class ScriptsNavegadorPos {
                 vista,
                 SELECTOR_DIALOGO_ABIERTO
         );
+    }
+
+    /**
+     * Evita perder ventas sin cobrar al refrescar la página. Mientras haya
+     * productos en alguna venta (ver {@link #marcarVentaConProductos}):
+     * <ul>
+     * <li>F5, Ctrl+R y Ctrl+F5 se cancelan y se llama a
+     * {@code avisoRecargaBloqueada()} de la vista para mostrar el aviso;</li>
+     * <li>el botón de recargar del navegador o cerrar la pestaña muestran la
+     * confirmación del navegador ("¿Quieres volver a cargar el sitio?"). Eso
+     * no se puede bloquear del todo ni cambiar su texto.</li>
+     * </ul>
+     * Se instala una sola vez por vista y se limpia cuando la vista ya no
+     * está en pantalla.
+     */
+    public static void instalarBloqueoRecarga(Element vista) {
+        vista.executeJs(
+                """
+                const vista = $0;
+                if (vista.__bloqueoRecargaInstalado) { return; }
+                vista.__bloqueoRecargaInstalado = true;
+
+                const limpiar = () => {
+                    document.removeEventListener('keydown', alPresionar, true);
+                    window.removeEventListener('beforeunload', alSalir);
+                    vista.__bloqueoRecargaInstalado = false;
+                };
+
+                const alPresionar = e => {
+                    if (!vista.isConnected) { limpiar(); return; }
+                    if (!vista.__ventaConProductos) { return; }
+
+                    const recarga = e.key === 'F5'
+                            || ((e.ctrlKey || e.metaKey) && e.code === 'KeyR');
+                    if (!recarga) { return; }
+
+                    e.preventDefault();
+                    e.stopPropagation();
+                    vista.$server.avisoRecargaBloqueada();
+                };
+
+                const alSalir = e => {
+                    if (!vista.isConnected) { limpiar(); return; }
+                    if (!vista.__ventaConProductos) { return; }
+
+                    e.preventDefault();
+                    e.returnValue = '';
+                };
+
+                document.addEventListener('keydown', alPresionar, true);
+                window.addEventListener('beforeunload', alSalir);
+                """,
+                vista
+        );
+    }
+
+    /** Indica al navegador si hay ventas con productos (activa el bloqueo de recarga). */
+    public static void marcarVentaConProductos(Element vista, boolean hayProductos) {
+        vista.executeJs("$0.__ventaConProductos = $1;", vista, hayProductos);
     }
 
     /**
