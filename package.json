@@ -191,7 +191,6 @@
     "@vaadin/vaadin-themable-mixin": "$@vaadin/vaadin-themable-mixin",
     "@vaadin/vaadin-lumo-styles": "$@vaadin/vaadin-lumo-styles",
     "@vaadin/vaadin-material-styles": "$@vaadin/vaadin-material-styles",
-    "print-js": "$print-js",
     "@vaadin/form-layout": "24.10.10",
     "@vaadin/checkbox-group": "24.10.10",
     "@vaadin/list-box": "24.10.10",
@@ -259,6 +258,7 @@
     "@vaadin/scroller": "24.10.10",
     "@vaadin/rich-text-editor": "24.10.10",
     "@vaadin/email-field": "24.10.10",
-    "@vaadin/message-input": "24.10.10"
+    "@vaadin/message-input": "24.10.10",
+    "print-js": "$print-js"
   }
 }
