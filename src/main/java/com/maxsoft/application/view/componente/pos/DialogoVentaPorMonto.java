@@ -75,10 +75,6 @@ public class DialogoVentaPorMonto extends Dialog {
             BigDecimal monto = (val != null) ? val: null;
 
             if (monto != null && monto.doubleValue() > 0) {
-//
-//              Double cantidadCalculada = monto/precioUnitario;
-//              
-//              agregarAlTicketActivo();
                 close();
                 if (onAceptar != null) {
                     Double cantidadCalculada = (precioUnitario.doubleValue() > 0) ? (monto.doubleValue() / precioUnitario.doubleValue()) : 0.0;

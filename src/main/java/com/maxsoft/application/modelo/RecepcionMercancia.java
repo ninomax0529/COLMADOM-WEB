@@ -62,8 +62,6 @@ public class RecepcionMercancia implements Serializable {
     @Size(min = 1, max = 65535)
     @Column(name = "comentario")
     private String comentario;
-    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
-    // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Basic(optional = false)
     @NotNull()
     @Column(name = "subtotal")

@@ -5,7 +5,6 @@
 package com.maxsoft.application.servicio.impl.cxc;
 
 import com.maxsoft.application.dto.SolicitudDevolucionDto;
-import com.maxsoft.application.evento.VentaDevueltaEvent;
 import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.CajaTurno;
@@ -33,11 +32,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.maxsoft.application.repo.FacturaDeventaRepo;
-import java.time.LocalDateTime;
 
 @Service
 public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
@@ -67,9 +64,6 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
     AlmacenService almacenService;
     @Autowired
     LoteService loteService;
-
-    @Autowired
-    private ApplicationEventPublisher eventPublisher;
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -119,7 +113,7 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
 
         // Validar stock antes de guardar nada (respeta "permitir venta sin existencia")
         for (java.util.Map.Entry<Integer, BigDecimal> req : requeridoBasePorArticulo.entrySet()) {
-            inventarioService.validarStockDisponible(req.getKey(), req.getValue().doubleValue());
+            inventarioService.validarStockDisponible(req.getKey(), req.getValue());
         }
 
         // Lotes vencidos: si lo vigente no alcanza y habría que vender de un lote vencido,
@@ -204,8 +198,6 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
 
             item.setFactura(factura);
             item.setCantidadDevuelta(BigDecimal.ZERO);
-//            item.setNombreUnidad(item.getArticulo().getUnidadBase().getDescripcion());
-//            item.setUnidad(item.getArticulo().getUnidadBase());
 
             item.setFactorConversion(item.getArticuloEmpaque().getFactorConversion());
             item.setCantidadFisicaBase(item.getFactorConversion().multiply(item.getCantidad()));
@@ -258,18 +250,6 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             );
         }
 
-        // 7. Preparar DTOs para Eventos de Dominio
-//        List<VentaRealizadaEvent.ItemVentaDto> itemsDto = facturaGuardada.getDetalleFacturaDeVentaCollection().stream()
-//                .filter(item -> item.getArticulo() != null && item.getArticulo().getCodigo() != null)
-//                .map(item -> {
-//                    Integer idArticulo = item.getArticulo().getCodigo();
-//                    Integer idAlmacen = (item.getAlmacen() != null) ? item.getAlmacen().getCodigo() : 2;
-//
-//                    return new VentaRealizadaEvent.ItemVentaDto(idArticulo, item.getCantidad(), idAlmacen);
-//                })
-//                .collect(Collectors.toList());
-        // Publicación del evento
-        // eventPublisher.publishEvent(new VentaRealizadaEvent(facturaGuardada.getCodigo(), itemsDto));
         return facturaGuardada;
     }
 
@@ -312,12 +292,6 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         FacturaDeVenta facturaAnulada = facttRepo.save(factura);
         List<DetalleFacturaDeVenta> listaDetFactura = facttRepo.getDetalle(facturaAnulada.getCodigo());
 
-        // 5. Mapear ítems inventariables para el evento de devolución
-//        List<DetalleFacturaDeVenta> itemsDto = listaDetFactura
-//                .stream()
-//                .filter(item -> Boolean.TRUE.equals(item.getArticulo().getInventariable()))
-//                .map(item -> item)
-//                .collect(Collectors.toList());
         this.entradaInventarioService.crearEntradaPorAnulacionVenta(factura, listaDetFactura);
 
         // 4. Revertir de caja solo el efectivo que realmente se cobró. Una venta

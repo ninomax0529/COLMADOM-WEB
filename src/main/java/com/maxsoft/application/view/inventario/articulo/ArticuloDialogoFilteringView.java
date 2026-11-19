@@ -77,11 +77,6 @@ public final class ArticuloDialogoFilteringView extends Dialog {
         grid.addColumn(Articulo::getCodigo).setHeader("Codigo");
         grid.addColumn(Articulo::getDescripcion).setHeader("Descripcion");
 
-//        txtBuscar.setWidth("50%");
-//        txtBuscar.setPlaceholder("Buscar");
-//        txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
-//        txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
-//        txtBuscar.addValueChangeListener(e -> dataView.refreshAll());
         dataView.addFilter(selectArticulo -> {
 
             String searchTerm = filtroDataView.getTxtBuscar().getValue().trim();
@@ -99,15 +94,9 @@ public final class ArticuloDialogoFilteringView extends Dialog {
             return matchesDescripcion || matchesCodigo;
         });
 
-//        VerticalLayout layout = new VerticalLayout(grid);
-//        layout.setSizeFull();
-//        layout.setPadding(false);
         add(filtroDataView.getTxtBuscar(), grid);
     }
 
-//    private boolean matchesTerm(String value, String searchTerm) {
-//        return value.toLowerCase().contains(searchTerm.toLowerCase());
-//    }
     public Articulo getArticulo() {
         return articulo;
     }

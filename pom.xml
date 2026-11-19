@@ -12,7 +12,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <vaadin.version>24.6.0</vaadin.version>
+        <vaadin.version>24.10.14</vaadin.version>
         <!-- Perfil de Spring que se graba en application.properties (dev | prod) -->
         <spring.profiles.active>dev</spring.profiles.active>
     </properties>
@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.1</version>
+        <version>3.5.16</version>
     </parent>
 
     <repositories>

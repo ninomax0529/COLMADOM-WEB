@@ -138,38 +138,9 @@ public class ArticuloAlmacenView extends VerticalLayout {
         grid.addColumn(ArticuloAlmacen::getMinimo).setHeader("Mínimo").setAutoWidth(true);
         grid.addColumn(ArticuloAlmacen::getMaximo).setHeader("Máximo").setAutoWidth(true);
         grid.addColumn(ArticuloAlmacen::getUbicacionPasillo).setHeader("Pasillo/Ubicación").setAutoWidth(true);
-//
-//        grid.addColumn(new ComponentRenderer<>(item -> {
-//
-//            Button btnEditar = new Button(new Icon(VaadinIcon.EDIT), e -> {
-//            
-//                abrirFormularioModal(item);
-//            });
-//            
-//            btnEditar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-//
-//            Button btnBorrar = new Button(new Icon(VaadinIcon.TRASH), e -> {
-//                ConfirmDialog dialog = new ConfirmDialog(
-//                        "¿Desea eliminar la configuración de '" + item.getDescripcionArticulo() + "' en '" + item.getNombreAlmacen() + "'?",
-//                        () -> {
 
     
 
-    ////                            articuloAlmacenService.el(item.getCodigo());
-//                            actualizarGrid();
-//                            ClaseUtil.mostrarNotificacion("Registro eliminado exitosamente", NotificationVariant.LUMO_SUCCESS);
-//                        },
-//                        () -> {
-//                        }
-//                );
-//                dialog.open();
-//            });
-//            
-//            btnBorrar.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
-//
-//            return new HorizontalLayout(btnEditar);
-//        })).setHeader("Acciones").setAutoWidth(true);
-        
     }
 
     private void actualizarGrid() {
@@ -225,10 +196,6 @@ public class ArticuloAlmacenView extends VerticalLayout {
         BigDecimalField txtMaximo = new BigDecimalField("Stock Máximo");
         TextField txtUbicacion = new TextField("Ubicación / Pasillo");
 
-//        if (entidad.getCodigo() != null) {
-//            cbArticulo.setEnabled(false);
-//            cbAlmacenModal.setEnabled(false);
-//        }
         cbArticulo.addValueChangeListener(e -> {
             if (e.getValue() != null && e.getValue().getUnidadBase() != null) {
                 entidad.setUnidad(e.getValue().getUnidadBase());
@@ -295,16 +262,6 @@ public class ArticuloAlmacenView extends VerticalLayout {
 
         String term = txtBuscar.getValue() == null ? "" : txtBuscar.getValue().trim().toLowerCase();
 
-//        dataView.setFilter(e -> {
-//            if (term.isEmpty()) {
-//                return true;
-//            }
-//            boolean matchCod = e.getCodigo() != null && e.getCodigo().toString().contains(term);
-//            boolean matchCom = e.getDescripcionArticulo() != null && e.getDescripcionArticulo().toLowerCase().contains(term);
-//            boolean matchUsr = e.getNombreAlmacen() != null && e.getNombreAlmacen().toLowerCase().contains(term);
-//            return matchCod || matchCom || matchUsr;
-//        });
-//        
         String nombreFiltro = txtBuscar.getValue().trim().toLowerCase();
 
         List<ArticuloAlmacen> filtrados = listaArticulosAlmacen.stream()

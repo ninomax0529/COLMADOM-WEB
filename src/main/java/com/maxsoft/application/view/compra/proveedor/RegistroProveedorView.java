@@ -109,8 +109,6 @@ public class RegistroProveedorView extends VerticalLayout implements HasUrlParam
     private void editar(Proveedor proveedor) {
         
         this.proveedorActual = proveedor;
-//        habilitado.setValue(proveedorActual.getHabilitado());
-//        referencia.setValue(proveedorActual.getContacto());
 
         binder.setBean(proveedor);
     }

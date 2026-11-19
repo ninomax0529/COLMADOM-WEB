@@ -126,9 +126,6 @@ public class CobroDialog extends Dialog {
         btnEfectivo.click(); // selecciona efectivo por defecto
         recibido.focus();
 
-//        // ===== ATAJOS =====
-//        addKeyPressListener(Key.ENTER, e -> cobrar());
-//        addKeyPressListener(Key.ESCAPE, e -> close());
     }
 
     // ===============================

@@ -28,14 +28,4 @@ public class SonidoUtil {
 }
 
 
-//    public static void reproducir(String archivo) {
-//        UI.getCurrent().getPage().executeJs(
-//            """
-//            const audio = new Audio($0);
-//            audio.volume = 2.6;
-//            audio.play();
-//            """,
-//            "/sounds/" + archivo
-//        );
-//    }
 }

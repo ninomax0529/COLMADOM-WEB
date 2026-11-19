@@ -130,11 +130,6 @@ public class PanelProducto extends VerticalLayout {
             gridContainer.add(card);
         }
 
-//      for (Articulo art : articuloServicel.getLista()) {
-//
-//          gridContainer.add(crearTarjetaProducto(art,
-//                  "https://images.unsplash.com/photo-1528825871115-3581a5387919?w=300&auto=format&fit=crop&q=60"));
-//      }
         add(title, cajaButtonsLayout, searchBox, quickTitle, gridContainer);
     }
 

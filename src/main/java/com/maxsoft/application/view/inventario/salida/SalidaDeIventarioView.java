@@ -329,20 +329,6 @@ public class SalidaDeIventarioView extends VerticalLayout {
 //                 Aquí puedes abrir un diálogo o navegar
                 try (Connection conn = dataSource.getConnection()) {
 
-//                    RptPlantilla rptP = new RptPlantilla();
-//                    if (rptP != null) {
-//
-////                        StreamResource pdfResource = rptP.verProgramacion(documento.getCodigo(), conn);
-//
-//                        Anchor anchor = new Anchor(pdfResource, "");
-//                        anchor.getElement().setAttribute("download", false);
-//                        anchor.getElement().setAttribute("target", "_blank");
-//
-//                        anchor.getElement().callJsFunction("click"); // dispara la apertura automática
-//
-//                        add(anchor);
-//                    }
-
                 } catch (Exception ex) {
                     log.error("Error inesperado", ex);
                     Notification.show("Error al generar el reporte", 3000, Notification.Position.TOP_CENTER);
@@ -351,23 +337,6 @@ public class SalidaDeIventarioView extends VerticalLayout {
             });
 
             Button btnAnular = new Button("Anular ", event -> {
-
-//                ConfirmDialog dialog = new ConfirmDialog(
-//                        "¿Seguro que quiere anular el regsitro -> "+documento.getCodigo(),
-//                        () -> {
-//
-//                            documento.setAnulada(true);
-//                            salidaService.guardar(documento);
-//                            grid.setItems(salidaService.getLista(false));
-//                            grid.getDataProvider().refreshAll();
-//
-//                            Notification.show("Registro anulado exitosamente", 3000, Notification.Position.TOP_CENTER);
-//
-//                        },
-//                        () -> {
-//
-//                        }
-//                );
 
 //                dialog.open();
 

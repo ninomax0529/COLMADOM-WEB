@@ -437,14 +437,6 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 //        binder.bind(chkSeCompra,
 //                a -> !Boolean.FALSE.equals(a.get()), Articulo::setSeCompra);
         
-//        binder.bind(cbProveedorPrincipal, Articulo::getProveedorPrincipal, Articulo::setProveedorPrincipal);
-//        
-//        binder.bind(txtCodigoProveedor,
-//                a -> a.getCodigoProveedor() == null ? "" : a.getCodigoProveedor(), Articulo::setCodigoProveedor);
-//        binder.bind(txtDiasEntrega, Articulo::getDiasEntrega, Articulo::setDiasEntrega);
-//        binder.bind(txtCantidadMinimaCompra, Articulo::getCantidadMinimaCompra, Articulo::setCantidadMinimaCompra);
-//        binder.bind(txtDescuentoCompra, Articulo::getDescuentoCompra, Articulo::setDescuentoCompra);
-
         containerTabCompra.add(form);
     }
 
@@ -481,9 +473,6 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
             articulo.setItbisGravado(com.maxsoft.application.util.CalculoFacturaUtil.ITBIS_DEFECTO);
         }
 
-//        if (articulo.getMetodoCosteo() == null) {
-//            articulo.setMetodoCosteo("PROMEDIO");
-//        }
     }
 
     /**
@@ -491,10 +480,6 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
      * asume que es un artículo de compra.
      */
     private void aplicarValoresPorDefectoCompra(Articulo articulo) {
-//
-//        if (articulo.getSeCompra() == null) {
-//            articulo.setSeCompra(true);
-//        }
     }
 
     // ==========================================
@@ -817,9 +802,6 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 
             ArticuloEmpaque emp = esEdicion ? empaqueEditar : new ArticuloEmpaque();
 
-//            if (esEdicion == false) {
-//                emp.setCodigo(unidadSeleccionada.getCodigo());
-//            }
             emp.setArticulo(articuloActual);
             emp.setNombreEmpaque(unidadSeleccionada.getDescripcion());
             emp.setNombreArticulo(articuloActual.getDescripcion());
@@ -838,8 +820,6 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
                 listaEmpaques.add(emp);
             }
 
-//            gridEmpaques.setItems(listaEmpaques);
-//            gridEmpaques.getDataProvider().refreshAll();
             // 2. Le avisas al dataProvider que la lista cambió
             dataProvider.refreshAll();
             dialog.close();
@@ -933,8 +913,6 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 
         cargarLotes();
 
-//        gridEmpaques.setItems(listaEmpaques);
-//        gridAlmacenes.setItems(listaArticuloAlmacen);
     }
 
     private void guardarArticulo() {
@@ -1010,8 +988,6 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 
                 listaEmpaques.add(emp);
 
-//                Notification.show("Debe agregar al menos un empaque/presentación para el artículo", 3000, Notification.Position.MIDDLE);
-//                return;
             } else {
                 log.debug("listaEmpaques" + listaEmpaques.size());
             }
@@ -1047,34 +1023,6 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
      * compra, enfoca el campo y avisa.
      */
     private boolean validarDatosCompra() {
-
-//        if (!Boolean.TRUE.equals(articuloActual.getSeCompra())) {
-//            return true; // no se compra: los demás datos no aplican
-//        }
-//
-//        BigDecimal descuento = articuloActual.getDescuentoCompra();
-//        if (descuento != null && (descuento.signum() < 0 || descuento.compareTo(BigDecimal.valueOf(100)) > 0)) {
-//            tabs.setSelectedTab(tabCompra);
-//            txtDescuentoCompra.focus();
-//            Notification.show("El descuento del suplidor debe estar entre 0 y 100", 3500, Notification.Position.MIDDLE);
-//            return false;
-//        }
-//
-//        BigDecimal minima = articuloActual.getCantidadMinimaCompra();
-//        if (minima != null && minima.signum() < 0) {
-//            tabs.setSelectedTab(tabCompra);
-//            txtCantidadMinimaCompra.focus();
-//            Notification.show("La cantidad mínima de compra no puede ser negativa", 3500, Notification.Position.MIDDLE);
-//            return false;
-//        }
-//
-//        Integer dias = articuloActual.getDiasEntrega();
-//        if (dias != null && dias < 0) {
-//            tabs.setSelectedTab(tabCompra);
-//            txtDiasEntrega.focus();
-//            Notification.show("El tiempo de entrega no puede ser negativo", 3500, Notification.Position.MIDDLE);
-//            return false;
-//        }
 
         return true;
     }

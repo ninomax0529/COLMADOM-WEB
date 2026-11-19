@@ -241,10 +241,6 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
                 .setHeader("Presentación")
                 .setAutoWidth(true);
 
-//        grid.addColumn(l -> l.codigo.isBlank() ? "(sin código)" : l.codigo + "  [" + BarcodeSvg.tipoPara(l.codigo) + "]")
-//                .setHeader("Código de barras")
-//                .setAutoWidth(true);
-
         grid.addColumn(l -> l.empaque.getPrecioVenta() != null
                 ? "RD$ " + FORMATO_PRECIO.format(l.empaque.getPrecioVenta()) : "")
                 .setHeader("Precio")

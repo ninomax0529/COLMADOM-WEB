@@ -48,10 +48,10 @@ Todo el código está en `src/main/java/com/maxsoft/application`:
 - `modelo/` — entidades JPA (un solo paquete). `dto/` — proyecciones/DTOs para grids y reportes. `enums/`.
 - `repo/` — repositorios Spring Data.
 - `servicio/interfaces/<area>/` + `servicio/impl/<area>/` — cada servicio es una interfaz con su `*Impl`, agrupados por área: `compra`, `cxc` (cuentas por cobrar / facturas de venta, recibos de ingreso), `cxp` (cuentas por pagar), `delivery`, `inventario`, `venta`, `reporte`. Las vistas inyectan la interfaz.
-- `evento/` — eventos de Spring (`VentaRealizadaEvent`, `VentaAnuladaEvent`, `VentaDevueltaEvent`, `AjusteInventarioCreadoEvent`, `SalidaInventarioCreadaEvent`). `InventarioServiceImpl` los maneja con `@EventListener @Transactional` y registra filas de `MovimientoInventario`. Ojo: las llamadas a `publishEvent` en `FacturaDeVentaServiceImpl` están comentadas — verificar cómo se actualiza realmente el inventario antes de depender de los eventos.
+- Inventario: no hay eventos de Spring. Las ventas, anulaciones y devoluciones llaman directamente a `SalidaInventarioService` / `EntradaDeInventarioService`, que registran el kardex con `MovimientoInventarioService` (bloquea la existencia con `FOR UPDATE`). `InventarioService` solo valida stock antes de vender.
 - `view/` — UI Vaadin (ver abajo). `view/componente/` contiene widgets reutilizables (barras del POS, diálogos de cobro, filtros); `view/dialogo/` diálogos compartidos.
 - `reporte/` + `src/main/resources/reporte/` — JasperReports (archivos `.jasper`); la impresión también pasa por `servicio/impl/venta/ImpresionDirectaService`.
-- `util/` — `CalculoFacturaUtil` (totales/impuestos de factura), `FiltroUtil`/`FiltroGenerico` (filtrado de grids), `SonidoUtil` (reproduce archivos de `META-INF/resources/sounds`), `NavigationContext` (ver abajo).
+- `util/` — `CalculoFacturaUtil` (totales/impuestos de factura), `LineaPosUtil` (líneas del POS con multi-empaque: factor, precio por presentación, línea nueva; sin UI y con pruebas), `FiltroUtil`/`FiltroGenerico` (filtrado de grids), `SonidoUtil` (reproduce archivos de `META-INF/resources/sounds`), `NavigationContext` (ver abajo).
 
 ### Estructura de UI / navegación
 
@@ -61,6 +61,7 @@ Todo el código está en `src/main/java/com/maxsoft/application`:
 - Patrón común: vista de lista/consulta (`XxxView` / `ConsultaXxxView`) + vista de formulario (`RegistroXxxView`). Los objetos se pasan entre vistas con `NavigationContext.store(obj)` → clave → `NavigationContext.retrieve(clave, Tipo)` (uso único, mapa estático en memoria).
 - Server push habilitado (`@Push(AUTOMATIC, WEBSOCKET_XHR)` en `Application`) para vistas en tiempo real como el monitor de delivery. Tema: `src/main/frontend/themes/gestion-colmadom`.
 - Vistas vigentes con sufijo de versión: el POS es `venta/puntoVenta/PuntoDeVentaView17` (ruta `puntoDeVentav17`, en el menú) y el formulario de artículo es `inventario/articulo/RegistrarArticuloViewV4` (lo abre `ArticuloView`). Las versiones anteriores se borraron (están en el historial de git).
+- El POS (`PuntoDeVentaView17`) delega en `view/componente/pos/`: `GridTicketPos` (grid de líneas), `ImpresoraFacturaPos` (impresión kiosk del PDF), `DialogoAnulacionFactura`, `ScriptsNavegadorPos` (JS de atajos Alt y foco del buscador; los `@ClientCallable` que llama siguen en la vista) y los demás diálogos/paneles. La lógica de líneas va en `LineaPosUtil`, no en la vista.
 
 ## Convenciones
 

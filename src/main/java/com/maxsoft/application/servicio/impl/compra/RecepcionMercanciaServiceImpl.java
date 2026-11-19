@@ -433,45 +433,6 @@ public class RecepcionMercanciaServiceImpl implements RecepcionMercanciaService 
     @Override
     public RecepcionMercancia buscarPorId(Long id) {
 
-        // 3. Si viene de una Orden de Compra, actualizar cantidades recibidas y pendientes
-//        if (recepcion.getTipoDocumento().getCodigo()==8 && recepcion.getNumeroDocumento()!= null) {
-//            OrdenDeCompra oc = ordenCompraService.buscarPorCodigo(Integer.valueOf(recepcion.getNombreDocumento())).get();
-//            
-//            if (oc != null) {
-//                
-//                boolean todoCompletado = true;
-//
-//                for (DetalleOrdendeDeCompra detOc : oc.getDetalleOrdendeDeCompraCollection()) {
-//                    
-//                    for (DetalleRecepcionMercancia detRec : recepcion.getDetalleRecepcionMercanciaCollection()) {
-//                        if (detOc.getArticulo() != null && detRec.getArticulo() != null &&
-//                                detOc.getArticulo().getCodigo().equals(detRec.getArticulo().getCodigo())) {
-//
-//                            BigDecimal recAnterior = detOc.getCantidadRecibida() != null ? detOc.getCantidadRecibida() : BigDecimal.ZERO;
-//                            BigDecimal nuevaRecibida = recAnterior.add(detRec.getCantidadRecibida());
-//
-//                            detOc.setCantidadRecibida(nuevaRecibida);
-//
-//                            BigDecimal pendiente = detOc.getCantidad().subtract(nuevaRecibida);
-//                            detOc.setPendiente(pendiente.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : pendiente);
-//                        }
-//                    }
-//
-//                    if (detOc.getPendiente() != null && detOc.getPendiente().compareTo(BigDecimal.ZERO) > 0) {
-//                        todoCompletado = false;
-//                    }
-//                }
-//
-//                if (todoCompletado) {
-//                    oc.setCompletada("SI");
-//                    oc.setEstado("COMPLETADA");
-//                } else {
-//                    oc.setEstado("PARCIAL");
-//                }
-//
-//                ordenCompraService.guardar(oc);
-//            }
-//        }
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 

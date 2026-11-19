@@ -334,8 +334,6 @@ public class ClaseUtil {
 // 5. Mostrar la notificación
         notification.open();
 
-//        Notification notification = Notification.show(mensaje, 4000, Notification.Position.TOP_CENTER);
-//        notification.addThemeVariants(variante);
     }
 
     public static void mostrarNotificacion(String mensaje, NotificationVariant variante, Integer duracion) {
@@ -380,20 +378,14 @@ public class ClaseUtil {
 // 5. Mostrar la notificación
         notification.open();
 
-//        Notification notification = Notification.show(mensaje, 4000, Notification.Position.TOP_CENTER);
-//        notification.addThemeVariants(variante);
     }
 
     public static void main(String[] args) {
 
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
         log.debug("password : " + bCryptPasswordEncoder.encode("2025135321."));
-//        LocalDateTime ltdThen = LocalDateTime.parse("2021-04-03T06:00:00");
-//        LocalDateTime ltdNow = LocalDateTime.parse("2021-05-05T11:00:00");
 
     
 
-////        LocalDateTime ltdNow = LocalDateTime.now();
-//        diferenciaHoras(ltdThen, ltdNow);
     }
 }

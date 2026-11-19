@@ -483,8 +483,6 @@ public class RegistroReciboDeIngresoView extends VerticalLayout {
             recibo.setCliente(cbProveedor.getValue());
             recibo.setFecha(ClaseUtil.asDate(dpFecha.getValue()));
             recibo.setFechaCreacion(new Date());
-//            recibo.setFormaPago(cbFormaPago.getValue());
-//            recibo.setReferencia(txtReferencia.getValue() != null ? txtReferencia.getValue().trim() : null);
             recibo.setConcepto(txtObservacion.getValue()==null ? "Pago factura cliente " :
               txtObservacion.getValue()
             );

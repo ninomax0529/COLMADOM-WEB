@@ -186,11 +186,6 @@ public class TicketVenta {
 
         return subTotal;
 
-//        BigDecimal subTotal;
-//        for (DetalleFacturaDeVenta det : items) {
-//            subTotal += det.getCantidad().multiply(det.getPrecioVenta());
-//        }
-//        return subTotal;
     }
 
     public void updateUI() {

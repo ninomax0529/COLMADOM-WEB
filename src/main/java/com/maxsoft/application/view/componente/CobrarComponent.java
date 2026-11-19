@@ -57,9 +57,6 @@ public class CobrarComponent extends VerticalLayout {
 
     private void configurarCampos() {
 
-//        montoRecibido.setPrefixComponent(new Text("$"));
-//        montoACobrar.setPrefixComponent(new Text("$"));
-//        montoADevolver.setPrefixComponent(new Text("$"));
         montoADevolver.setReadOnly(true);
         montoACobrar.setReadOnly(true);
         montoRecibido.setReadOnly(true);

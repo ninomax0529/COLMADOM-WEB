@@ -193,8 +193,6 @@ public class FacturaDeCompraServiceImpl implements FacturaDeCompraService {
         factura.setFecha(new Date());
 
         Proveedor proveedor = recepcionGuardada.getProveedor();
-//        int diasCredito = proveedor.getPlazo().getDias();
-//        Date fechaVenci = ClaseUtil.asDate(LocalDate.now().plusDays(diasCredito));
         // Asignación de estados según condición de pago
 
         factura.setFechaVencimiento(new Date());
