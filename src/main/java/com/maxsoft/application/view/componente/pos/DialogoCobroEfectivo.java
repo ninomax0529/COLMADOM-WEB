@@ -13,6 +13,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -31,6 +32,8 @@ import java.text.DecimalFormat;
 public class DialogoCobroEfectivo extends Dialog {
 
     private static final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");
+    // Para los botones de billetes: "1,000" en vez de "1,000.00"
+    private static final DecimalFormat MONEDA_ENTERA = new DecimalFormat("#,##0");
 
     @FunctionalInterface
     public interface AccionGuardarVenta {
@@ -168,7 +171,32 @@ public class DialogoCobroEfectivo extends Dialog {
             }
         });
 
-        dialogLayout.add(tipoEntregaLayout, deliveryLayout, totalToPayLabel, cashGivenField, changeDueLabel);
+        // Billetes rápidos: un toque pone con cuánto paga el cliente
+        Div billetesRapidos = new Div();
+        billetesRapidos.setWidthFull();
+        billetesRapidos.getStyle()
+                .set("display", "flex")
+                .set("flex-wrap", "wrap")
+                .set("gap", "var(--lumo-space-xs)");
+
+        java.util.List<BigDecimal> montos = montosRapidos(ticket.getTotalAmount());
+        for (int i = 0; i < montos.size(); i++) {
+            BigDecimal monto = montos.get(i);
+            // El primero siempre es el total exacto
+            boolean exacto = i == 0;
+            Button b = new Button(exacto ? "Exacto" : MONEDA_ENTERA.format(monto));
+            b.addThemeVariants(exacto ? ButtonVariant.LUMO_SUCCESS : ButtonVariant.LUMO_CONTRAST);
+            b.getStyle().set("flex", "1 1 0").set("min-width", "4.5em").set("margin", "0").set("font-weight", "600");
+            b.setTooltipText("El cliente paga con RD$ " + MONEDA_FORMAT.format(monto));
+            b.addClickListener(e -> {
+                cashGivenField.setValue(monto.doubleValue());
+                // El foco vuelve al campo: Enter completa la venta
+                cashGivenField.focus();
+            });
+            billetesRapidos.add(b);
+        }
+
+        dialogLayout.add(tipoEntregaLayout, deliveryLayout, totalToPayLabel, cashGivenField, billetesRapidos, changeDueLabel);
         add(dialogLayout);
 
         Button cancelButton = new Button("Cancelar", e -> close());
@@ -234,5 +262,38 @@ public class DialogoCobroEfectivo extends Dialog {
                 cashGivenField.focus();
             }
         });
+    }
+
+    /** Múltiplos a los que se redondea el total (ej. 435 → 450, 500, 1000). */
+    private static final int[] REDONDEOS = {50, 100, 500, 1000};
+    /** Billetes dominicanos sueltos con que se suele pagar. */
+    private static final int[] BILLETES = {200, 500, 1000, 2000};
+
+    /**
+     * "Exacto" + los montos con que el cliente probablemente pague: el total
+     * redondeado hacia arriba (a 50, 100, 500 y 1000) y cada billete que
+     * alcance. Ej.: total 435 → 435, 450, 500, 1000, 2000. Máximo 6 botones.
+     */
+    public static java.util.List<BigDecimal> montosRapidos(BigDecimal total) {
+        if (total == null || total.signum() <= 0) {
+            return java.util.List.of();
+        }
+        java.util.TreeSet<BigDecimal> montos = new java.util.TreeSet<>();
+        BigDecimal exacto = total.setScale(2, java.math.RoundingMode.HALF_UP);
+        montos.add(exacto);
+        for (int r : REDONDEOS) {
+            BigDecimal m = BigDecimal.valueOf(r);
+            BigDecimal redondeado = exacto.divide(m, 0, java.math.RoundingMode.CEILING).multiply(m);
+            if (redondeado.compareTo(exacto) > 0) {
+                montos.add(redondeado.setScale(2));
+            }
+        }
+        for (int billete : BILLETES) {
+            BigDecimal b = BigDecimal.valueOf(billete).setScale(2);
+            if (b.compareTo(exacto) > 0) {
+                montos.add(b);
+            }
+        }
+        return montos.stream().limit(6).toList();
     }
 }

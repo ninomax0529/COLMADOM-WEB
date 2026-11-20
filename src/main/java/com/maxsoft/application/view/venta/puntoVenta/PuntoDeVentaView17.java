@@ -96,6 +96,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
     private static final int TIPO_VENTA_LIBRETA = 2;
 
+    private static final int TIPO_VENTA_CONTADO = 1;
+
     private static final int ESCALA_CALCULO = 4;
 
     /**
@@ -939,8 +941,112 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 this::abrirDialogoRenombrarTicket,
                 this::confirmarEliminarTicket,
                 this::abrirDialogoCobroEfectivo,
-                this::abrirDialogoSeleccionCliente
+                this::abrirDialogoSeleccionCliente,
+                this::abrirDialogoDelivery
         );
+    }
+
+    // ============================================================
+    // DELIVERY (F6)
+    // ============================================================
+    /**
+     * Venta por delivery: factura de contado PENDIENTE con el motorista
+     * asignado. El motorista cobra al entregar y el administrador la liquida
+     * después (Delivery → Liquidación).
+     */
+    private void abrirDialogoDelivery(
+            TicketVenta ticket) {
+
+        if (ticket == null) {
+            return;
+        }
+
+        if (ticket.getItems().isEmpty()) {
+
+            ClaseUtil.mostrarNotificacion(
+                    "La venta está vacía.",
+                    NotificationVariant.LUMO_WARNING
+            );
+
+            enfocarBuscador();
+
+            return;
+        }
+
+        List<Delivery> motoristas = deliveryService.getLista();
+
+        if (motoristas == null || motoristas.isEmpty()) {
+
+            ClaseUtil.mostrarNotificacion(
+                    "No hay motoristas registrados.",
+                    NotificationVariant.LUMO_WARNING
+            );
+
+            enfocarBuscador();
+
+            return;
+        }
+
+        List<Cliente> clientes = clienteService.getLista();
+
+        com.maxsoft.application.view.componente.pos.DialogoDelivery dialogo
+                = new com.maxsoft.application.view.componente.pos.DialogoDelivery(
+                        ticket,
+                        motoristas,
+                        clientes,
+                        (motorista, cliente, direccion) -> {
+
+                            // Cliente de paso: el genérico (el mismo que usa COBRAR)
+                            Cliente clienteFactura = cliente != null
+                                    ? cliente
+                                    : clientes.get(0);
+
+                            ticket.setDelivery(motorista);
+                            ticket.setEstadoFactura(
+                                    estadoFacturaService.getEstadoFactura(
+                                            ESTADO_FACTURA_DELIVERY
+                                    )
+                            );
+                            ticket.setTipoVenta(
+                                    tipoVentaService.getTipoVenta(
+                                            TIPO_VENTA_CONTADO
+                                    )
+                            );
+                            ticket.setCliente(clienteFactura);
+                            ticket.setNombreCliente(
+                                    cliente != null
+                                            ? cliente.getNombre()
+                                            : direccion
+                            );
+                            ticket.setDireccion(direccion);
+
+                            FacturaDeVenta factura = guardar(ticket);
+
+                            if (factura == null) {
+                                // No se guardó: la venta queda abierta para corregir
+                                enfocarBuscador();
+                                return;
+                            }
+
+                            cerrarTicketFacturado(ticket);
+
+                            ClaseUtil.mostrarNotificacion(
+                                    "Delivery enviado con " + motorista.getNombre()
+                                    + ". Queda pendiente de liquidar.",
+                                    NotificationVariant.LUMO_SUCCESS, 3500
+                            );
+
+                            imprimir(factura.getCodigo());
+                        }
+                );
+
+        dialogo.addOpenedChangeListener(e -> {
+            if (!e.isOpened()) {
+                enfocarBuscador();
+            }
+        });
+
+        dialogo.open();
     }
 
     // ============================================================

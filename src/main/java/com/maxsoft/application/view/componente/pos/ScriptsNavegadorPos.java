@@ -33,8 +33,8 @@ public final class ScriptsNavegadorPos {
      * <li>Alt+1 ... Alt+9: cambiar de venta</li>
      * </ul>
      *
-     * También cancela la acción del navegador para F2, F3 y F4 (F3 abría el
-     * "Buscar" del navegador), sin detener el evento: los atajos de Vaadin
+     * También cancela la acción del navegador para F2, F3, F4 y F6 (F3 abría
+     * el "Buscar" del navegador), sin detener el evento: los atajos de Vaadin
      * de esas teclas se siguen disparando.
      *
      * Se detectan por la tecla FÍSICA (event.code) y en fase de captura, antes
@@ -84,11 +84,12 @@ public final class ScriptsNavegadorPos {
                     // Si la vista ya no está en pantalla, se limpia el atajo
                     if (!vista.isConnected) { limpiar(); return; }
 
-                    // F2 (cobrar), F3 (fiar) y F4 (buscador) son del POS: se
-                    // cancela la acción del navegador (F3 abre "Buscar" en la
-                    // página) pero el evento sigue su camino, así que los atajos
-                    // de Vaadin se disparan igual.
-                    if (['F2', 'F3', 'F4'].includes(e.key) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+                    // F2 (cobrar), F3 (fiar), F4 (buscador) y F6 (delivery) son
+                    // del POS: se cancela la acción del navegador (F3 abre
+                    // "Buscar" en la página, F6 va a la barra de direcciones)
+                    // pero el evento sigue su camino, así que los atajos de
+                    // Vaadin se disparan igual.
+                    if (['F2', 'F3', 'F4', 'F6'].includes(e.key) && !e.altKey && !e.ctrlKey && !e.metaKey) {
                         e.preventDefault();
                         return;
                     }

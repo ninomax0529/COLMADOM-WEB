@@ -12,7 +12,6 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import java.math.BigDecimal;
@@ -165,28 +164,22 @@ public class TarjetaProductoCompo extends VerticalLayout {
         controls.setWidthFull();
         controls.setPadding(false);
         controls.setSpacing(true);
-        controls.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         controls.getStyle().set("margin-top", "auto");
 
-        // Botón Restar (-)
-        Button minusBtn = new Button(VaadinIcon.MINUS.create(), e -> {
-            if (onCantidadChanged != null) {
-                onCantidadChanged.accept(seleccionada, BigDecimal.valueOf(-1.00));
-            }
-        });
-        minusBtn.addThemeVariants(ButtonVariant.LUMO_ERROR);
-        minusBtn.setTooltipText("Quitar 1");
-        minusBtn.getElement().setAttribute("aria-label", "Quitar una unidad");
+        // Nota: el botón "−" se quitó de la tarjeta. Estaba pegado al "+" y se
+        // tocaba por error; para quitar o bajar cantidad se usa el ticket
+        // (editar cantidad o eliminar la línea).
 
-        // Botón Venta por pesos ($)
-        Button pesoBtn = new Button("$", e -> {
+        // Venta por monto: "dame 50 pesos de queso"
+        Button pesoBtn = new Button("RD$", e -> {
             if (onVentaPorMontoRequested != null) {
                 onVentaPorMontoRequested.accept(seleccionada);
             }
         });
-        pesoBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        pesoBtn.setTooltipText("Vender por monto en dinero (RD$)");
-        pesoBtn.getElement().setAttribute("aria-label", "Vender por monto");
+        pesoBtn.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
+        pesoBtn.setTooltipText("Vender por monto: cuántos pesos quiere el cliente");
+        pesoBtn.getElement().setAttribute("aria-label", "Vender por monto en pesos");
+        pesoBtn.getStyle().set("font-weight", "700");
 
         // Botón Sumar (+)
         Button plusBtn = new Button(VaadinIcon.PLUS.create(), e -> {
@@ -198,7 +191,11 @@ public class TarjetaProductoCompo extends VerticalLayout {
         plusBtn.setTooltipText("Agregar 1");
         plusBtn.getElement().setAttribute("aria-label", "Agregar una unidad");
 
-        controls.add(minusBtn, pesoBtn, plusBtn);
+        controls.add(pesoBtn, plusBtn);
+        // Cada botón ocupa la mitad: blancos más grandes para el dedo
+        controls.setFlexGrow(1, pesoBtn, plusBtn);
+        pesoBtn.getStyle().set("min-width", "0");
+        plusBtn.getStyle().set("min-width", "0");
 
         // Espacio flexible entre la información y los botones
         info.getStyle().set("margin-bottom", "0.5rem");

@@ -44,7 +44,8 @@ public class PanelTicketContenido extends VerticalLayout {
             BiConsumer<TicketVenta, Span> onRenombrarTicket,
             Consumer<TicketVenta> onCancelarTicket,
             Consumer<TicketVenta> onCobrar,
-            Consumer<TicketVenta> onFiar
+            Consumer<TicketVenta> onFiar,
+            Consumer<TicketVenta> onDelivery
     ) {
         this.ticket = ticket;
 
@@ -142,10 +143,20 @@ public class PanelTicketContenido extends VerticalLayout {
         });
         creditBtn.addClickShortcut(Key.F3);
 
+        // Delivery: el motorista cobra al entregar y luego se liquida
+        Button deliveryBtn = new Button("DELIVERY [F6]", VaadinIcon.TRUCK.create());
+        deliveryBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
+        deliveryBtn.addClickListener(e -> {
+            if (onDelivery != null) {
+                onDelivery.accept(ticket);
+            }
+        });
+        deliveryBtn.addClickShortcut(Key.F6);
+
         // COBRAR, la acción más frecuente, es el botón más ancho
-        actionButtons.setFlexGrow(1, cancelTicketBtn, creditBtn);
+        actionButtons.setFlexGrow(1, cancelTicketBtn, creditBtn, deliveryBtn);
         actionButtons.setFlexGrow(2, checkoutBtn);
-        actionButtons.add(cancelTicketBtn, checkoutBtn, creditBtn);
+        actionButtons.add(cancelTicketBtn, checkoutBtn, creditBtn, deliveryBtn);
 
         add(filterText, gridContainer, lblResumen, totalLayout, actionButtons);
 
