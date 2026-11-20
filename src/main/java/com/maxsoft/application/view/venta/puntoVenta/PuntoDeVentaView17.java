@@ -7,6 +7,7 @@ import com.maxsoft.application.modelo.Cliente;
 import com.maxsoft.application.modelo.Delivery;
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
 import com.maxsoft.application.modelo.FacturaDeVenta;
+import com.maxsoft.application.servicio.interfaces.inventario.CategoriaService;
 import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
@@ -119,6 +120,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     private final FacturaDeVentaService factService;
     /** Valida la existencia con la misma regla que se aplica al facturar. */
     private final InventarioService inventarioService;
+    /** Categorías para los botones de filtro del catálogo. */
+    private final CategoriaService categoriaService;
     /** Autorización de supervisor (p. ej. vender de un lote vencido). */
     @org.springframework.beans.factory.annotation.Autowired
     private com.maxsoft.application.servicio.interfaces.venta.AutorizacionService autorizacionService;
@@ -173,6 +176,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             TipoVentaService tipoVentaService,
             EstadoFacturaService estadoFacturaService,
             InventarioService inventarioService,
+            CategoriaService categoriaService,
             com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService reciboDeIngresoService
     ) {
 
@@ -188,6 +192,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         this.tipoVentaService = tipoVentaService;
         this.estadoFacturaService = estadoFacturaService;
         this.inventarioService = inventarioService;
+        this.categoriaService = categoriaService;
 
         // "*" (teclado numérico) edita la cantidad de la línea seleccionada.
         // Es el ÚNICO registro de este atajo: antes también se registraba en
@@ -546,7 +551,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 this::abrirDialogoAperturaCaja,
                 this::abrirDialogoCierreCaja,
                 this::abrirDialogoMovimientoPos,
-                factService
+                factService,
+                categoriaService.listarHabilitadas(),
+                inventarioService
         );
 
         // El foco del POS (después de cada venta, cada diálogo, cada cambio de
@@ -1202,6 +1209,14 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             TicketVenta ticket) {
 
         eliminarTicket(ticket, false);
+        refrescarExistenciasCatalogo();
+    }
+
+    /** La venta/anulación cambió el inventario: actualizar las tarjetas. */
+    private void refrescarExistenciasCatalogo() {
+        if (panelProductos != null) {
+            panelProductos.refrescarExistencias();
+        }
     }
 
     private void eliminarTicket(
@@ -1887,6 +1902,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             return;
         }
 
-        new DialogoAnulacionFactura(factService, USUARIO_POR_DEFECTO, this::enfocarBuscador).open();
+        new DialogoAnulacionFactura(factService, USUARIO_POR_DEFECTO, () -> {
+            refrescarExistenciasCatalogo();
+            enfocarBuscador();
+        }).open();
     }
 }

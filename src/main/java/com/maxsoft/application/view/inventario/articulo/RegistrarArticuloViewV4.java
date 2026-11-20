@@ -13,6 +13,8 @@ import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
+import com.maxsoft.application.servicio.interfaces.inventario.CategoriaService;
+import com.maxsoft.application.modelo.Categoria;
 import com.maxsoft.application.servicio.interfaces.inventario.UnidadService;
 import com.maxsoft.application.servicio.interfaces.venta.UnidadDeVentaService;
 import com.maxsoft.application.util.ClaseUtil;
@@ -82,6 +84,10 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
     private final BigDecimalField txtTasaItbis = new BigDecimalField("ITBIS (%)");
     private final IntegerField txtCodigo = new IntegerField("Código");
     private final RadioButtonGroup<UnidadDeVenta> rbbGrupo = new RadioButtonGroup<>();
+    // Categoría: agrupa el artículo en los botones del catálogo del POS
+    private final ComboBox<Categoria> cbCategoria = new ComboBox<>("Categoría");
+    private final CategoriaService categoriaService;
+    private List<Categoria> categorias = new ArrayList<>();
 
     // TAB 4: Datos exclusivos de inventario
     private final Checkbox chkInventariable = new Checkbox("Artículo inventariable (controla existencia)");
@@ -146,9 +152,11 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
             @Lazy ArticuloDaoService articuloDaoServiceArg,
             UnidadService unidadService,
             ProveedorService proveedorServiceArg,
-            com.maxsoft.application.servicio.interfaces.inventario.LoteService loteServiceArg
+            com.maxsoft.application.servicio.interfaces.inventario.LoteService loteServiceArg,
+            CategoriaService categoriaServiceArg
     ) {
         this.loteService = loteServiceArg;
+        this.categoriaService = categoriaServiceArg;
         this.articuloService = articuloServiceArg;
         this.unidaVentaService = unidadDeVentaServiceArg;
         this.almacenService = almacenServiceArg;
@@ -259,7 +267,9 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         HorizontalLayout hbItbis = new HorizontalLayout(chkExentoItbis, txtTasaItbis);
         hbItbis.setAlignItems(com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment.BASELINE);
 
-        FormLayout formLayout = new FormLayout(hlArt, hbPrecio, hbItbis, rbbGrupo);
+        configurarCategoria();
+
+        FormLayout formLayout = new FormLayout(hlArt, hbPrecio, hbItbis, cbCategoria, rbbGrupo);
 
         binder.bind(chkExentoItbis, Articulo::getExentoItbis, Articulo::setExentoItbis);
         binder.bind(txtTasaItbis,
@@ -276,6 +286,46 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         binder.bind(rbbGrupo, Articulo::getUnidadDeVenta, Articulo::setUnidadDeVenta);
 
         containerTabGeneral.add(formLayout);
+    }
+
+    /**
+     * Selector de categoría. El artículo guarda solo el código (Integer); aquí
+     * se traduce a la entidad. Escribir un nombre que no existe y presionar
+     * Enter crea la categoría.
+     */
+    private void configurarCategoria() {
+
+        categorias = new ArrayList<>(categoriaService.listarHabilitadas());
+
+        cbCategoria.setItems(categorias);
+        cbCategoria.setItemLabelGenerator(Categoria::getNombre);
+        cbCategoria.setClearButtonVisible(true);
+        cbCategoria.setAllowCustomValue(true);
+        cbCategoria.setPlaceholder("Seleccione o escriba una nueva");
+        cbCategoria.setHelperText("Agrupa el artículo en el catálogo del punto de venta");
+        cbCategoria.setWidth("320px");
+
+        cbCategoria.addCustomValueSetListener(e -> {
+            try {
+                Categoria nueva = categoriaService.obtenerOCrear(e.getDetail(), "ADMIN");
+                if (!categorias.contains(nueva)) {
+                    categorias.add(nueva);
+                    cbCategoria.setItems(categorias);
+                }
+                cbCategoria.setValue(nueva);
+                ClaseUtil.mostrarNotificacion("Categoría \"" + nueva.getNombre() + "\" lista.",
+                        NotificationVariant.LUMO_SUCCESS);
+            } catch (IllegalArgumentException ex) {
+                ClaseUtil.mostrarNotificacion(ex.getMessage(), NotificationVariant.LUMO_WARNING);
+            }
+        });
+
+        binder.bind(cbCategoria,
+                a -> a.getCategoria() == null ? null
+                        : categorias.stream()
+                                .filter(c -> a.getCategoria().equals(c.getCodigo()))
+                                .findFirst().orElse(null),
+                (a, c) -> a.setCategoria(c == null ? null : c.getCodigo()));
     }
 
     // ==========================================

@@ -52,6 +52,16 @@ public class InventarioServiceImpl implements InventarioService {
         return articuloRepo.findById(idArticulo).map(this::existenciaDe).orElse(BigDecimal.ZERO);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<Integer, BigDecimal> existenciasPorArticulo() {
+        java.util.Map<Integer, BigDecimal> mapa = new java.util.HashMap<>();
+        for (Object[] fila : articuloRepo.obtenerExistencias()) {
+            mapa.put((Integer) fila[0], fila[1] != null ? (BigDecimal) fila[1] : BigDecimal.ZERO);
+        }
+        return mapa;
+    }
+
     private BigDecimal existenciaDe(Articulo articulo) {
         return articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
     }

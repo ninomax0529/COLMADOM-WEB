@@ -20,4 +20,8 @@ public interface ArticuloRepo extends JpaRepository<Articulo, Integer>{
     // Retorna todos los productos que están en negativo para auditar compras no entradas
     @Query("SELECT a FROM Articulo a WHERE a.inventariable = true AND a.existencia < 0")
     List<Articulo> obtenerProductosEnNegativo();
+
+    // Existencia de todos los artículos en una sola consulta: [codigo, existencia]
+    @Query("SELECT a.codigo, a.existencia FROM Articulo a")
+    List<Object[]> obtenerExistencias();
 }

@@ -12,6 +12,13 @@ public interface ArticuloEmpaqueService {
 
     List<ArticuloEmpaque> getArticuloEmpaqueParaVenta();
 
+    /**
+     * Veces que se vendió cada presentación en los últimos {@code dias} días
+     * (código de ArticuloEmpaque → líneas de factura no anuladas). Las que no
+     * se vendieron no aparecen en el mapa.
+     */
+    java.util.Map<Integer, Long> vecesVendidoUltimosDias(int dias);
+
     List<ArticuloEmpaque> getPorArticulo(Integer codArticulo);
 
     Optional<ArticuloEmpaque> getPorCodigoBarra(String codigoBarra);

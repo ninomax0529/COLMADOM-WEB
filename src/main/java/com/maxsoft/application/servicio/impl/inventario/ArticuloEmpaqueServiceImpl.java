@@ -78,6 +78,16 @@ public class ArticuloEmpaqueServiceImpl implements ArticuloEmpaqueService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public java.util.Map<Integer, Long> vecesVendidoUltimosDias(int dias) {
+        java.util.Map<Integer, Long> veces = new java.util.HashMap<>();
+        for (Object[] fila : repo.contarVentasPorEmpaqueDesde(java.time.LocalDate.now().minusDays(dias))) {
+            veces.put(((Number) fila[0]).intValue(), ((Number) fila[1]).longValue());
+        }
+        return veces;
+    }
+
+    @Override
     public List<ArticuloEmpaque> buscarPorDescripcionEfectivo(String filtro) {
 
         // Si el filtro viene vacío (el usuario no ha escrito nada), limpiamos espacios

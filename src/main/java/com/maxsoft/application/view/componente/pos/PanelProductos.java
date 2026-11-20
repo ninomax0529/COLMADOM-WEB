@@ -8,6 +8,7 @@ import com.maxsoft.application.modelo.ArticuloEmpaque;
 import com.maxsoft.application.modelo.FacturaDeVenta;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService;
 import com.maxsoft.application.servicio.interfaces.cxc.FacturaDeVentaService;
+import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -24,9 +25,17 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.maxsoft.application.modelo.Categoria;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -39,6 +48,12 @@ public class PanelProductos extends VerticalLayout {
      * encuentra con el buscador o con "Mostrar más".
      */
     private static final int TARJETAS_POR_LOTE = 60;
+
+    /**
+     * Días de ventas que se miran para ordenar el catálogo: lo que más se
+     * vendió en este período sale primero (en el catálogo y en el buscador).
+     */
+    private static final int DIAS_MAS_VENDIDOS = 30;
 
     /**
      * Imagen por defecto de las tarjetas. Conviene reemplazarla por un recurso
@@ -55,6 +70,10 @@ public class PanelProductos extends VerticalLayout {
 
     // Catálogo (se carga una sola vez desde el servicio)
     private final List<ArticuloEmpaque> catalogo;
+    // Tarjetas que se muestran según la categoría elegida (al inicio, todo):
+    // una por artículo, con todas sus presentaciones
+    private List<List<ArticuloEmpaque>> catalogoFiltrado;
+    private final HorizontalLayout barraCategorias = new HorizontalLayout();
     private final Div gridContainer = new Div();
     private final Button btnMostrarMas = new Button();
     private int tarjetasCargadas = 0;
@@ -64,6 +83,11 @@ public class PanelProductos extends VerticalLayout {
     private Button btnAbrirCaja;
     private Button btnCerrarCaja;
     private Button btnMovimientoPos;
+
+    // Existencia por artículo (unidad base) que muestran las tarjetas. Se
+    // recarga después de cada venta, anulación o devolución.
+    private final InventarioService inventarioService;
+    private Map<Integer, BigDecimal> existencias;
 
     private final BiConsumer<ArticuloEmpaque, BigDecimal> onAgregarCantidadAlTicketActivo;
     private final Consumer<ArticuloEmpaque> onAbrirVentaPorMonto;
@@ -76,16 +100,24 @@ public class PanelProductos extends VerticalLayout {
             Runnable onAbrirAperturaCaja,
             Runnable onAbrirCierreCaja,
             Runnable onAbrirMovimientoPos,
-            FacturaDeVentaService facturaDeVentaService
+            FacturaDeVentaService facturaDeVentaService,
+            List<Categoria> categorias,
+            InventarioService inventarioService
     ) {
         setSpacing(true);
+
+        this.inventarioService = inventarioService;
+        this.existencias = inventarioService.existenciasPorArticulo();
 
         this.facturaDeVentaService = facturaDeVentaService;
         this.onAgregarCantidadAlTicketActivo = onAgregarCantidadAlTicketActivo;
         this.onAbrirVentaPorMonto = onAbrirVentaPorMonto;
 
         // Una sola consulta al servicio para el buscador y para el catálogo
-        this.catalogo = articuloServicel.getArticuloEmpaqueParaVenta();
+        this.catalogo = ordenarPorMasVendidos(
+                articuloServicel.getArticuloEmpaqueParaVenta(),
+                articuloServicel.vecesVendidoUltimosDias(DIAS_MAS_VENDIDOS));
+        this.catalogoFiltrado = agruparPorArticulo(catalogo);
 
         // Título compacto: no compite con el buscador y el catálogo por espacio
         H2 title = new H2("Colmado - Punto de Venta");
@@ -160,6 +192,8 @@ public class PanelProductos extends VerticalLayout {
         btnMostrarMas.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         btnMostrarMas.addClickListener(e -> cargarMasTarjetas());
 
+        configurarBarraCategorias(categorias);
+
         cargarMasTarjetas();
 
         // El catálogo tiene su propio scroll: título, botones y buscador quedan
@@ -176,7 +210,7 @@ public class PanelProductos extends VerticalLayout {
         scrollCatalogo.setWidthFull();
         scrollCatalogo.getStyle().set("overflow-y", "auto").set("min-height", "0");
 
-        add(title, cajaButtonsLayout, searchBox, quickTitle, scrollCatalogo);
+        add(title, cajaButtonsLayout, searchBox, quickTitle, barraCategorias, scrollCatalogo);
         expand(scrollCatalogo);
     }
 
@@ -249,27 +283,139 @@ public class PanelProductos extends VerticalLayout {
     }
 
     // ============================================================
+    // CATEGORÍAS
+    // ============================================================
+    /**
+     * Botones "Todos" + una por categoría que tenga productos en el catálogo
+     * (las vacías no se muestran) + "Sin categoría" si hay productos sin ella.
+     * El botón elegido queda resaltado. Sin categorías asignadas no se muestra
+     * la barra.
+     */
+    private void configurarBarraCategorias(List<Categoria> categorias) {
+
+        barraCategorias.setSpacing(false);
+        barraCategorias.setWidthFull();
+        barraCategorias.getStyle().set("flex-wrap", "wrap").set("gap", "var(--lumo-space-xs)");
+
+        Set<Integer> conProductos = new HashSet<>();
+        boolean haySinCategoria = false;
+        for (ArticuloEmpaque ae : catalogo) {
+            Integer cat = categoriaDe(ae);
+            if (cat == null) {
+                haySinCategoria = true;
+            } else {
+                conProductos.add(cat);
+            }
+        }
+
+        List<Categoria> visibles = categorias == null ? List.of()
+                : categorias.stream().filter(c -> conProductos.contains(c.getCodigo())).toList();
+
+        if (visibles.isEmpty()) {
+            barraCategorias.setVisible(false);
+            return;
+        }
+
+        List<Button> botones = new ArrayList<>();
+
+        Button todos = crearBotonCategoria("Todos", ae -> true, botones);
+        todos.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        barraCategorias.add(todos);
+
+        for (Categoria c : visibles) {
+            barraCategorias.add(crearBotonCategoria(c.getNombre(),
+                    ae -> c.getCodigo().equals(categoriaDe(ae)), botones));
+        }
+
+        if (haySinCategoria) {
+            barraCategorias.add(crearBotonCategoria("Sin categoría",
+                    ae -> categoriaDe(ae) == null, botones));
+        }
+    }
+
+    private Button crearBotonCategoria(String texto, Predicate<ArticuloEmpaque> filtro, List<Button> botones) {
+
+        Button boton = new Button(texto);
+        boton.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        boton.getStyle().set("border-radius", "999px");
+        botones.add(boton);
+
+        boton.addClickListener(e -> {
+            botones.forEach(b -> b.removeThemeVariants(ButtonVariant.LUMO_PRIMARY));
+            boton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            mostrarCatalogo(catalogo.stream().filter(filtro).toList());
+            // El foco vuelve al buscador / lector de códigos
+            searchBox.focus();
+        });
+
+        return boton;
+    }
+
+    /**
+     * Más vendidos primero (veces vendido en los últimos días); a igual número
+     * de ventas, por nombre. Lo que nunca se vendió queda al final en orden
+     * alfabético.
+     */
+    private static List<ArticuloEmpaque> ordenarPorMasVendidos(List<ArticuloEmpaque> lista, Map<Integer, Long> veces) {
+        List<ArticuloEmpaque> ordenada = new ArrayList<>(lista);
+        ordenada.sort(Comparator
+                .comparing((ArticuloEmpaque ae) -> veces.getOrDefault(ae.getCodigo(), 0L))
+                .reversed()
+                .thenComparing(ae -> ae.getNombreArticulo() == null ? "" : ae.getNombreArticulo(),
+                        String.CASE_INSENSITIVE_ORDER));
+        return ordenada;
+    }
+
+    /**
+     * Junta las presentaciones de cada artículo en una sola tarjeta. Respeta el
+     * orden de la lista: el artículo queda donde aparece su presentación más
+     * vendida.
+     */
+    private static List<List<ArticuloEmpaque>> agruparPorArticulo(List<ArticuloEmpaque> lista) {
+        Map<Object, List<ArticuloEmpaque>> grupos = new LinkedHashMap<>();
+        for (ArticuloEmpaque ae : lista) {
+            Object clave = (ae.getArticulo() != null && ae.getArticulo().getCodigo() != null)
+                    ? ae.getArticulo().getCodigo()
+                    : "empaque-" + ae.getCodigo();
+            grupos.computeIfAbsent(clave, k -> new ArrayList<>()).add(ae);
+        }
+        return new ArrayList<>(grupos.values());
+    }
+
+    private static Integer categoriaDe(ArticuloEmpaque ae) {
+        return ae.getArticulo() == null ? null : ae.getArticulo().getCategoria();
+    }
+
+    /** Reemplaza las tarjetas por las de la lista (se dibujan por lotes). */
+    private void mostrarCatalogo(List<ArticuloEmpaque> lista) {
+        catalogoFiltrado = agruparPorArticulo(lista);
+        gridContainer.removeAll();
+        tarjetasCargadas = 0;
+        cargarMasTarjetas();
+    }
+
+    // ============================================================
     // CATÁLOGO RÁPIDO
     // ============================================================
     private void cargarMasTarjetas() {
 
-        int hasta = Math.min(tarjetasCargadas + TARJETAS_POR_LOTE, catalogo.size());
+        int hasta = Math.min(tarjetasCargadas + TARJETAS_POR_LOTE, catalogoFiltrado.size());
 
         for (int i = tarjetasCargadas; i < hasta; i++) {
-            gridContainer.add(crearTarjeta(catalogo.get(i)));
+            gridContainer.add(crearTarjeta(catalogoFiltrado.get(i)));
         }
 
         tarjetasCargadas = hasta;
 
-        int restantes = catalogo.size() - tarjetasCargadas;
+        int restantes = catalogoFiltrado.size() - tarjetasCargadas;
         btnMostrarMas.setVisible(restantes > 0);
         btnMostrarMas.setText("Mostrar más (" + restantes + " restantes)");
     }
 
-    private TarjetaProductoCompo crearTarjeta(ArticuloEmpaque art) {
+    private TarjetaProductoCompo crearTarjeta(List<ArticuloEmpaque> presentaciones) {
 
         return new TarjetaProductoCompo(
-                art,
+                presentaciones,
                 IMAGEN_POR_DEFECTO,
                 (articulo, cantidad) -> {
                     if (onAgregarCantidadAlTicketActivo != null) {
@@ -280,8 +426,26 @@ public class PanelProductos extends VerticalLayout {
                     if (onAbrirVentaPorMonto != null) {
                         onAbrirVentaPorMonto.accept(articulo);
                     }
-                }
+                },
+                codigoArticulo -> existencias.get(codigoArticulo)
         );
+    }
+
+    /**
+     * Vuelve a leer la existencia de la BD y la actualiza en las tarjetas
+     * visibles. Se llama al completar una venta, anulación o devolución.
+     */
+    public void refrescarExistencias() {
+        try {
+            existencias = inventarioService.existenciasPorArticulo();
+            gridContainer.getChildren()
+                    .filter(TarjetaProductoCompo.class::isInstance)
+                    .map(TarjetaProductoCompo.class::cast)
+                    .forEach(TarjetaProductoCompo::actualizarExistencia);
+        } catch (Exception ex) {
+            // Mostrar existencia es informativo: nunca debe frenar la venta
+            log.warn("No se pudo refrescar la existencia del catálogo", ex);
+        }
     }
 
     // Método para permitir enfocar el buscador externamente si es necesario
@@ -358,7 +522,10 @@ public class PanelProductos extends VerticalLayout {
                         factura,
                         this.facturaDeVentaService,
                         "ADMIN", // Pasar usuario actual
-                        () -> Notification.show("Devolución completada con éxito", 3000, Notification.Position.TOP_CENTER)
+                        () -> {
+                            Notification.show("Devolución completada con éxito", 3000, Notification.Position.TOP_CENTER);
+                            refrescarExistencias();
+                        }
                 );
                 dialogoDev.open();
 

@@ -17,4 +17,7 @@ public interface InventarioService {
      * misma que usa {@link #validarStockDisponible} al facturar.
      */
     BigDecimal existenciaDisponible(Integer idArticulo);
+
+    /** Existencia (unidad base) de todos los artículos: código → existencia. */
+    java.util.Map<Integer, BigDecimal> existenciasPorArticulo();
 }

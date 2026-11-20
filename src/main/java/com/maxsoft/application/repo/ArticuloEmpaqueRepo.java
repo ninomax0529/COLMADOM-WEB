@@ -31,6 +31,21 @@ public interface ArticuloEmpaqueRepo extends JpaRepository<ArticuloEmpaque, Inte
 
     @Query(value = strDet, nativeQuery = true)
     public List<ArticuloEmpaque> getArticuloEmpaqueParaVenta();
+
+    /**
+     * Cuántas veces se vendió cada presentación (líneas de factura) desde una
+     * fecha, sin contar facturas anuladas. Cada fila: [articulo_empaque, veces].
+     */
+    @Query(value = """
+            SELECT d.articulo_empaque, COUNT(*)
+            FROM detalle_factura_de_venta d
+            JOIN factura_de_venta f ON f.codigo = d.factura
+            WHERE d.articulo_empaque IS NOT NULL
+              AND (f.anulada IS NULL OR f.anulada = 0)
+              AND f.fecha >= :desde
+            GROUP BY d.articulo_empaque
+            """, nativeQuery = true)
+    List<Object[]> contarVentasPorEmpaqueDesde(@Param("desde") java.time.LocalDate desde);
     // Busca los empaques por descripción que estén activos y habilitados
   @Query("SELECT ae FROM ArticuloEmpaque ae WHERE UPPER(ae.descripcionEmpaque) LIKE UPPER(CONCAT('%', :filtro, '%')) AND ae.estado=true ")
     List<ArticuloEmpaque> buscarPorDescripcionEfectivo(@Param("filtro") String filtro);

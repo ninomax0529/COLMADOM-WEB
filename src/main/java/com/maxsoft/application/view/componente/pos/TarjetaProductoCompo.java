@@ -1,26 +1,35 @@
-
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.maxsoft.application.view.componente.pos;
 
+import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.ArticuloEmpaque;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
+/**
+ * Tarjeta del catálogo rápido: una por artículo. Si el artículo se vende en
+ * varias presentaciones (Unidad, Caja x12, Fardo x24...) la tarjeta muestra un
+ * selector; el precio y los botones actúan sobre la presentación elegida.
+ */
 public class TarjetaProductoCompo extends VerticalLayout {
 
     /**
@@ -33,15 +42,33 @@ public class TarjetaProductoCompo extends VerticalLayout {
     // DecimalFormat no es thread-safe: instancia propia, no estática compartida
     private final DecimalFormat FORMATO_PRECIO = new DecimalFormat("#,##0.00");
 
-    private final ArticuloEmpaque articulo;
+    /** Presentaciones del artículo, de menor a mayor factor. */
+    private final List<ArticuloEmpaque> presentaciones;
+    private ArticuloEmpaque seleccionada;
+
+    /** Por debajo de esto (si el artículo no tiene mínimo) se avisa "poco". */
+    private static final BigDecimal POCO_POR_DEFECTO = new BigDecimal("5");
+    private static final String COLOR_POCO = "#c2410c";
+
+    private final Span priceLabel = new Span();
+    private final Span existenciaLabel = new Span();
+    private final List<Button> botonesPresentacion = new ArrayList<>();
+
+    /** Existencia actual (unidad base) por código de artículo. */
+    private final Function<Integer, BigDecimal> existenciaDeArticulo;
 
     public TarjetaProductoCompo(
-            ArticuloEmpaque articulo,
+            List<ArticuloEmpaque> presentacionesArticulo,
             String imageUrl,
             BiConsumer<ArticuloEmpaque, BigDecimal> onCantidadChanged,
-            Consumer<ArticuloEmpaque> onVentaPorMontoRequested
+            Consumer<ArticuloEmpaque> onVentaPorMontoRequested,
+            Function<Integer, BigDecimal> existenciaDeArticulo
     ) {
-        this.articulo = articulo;
+        this.existenciaDeArticulo = existenciaDeArticulo;
+        this.presentaciones = new ArrayList<>(presentacionesArticulo);
+        this.presentaciones.sort(Comparator.comparing(TarjetaProductoCompo::factorDe));
+        // Por defecto la presentación más pequeña (normalmente la unidad)
+        this.seleccionada = presentaciones.get(0);
 
         // Diseños y estilos de la tarjeta
         getStyle().set("background-color", "var(--lumo-base-color)");
@@ -56,7 +83,7 @@ public class TarjetaProductoCompo extends VerticalLayout {
         setHeight("100%");
 
         // =========================================================
-        // ZONA DE INFORMACIÓN (tocarla agrega 1 unidad)
+        // ZONA DE INFORMACIÓN (tocarla agrega 1 de la presentación elegida)
         // =========================================================
         Div info = new Div();
         info.setWidthFull();
@@ -66,9 +93,11 @@ public class TarjetaProductoCompo extends VerticalLayout {
                 .set("align-items", "center")
                 .set("cursor", "pointer");
 
+        String nombre = seleccionada.getNombreArticulo() != null ? seleccionada.getNombreArticulo() : "";
+
         // Imagen del producto (opcional)
         if (MOSTRAR_IMAGEN && imageUrl != null && !imageUrl.isBlank()) {
-            Image img = new Image(imageUrl, articulo.getNombreArticulo());
+            Image img = new Image(imageUrl, nombre);
             img.setWidth("100px");
             img.setHeight("80px");
             img.getElement().setAttribute("loading", "lazy");
@@ -81,7 +110,6 @@ public class TarjetaProductoCompo extends VerticalLayout {
 
         // Título/Descripción: máximo 2 líneas y altura fija para que los
         // precios y botones queden alineados entre tarjetas
-        String nombre = articulo.getNombreArticulo() != null ? articulo.getNombreArticulo() : "";
         Span nameLabel = new Span(nombre);
         nameLabel.getElement().setAttribute("title", nombre);
         nameLabel.getStyle()
@@ -95,44 +123,38 @@ public class TarjetaProductoCompo extends VerticalLayout {
                 .set("-webkit-box-orient", "vertical")
                 .set("overflow", "hidden");
 
-        // Presentación: así se distinguen los empaques del mismo artículo.
-        // Las presentaciones de varias unidades (caja, fardo, paquete...) se
-        // resaltan en azul con ícono y la tarjeta lleva un borde de color, para
-        // no confundir "ACEITE CRISOL Unidad" con "ACEITE CRISOL Caja x10".
-        boolean esEmpaqueMultiple = esEmpaqueMultiple(articulo);
-
-        Span presentacionLabel = new Span(textoPresentacion(articulo));
-        presentacionLabel.getStyle()
-                .set("font-size", "0.7rem")
-                .set("margin-top", "0.25rem");
-
-        if (esEmpaqueMultiple) {
-            Icon iconoEmpaque = VaadinIcon.PACKAGE.create();
-            iconoEmpaque.getStyle().set("padding", "0 0.2em 0 0");
-            presentacionLabel.addComponentAsFirst(iconoEmpaque);
-            presentacionLabel.getElement().getThemeList().add("badge");
-            presentacionLabel.getStyle().set("font-weight", "700");
-
-            getStyle().set("border", "1px solid var(--lumo-primary-color-50pct)");
-            getStyle().set("border-top", "4px solid var(--lumo-primary-color)");
-        } else {
-            presentacionLabel.getElement().getThemeList().add("badge contrast");
-        }
-
-        // Precio en RD$
-        BigDecimal precio = articulo.getPrecioVenta() != null ? articulo.getPrecioVenta() : BigDecimal.ZERO;
-        Span priceLabel = new Span("RD$ " + FORMATO_PRECIO.format(precio));
         priceLabel.getStyle()
                 .set("color", "var(--lumo-body-text-color)")
                 .set("font-weight", "600")
                 .set("font-size", "0.95rem")
                 .set("margin-top", "0.25rem");
 
-        info.add(nameLabel, presentacionLabel, priceLabel);
+        info.add(nameLabel);
+
+        // Presentación: una sola se muestra como etiqueta; varias, como
+        // selector (los botones no agregan al ticket, solo cambian la elegida).
+        if (presentaciones.size() == 1) {
+            Span presentacionLabel = new Span(textoPresentacion(seleccionada));
+            presentacionLabel.getElement().getThemeList().add("badge contrast");
+            presentacionLabel.getStyle()
+                    .set("font-size", "0.7rem")
+                    .set("margin-top", "0.25rem");
+            info.add(presentacionLabel);
+        } else {
+            info.add(crearSelectorPresentacion());
+        }
+
+        existenciaLabel.getStyle()
+                .set("font-size", "0.75rem")
+                .set("font-weight", "600")
+                .set("margin-top", "0.15rem");
+
+        info.add(priceLabel, existenciaLabel);
+        actualizarSeleccion();
 
         info.addClickListener(e -> {
             if (onCantidadChanged != null) {
-                onCantidadChanged.accept(articulo, BigDecimal.ONE);
+                onCantidadChanged.accept(seleccionada, BigDecimal.ONE);
             }
         });
 
@@ -149,7 +171,7 @@ public class TarjetaProductoCompo extends VerticalLayout {
         // Botón Restar (-)
         Button minusBtn = new Button(VaadinIcon.MINUS.create(), e -> {
             if (onCantidadChanged != null) {
-                onCantidadChanged.accept(articulo, BigDecimal.valueOf(-1.00));
+                onCantidadChanged.accept(seleccionada, BigDecimal.valueOf(-1.00));
             }
         });
         minusBtn.addThemeVariants(ButtonVariant.LUMO_ERROR);
@@ -159,7 +181,7 @@ public class TarjetaProductoCompo extends VerticalLayout {
         // Botón Venta por pesos ($)
         Button pesoBtn = new Button("$", e -> {
             if (onVentaPorMontoRequested != null) {
-                onVentaPorMontoRequested.accept(articulo);
+                onVentaPorMontoRequested.accept(seleccionada);
             }
         });
         pesoBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
@@ -169,7 +191,7 @@ public class TarjetaProductoCompo extends VerticalLayout {
         // Botón Sumar (+)
         Button plusBtn = new Button(VaadinIcon.PLUS.create(), e -> {
             if (onCantidadChanged != null) {
-                onCantidadChanged.accept(articulo, BigDecimal.valueOf(1.00));
+                onCantidadChanged.accept(seleccionada, BigDecimal.valueOf(1.00));
             }
         });
         plusBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -185,18 +207,135 @@ public class TarjetaProductoCompo extends VerticalLayout {
     }
 
     /**
+     * Botones pequeños "Unidad | Caja x12": el elegido queda resaltado. El
+     * clic no llega a la zona de información (no agrega al ticket).
+     */
+    private Div crearSelectorPresentacion() {
+
+        Div selector = new Div();
+        selector.getStyle()
+                .set("display", "flex")
+                .set("flex-wrap", "wrap")
+                .set("justify-content", "center")
+                .set("gap", "0.25rem")
+                .set("margin-top", "0.25rem");
+
+        for (ArticuloEmpaque ae : presentaciones) {
+            Button b = new Button(textoPresentacion(ae));
+            b.addThemeVariants(ButtonVariant.LUMO_SMALL);
+            b.getStyle()
+                    .set("border-radius", "999px")
+                    .set("margin", "0")
+                    .set("font-size", "0.7rem")
+                    .set("min-width", "0")
+                    .set("padding", "0 0.6em");
+            b.setTooltipText(textoPresentacion(ae) + " — RD$ " + FORMATO_PRECIO.format(precioDe(ae)));
+            // Que el clic no burbujee a la zona de información
+            b.getElement().addEventListener("click", ev -> {
+            }).stopPropagation();
+            b.addClickListener(e -> {
+                seleccionada = ae;
+                actualizarSeleccion();
+            });
+            botonesPresentacion.add(b);
+            selector.add(b);
+        }
+        return selector;
+    }
+
+    /** Refresca el precio, el botón resaltado y el borde según la elegida. */
+    private void actualizarSeleccion() {
+
+        priceLabel.setText("RD$ " + FORMATO_PRECIO.format(precioDe(seleccionada)));
+
+        for (int i = 0; i < botonesPresentacion.size(); i++) {
+            Button b = botonesPresentacion.get(i);
+            if (presentaciones.get(i) == seleccionada) {
+                b.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            } else {
+                b.removeThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            }
+        }
+
+        // Caja, fardo, paquete...: borde azul para no confundirla con la unidad
+        if (esEmpaqueMultiple(seleccionada)) {
+            getStyle().set("border", "1px solid var(--lumo-primary-color-50pct)");
+            getStyle().set("border-top", "4px solid var(--lumo-primary-color)");
+        } else {
+            getStyle().set("border", "1px solid var(--lumo-contrast-10pct)");
+            getStyle().remove("border-top");
+        }
+
+        actualizarExistencia();
+    }
+
+    /**
+     * Muestra cuánto queda en la presentación elegida: verde si hay, naranja si
+     * queda poco (mínimo del artículo, o 5 si no tiene) y rojo "Agotado" sin
+     * existencia (la tarjeta se ve apagada, pero se puede tocar: la alerta de
+     * existencia decide). Los artículos no inventariables no muestran nada.
+     */
+    public void actualizarExistencia() {
+
+        Articulo articulo = seleccionada.getArticulo();
+        if (articulo == null || !articulo.getInventariable()) {
+            existenciaLabel.setVisible(false);
+            getStyle().remove("opacity");
+            return;
+        }
+
+        BigDecimal base = existenciaDeArticulo != null ? existenciaDeArticulo.apply(articulo.getCodigo()) : null;
+        if (base == null) {
+            base = articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
+        }
+
+        BigDecimal factor = factorDe(seleccionada);
+        BigDecimal enPresentacion = factor.signum() > 0
+                ? base.divide(factor, 2, RoundingMode.DOWN)
+                : base;
+        // Cajas, fardos...: solo enteras; la unidad puede tener decimales (libras)
+        if (esEmpaqueMultiple(seleccionada)) {
+            enPresentacion = enPresentacion.setScale(0, RoundingMode.DOWN);
+        }
+
+        BigDecimal minimo = articulo.getMinimo() != null && articulo.getMinimo().signum() > 0
+                ? articulo.getMinimo()
+                : POCO_POR_DEFECTO;
+
+        existenciaLabel.setVisible(true);
+        if (enPresentacion.signum() <= 0) {
+            existenciaLabel.setText("Agotado");
+            existenciaLabel.getStyle().set("color", "var(--lumo-error-text-color)");
+            getStyle().set("opacity", "0.6");
+        } else {
+            String cantidad = enPresentacion.stripTrailingZeros().toPlainString();
+            existenciaLabel.setText("Quedan " + cantidad);
+            existenciaLabel.getStyle().set("color", base.compareTo(minimo) <= 0
+                    ? COLOR_POCO
+                    : "var(--lumo-success-text-color)");
+            getStyle().remove("opacity");
+        }
+    }
+
+    private static BigDecimal factorDe(ArticuloEmpaque ae) {
+        return ae.getFactorConversion() != null ? ae.getFactorConversion() : BigDecimal.ONE;
+    }
+
+    private static BigDecimal precioDe(ArticuloEmpaque ae) {
+        return ae.getPrecioVenta() != null ? ae.getPrecioVenta() : BigDecimal.ZERO;
+    }
+
+    /**
      * true si la presentación agrupa varias unidades base (factor mayor que 1).
      */
-    private boolean esEmpaqueMultiple(ArticuloEmpaque ae) {
-
-        BigDecimal factor = ae.getFactorConversion();
-        return factor != null && factor.compareTo(BigDecimal.ONE) > 0;
+    private static boolean esEmpaqueMultiple(ArticuloEmpaque ae) {
+        return factorDe(ae).compareTo(BigDecimal.ONE) > 0;
     }
 
     /**
      * Texto de la presentación: "Unidad", "Caja x12", etc.
      */
-    private String textoPresentacion(ArticuloEmpaque ae) {
+    private static String textoPresentacion(ArticuloEmpaque ae) {
 
         String unidad = (ae.getUnidadEmpaque() != null && ae.getUnidadEmpaque().getDescripcion() != null)
                 ? ae.getUnidadEmpaque().getDescripcion()
@@ -209,7 +348,8 @@ public class TarjetaProductoCompo extends VerticalLayout {
         return unidad;
     }
 
+    /** Presentación elegida en este momento. */
     public ArticuloEmpaque getArticulo() {
-        return articulo;
+        return seleccionada;
     }
 }
