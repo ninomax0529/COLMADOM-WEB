@@ -44,6 +44,9 @@ public class DialogoDelivery extends Dialog {
     }
 
     private Delivery motoristaElegido;
+
+    /** Ya se envió: un segundo Enter o clic no debe crear otra factura. */
+    private boolean procesando = false;
     private final List<Button> botonesMotorista = new ArrayList<>();
 
     public DialogoDelivery(
@@ -165,6 +168,9 @@ public class DialogoDelivery extends Dialog {
         confirmar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
         confirmar.addClickListener(e -> {
+            if (procesando) {
+                return;
+            }
             if (motoristaElegido == null) {
                 aviso("Elija el motorista que lleva el pedido");
                 return;
@@ -176,6 +182,9 @@ public class DialogoDelivery extends Dialog {
                 direccion.focus();
                 return;
             }
+            // Validado: desde aquí solo se factura una vez
+            procesando = true;
+            confirmar.setEnabled(false);
             close();
             if (onConfirmar != null) {
                 onConfirmar.ejecutar(motoristaElegido, cbCliente.getValue(), recortar(dir));

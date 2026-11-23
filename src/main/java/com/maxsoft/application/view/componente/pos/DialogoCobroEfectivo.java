@@ -32,6 +32,12 @@ import java.text.DecimalFormat;
 public class DialogoCobroEfectivo extends Dialog {
 
     private static final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");
+
+    /**
+     * Ya se mandó a guardar: un segundo Enter o clic (lector de códigos,
+     * doble toque, sistema lento) no debe crear otra factura.
+     */
+    private boolean procesando = false;
     // Para los botones de billetes: "1,000" en vez de "1,000.00"
     private static final DecimalFormat MONEDA_ENTERA = new DecimalFormat("#,##0");
 
@@ -215,6 +221,32 @@ public class DialogoCobroEfectivo extends Dialog {
 
         confirmButton.addClickListener(e -> {
 
+            if (procesando) {
+                return;
+            }
+
+            // Venta en el local: si escribió con cuánto paga, no puede ser
+            // menos que el total (la caja quedaría descuadrada). Vacío = exacto.
+            // En delivery no aplica: el motorista cobra al entregar.
+            if (!esDeliveryState[0] && efectivoInsuficiente(cashGivenField.getValue(), ticket.getTotalAmount())) {
+                Notification.show("El efectivo recibido es menor que el total (RD$ "
+                        + MONEDA_FORMAT.format(ticket.getTotalAmount()) + ")",
+                        3000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                cashGivenField.focus();
+                return;
+            }
+
+            // Cliente de contado: PUBLICO GENERAL (por nombre, no por posición)
+            final com.maxsoft.application.modelo.Cliente clienteGenerico;
+            try {
+                clienteGenerico = clienteService.getClienteGenerico();
+            } catch (IllegalStateException ex) {
+                Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
             if (esDeliveryState[0]) {
 
                 // Obligatoria, salvo que el ticket tenga nombre propio (ej. "29-5")
@@ -234,24 +266,31 @@ public class DialogoCobroEfectivo extends Dialog {
                 }
 
                 ticket.setDelivery(cbDelivery.getValue());
-                ticket.setEstadoFactura(estadoFacturaService.getEstadoFactura(1)); // Abierta
+                ticket.setEstadoFactura(estadoFacturaService.getEstadoFactura(1)); // Pendiente (delivery)
 
                 // Ya validada arriba: la escrita o el nombre del ticket
                 String dir = ticket.direccionEntrega(direccionField.getValue());
-                ticket.setCliente(clienteService.getLista().get(0));
+                ticket.setCliente(clienteGenerico);
                 ticket.setNombreCliente(dir);
                 ticket.setDireccion(dir);
 
             } else {
 
-                ticket.setEstadoFactura(estadoFacturaService.getEstadoFactura(2)); // Abierta
-                ticket.setCliente(clienteService.getLista().get(0));
+                ticket.setEstadoFactura(estadoFacturaService.getEstadoFactura(2)); // Pagada
+                ticket.setCliente(clienteGenerico);
 
                 ticket.setNombreCliente(ticket.getCliente().getNombre());
                 ticket.setDireccion(ticket.getCliente().getDireccion());
             }
 
-            ticket.setTipoVenta(tipoVentaService.getTipoVenta(1)); // Crédito
+            ticket.setTipoVenta(tipoVentaService.getTipoVenta(1)); // Contado
+
+            // Validado: desde aquí solo se factura una vez
+            if (procesando) {
+                return;
+            }
+            procesando = true;
+            confirmButton.setEnabled(false);
 
             if (onGuardar != null) {
                 onGuardar.ejecutar(ticket);
@@ -273,6 +312,19 @@ public class DialogoCobroEfectivo extends Dialog {
                 cashGivenField.focus();
             }
         });
+    }
+
+    /**
+     * true si el cajero escribió un efectivo menor que el total. Vacío (null)
+     * se toma como pago exacto. Se compara a 2 decimales para que el double
+     * del campo no rechace un pago exacto por centésimas sueltas.
+     */
+    public static boolean efectivoInsuficiente(Double efectivo, BigDecimal total) {
+        if (efectivo == null || total == null) {
+            return false;
+        }
+        BigDecimal recibido = BigDecimal.valueOf(efectivo).setScale(2, java.math.RoundingMode.HALF_UP);
+        return recibido.compareTo(total.setScale(2, java.math.RoundingMode.HALF_UP)) < 0;
     }
 
     /** Múltiplos a los que se redondea el total (ej. 435 → 450, 500, 1000). */

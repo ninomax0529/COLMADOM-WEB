@@ -30,4 +30,7 @@ public interface ClienteRepo extends JpaRepository<Cliente, Integer>{
 
     @Query(value = "SELECT limite_credito FROM cliente WHERE codigo = :cliente", nativeQuery = true)
     BigDecimal leerLimiteCredito(@Param("cliente") Integer cliente);
+
+    /** Cliente genérico de contado (PUBLICO GENERAL). */
+    java.util.Optional<Cliente> findFirstByNombreIgnoreCaseOrderByCodigoAsc(String nombre);
 }

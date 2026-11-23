@@ -195,6 +195,53 @@ public final class ScriptsNavegadorPos {
         );
     }
 
+    /**
+     * Detecta el POS abierto en otra pestaña del mismo navegador. Las ventas
+     * abiertas viven en cada pestaña por separado, así que trabajar en dos
+     * hace que se "pierdan" ventas o se cobren en la pestaña equivocada.
+     *
+     * <p>Cada pestaña se anuncia por un BroadcastChannel ("hola") y las que ya
+     * estaban responden ("aqui"). Se llama a {@code avisoOtraPestana(boolean)}
+     * de la vista: {@code true} en la pestaña nueva, {@code false} en la que ya
+     * estaba abierta. Solo avisa, no bloquea. Si la vista ya no está en
+     * pantalla, el canal se cierra y no responde.</p>
+     */
+    public static void instalarAvisoOtraPestana(Element vista) {
+        vista.executeJs(
+                """
+                const vista = $0;
+                if (!('BroadcastChannel' in window)) { return; }
+                if (vista.__canalPos) { vista.__canalPos.close(); }
+
+                const id = Math.random().toString(36).slice(2);
+                const canal = new BroadcastChannel('colmadom-pos');
+                vista.__canalPos = canal;
+                // Con 3 o más pestañas, un solo aviso por apertura
+                let avisado = false;
+
+                canal.onmessage = e => {
+                    if (!vista.isConnected) {
+                        canal.close();
+                        if (vista.__canalPos === canal) { vista.__canalPos = null; }
+                        return;
+                    }
+                    const m = e.data || {};
+                    if (m.id === id) { return; }
+                    if (m.tipo === 'hola') {
+                        canal.postMessage({ tipo: 'aqui', id });
+                        vista.$server.avisoOtraPestana(false);
+                    } else if (m.tipo === 'aqui' && !avisado) {
+                        avisado = true;
+                        vista.$server.avisoOtraPestana(true);
+                    }
+                };
+
+                canal.postMessage({ tipo: 'hola', id });
+                """,
+                vista
+        );
+    }
+
     /** Indica al navegador si hay ventas con productos (activa el bloqueo de recarga). */
     public static void marcarVentaConProductos(Element vista, boolean hayProductos) {
         vista.executeJs("$0.__ventaConProductos = $1;", vista, hayProductos);

@@ -29,6 +29,9 @@ public class DialogoSeleccionCliente extends Dialog {
 
     private static final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");
 
+    /** Ya se confirmó: un segundo Enter o clic no debe crear otra factura. */
+    private boolean procesando = false;
+
     @FunctionalInterface
     public interface AccionConfirmarFiado {
         void ejecutar(Cliente clienteSeleccionado, boolean esDelivery, Delivery motorista, String direccion, String telefono);
@@ -175,6 +178,9 @@ public class DialogoSeleccionCliente extends Dialog {
         processBtn.addClickShortcut(Key.ENTER);
 
         processBtn.addClickListener(e -> {
+            if (procesando) {
+                return;
+            }
             Cliente clienteSeleccionado = clientCombo.getValue();
             boolean esDelivery = esDeliveryState[0];
 
@@ -204,6 +210,10 @@ public class DialogoSeleccionCliente extends Dialog {
                     return;
                 }
             }
+
+            // Validado: desde aquí solo se factura una vez
+            procesando = true;
+            processBtn.setEnabled(false);
 
             // 1. Cerrar el diálogo inmediatamente
             close();

@@ -58,4 +58,16 @@ public class ClienteServiceImpl implements ClienteService {
         return repo.findAll();
     }
 
+    /** Nombre del cliente de contado (ventas sin cliente de libreta). */
+    public static final String NOMBRE_CLIENTE_GENERICO = "PUBLICO GENERAL";
+
+    @Override
+    public Cliente getClienteGenerico() {
+
+        return repo.findFirstByNombreIgnoreCaseOrderByCodigoAsc(NOMBRE_CLIENTE_GENERICO)
+                .orElseThrow(() -> new IllegalStateException(
+                "No existe el cliente " + NOMBRE_CLIENTE_GENERICO
+                + ". Créelo en Clientes para poder vender de contado."));
+    }
+
 }

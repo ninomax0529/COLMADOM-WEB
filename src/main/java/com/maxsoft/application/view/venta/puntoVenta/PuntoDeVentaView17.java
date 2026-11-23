@@ -212,7 +212,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 Key.NUMPAD_MULTIPLY
         );
 
-        // Los atajos Alt+tecla (N, R, C, X, A, 1..9) se instalan en el navegador
+        // Los atajos Alt+tecla (N, R, C, X, 1..9) se instalan en el navegador
         // desde onAttach(): ver instalarAtajosAlt().
         // F2 (cobrar) y F3 (fiar) son click-shortcuts de los botones de cada
         // ticket (PanelTicketContenido). Antes F3 también se registraba aquí y
@@ -379,6 +379,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         ScriptsNavegadorPos.instalarBloqueoRecarga(getElement());
         sincronizarBloqueoRecarga();
 
+        ScriptsNavegadorPos.instalarAvisoOtraPestana(getElement());
+
         salidaConfirmada = false;
 
         // Tanto en el primer attach como al volver a la vista se consulta la
@@ -476,7 +478,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     // ============================================================
     // ATAJOS DE TECLADO
     // ============================================================
-    /** Atajos Alt+tecla (N, R, C, X, A, 1..9); ver ScriptsNavegadorPos. */
+    /** Atajos Alt+tecla (N, R, C, X, 1..9); ver ScriptsNavegadorPos. */
     private void instalarAtajosAlt() {
 
         ScriptsNavegadorPos.instalarAtajosAlt(getElement());
@@ -530,6 +532,32 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         );
 
         enfocarBuscador();
+    }
+
+    /**
+     * El POS está abierto en otra pestaña del mismo navegador (ver
+     * ScriptsNavegadorPos.instalarAvisoOtraPestana). Solo avisa.
+     *
+     * @param estaEsLaNueva true en la pestaña recién abierta; false en la que
+     *                      ya estaba abierta
+     */
+    @ClientCallable
+    public void avisoOtraPestana(boolean estaEsLaNueva) {
+
+        String texto = estaEsLaNueva
+                ? "⚠️ El punto de venta ya está abierto en otra pestaña. Trabaje en una sola: "
+                + "las ventas abiertas de una pestaña no se ven en la otra. Cierre esta o la otra."
+                : "⚠️ Se abrió el punto de venta en otra pestaña. Trabaje en una sola: "
+                + "las ventas abiertas de una pestaña no se ven en la otra.";
+
+        Notification aviso = Notification.show(
+                texto,
+                estaEsLaNueva ? 10000 : 6000,
+                Notification.Position.TOP_CENTER
+        );
+        aviso.addThemeVariants(estaEsLaNueva
+                ? NotificationVariant.LUMO_ERROR
+                : NotificationVariant.LUMO_WARNING);
     }
 
     /**
@@ -643,8 +671,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     /**
      * Cada tarjeta / resultado del buscador ya ES una presentación concreta
      * (ArticuloEmpaque), por lo que no se pregunta de nuevo por el empaque.
-     * Cantidad positiva: agrega. Cantidad negativa: descuenta de la línea
-     * existente de esa presentación.
+     * Para bajar la cantidad se usa "*" o Supr sobre la línea del ticket.
      */
     private void agregarAlTicketActivo(
             ArticuloEmpaque articulo,
@@ -655,7 +682,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         }
 
         if (cantidad == null
-                || cantidad.signum() == 0) {
+                || cantidad.signum() <= 0) {
 
             ClaseUtil.mostrarNotificacion(
                     "La cantidad debe ser mayor que cero.",
@@ -667,54 +694,12 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         // Se fija el ticket de destino al momento de la acción.
         final TicketVenta ticket = ticketActivo;
 
-        if (cantidad.signum() < 0) {
-            quitarDelTicket(ticket, articulo, cantidad);
-            return;
-        }
-
         procesarInsercionConEmpaque(
                 ticket,
                 articulo,
                 articulo,
                 cantidad
         );
-    }
-
-    /**
-     * Botón "−" de la tarjeta: resta de la línea de esa presentación. Si la
-     * cantidad queda en 0 se pide confirmar la eliminación de la línea.
-     */
-    private void quitarDelTicket(
-            TicketVenta ticket,
-            ArticuloEmpaque articulo,
-            BigDecimal cantidad) {
-
-        Optional<DetalleFacturaDeVenta> existente
-                = LineaPosUtil.buscarLinea(ticket.getItems(), articulo);
-
-        if (existente.isEmpty()) {
-
-            ClaseUtil.mostrarNotificacion(
-                    "Ese producto no está en la venta.",
-                    NotificationVariant.LUMO_WARNING
-            );
-
-            enfocarBuscador();
-
-            return;
-        }
-
-        actualizarCantidadItem(
-                ticket,
-                existente.get(),
-                cantidad
-        );
-
-        ticket.updateUI();
-
-        actualizarTitulosPestanas();
-
-        enfocarBuscador();
     }
 
     private void procesarInsercionConEmpaque(
@@ -1030,6 +1015,16 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             return;
         }
 
+        // Cliente de paso: PUBLICO GENERAL (por nombre, no por posición en la lista)
+        final Cliente clienteGenerico;
+        try {
+            clienteGenerico = clienteService.getClienteGenerico();
+        } catch (IllegalStateException ex) {
+            ClaseUtil.mostrarNotificacion(ex.getMessage(), NotificationVariant.LUMO_ERROR);
+            enfocarBuscador();
+            return;
+        }
+
         List<Cliente> clientes = clienteService.getLista();
 
         com.maxsoft.application.view.componente.pos.DialogoDelivery dialogo
@@ -1039,10 +1034,10 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                         clientes,
                         (motorista, cliente, direccion) -> {
 
-                            // Cliente de paso: el genérico (el mismo que usa COBRAR)
+                            // Sin cliente elegido: el genérico (el mismo que usa COBRAR)
                             Cliente clienteFactura = cliente != null
                                     ? cliente
-                                    : clientes.get(0);
+                                    : clienteGenerico;
 
                             ticket.setDelivery(motorista);
                             ticket.setEstadoFactura(
@@ -1541,7 +1536,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     // CANTIDADES
     // ============================================================
     /**
-     * Botón "$" de la tarjeta: el cajero escribe un monto en dinero y se agrega
+     * Botón "RD$" de la tarjeta: el cajero escribe un monto en dinero y se agrega
      * la cantidad equivalente (monto / precio de la presentación).
      */
     private void abrirDialogoVentaPorMonto(

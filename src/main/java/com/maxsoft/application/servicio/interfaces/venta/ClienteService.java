@@ -22,4 +22,12 @@ public interface ClienteService {
     Cliente guardar(Cliente obj, String usuario, String motivoCambioLimite);
 
     List<Cliente> getLista();
+
+    /**
+     * Cliente de las ventas de contado y del delivery sin cliente: PUBLICO
+     * GENERAL, buscado por nombre (antes se tomaba el primero de la lista).
+     *
+     * @throws IllegalStateException si no existe
+     */
+    Cliente getClienteGenerico();
 }

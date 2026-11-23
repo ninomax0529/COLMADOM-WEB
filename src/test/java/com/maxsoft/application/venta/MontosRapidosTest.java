@@ -1,6 +1,7 @@
 package com.maxsoft.application.venta;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.maxsoft.application.view.componente.pos.DialogoCobroEfectivo;
@@ -40,5 +41,20 @@ class MontosRapidosTest {
     @Test
     void totalCeroNoMuestraBotones() {
         assertTrue(montos("0").isEmpty());
+    }
+
+    @Test
+    void efectivoMenorQueElTotalEsInsuficiente() {
+        assertTrue(DialogoCobroEfectivo.efectivoInsuficiente(200.0, new java.math.BigDecimal("435")));
+        assertTrue(DialogoCobroEfectivo.efectivoInsuficiente(87.49, new java.math.BigDecimal("87.50")));
+    }
+
+    @Test
+    void efectivoExactoMayorOVacioEsValido() {
+        assertFalse(DialogoCobroEfectivo.efectivoInsuficiente(null, new java.math.BigDecimal("435")));
+        assertFalse(DialogoCobroEfectivo.efectivoInsuficiente(435.0, new java.math.BigDecimal("435.00")));
+        assertFalse(DialogoCobroEfectivo.efectivoInsuficiente(500.0, new java.math.BigDecimal("435")));
+        // El double 0.1+0.2 no debe rechazar un pago exacto de 0.30
+        assertFalse(DialogoCobroEfectivo.efectivoInsuficiente(0.1 + 0.2, new java.math.BigDecimal("0.30")));
     }
 }
