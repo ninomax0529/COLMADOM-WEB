@@ -65,9 +65,9 @@ public class DialogoAutorizacionSupervisor extends Dialog {
         cuerpo.setPadding(false);
         add(cuerpo);
 
-        Button cancelar = new Button("Cancelar", e -> close());
+        Button cancelar = new Button("Cancelar [Esc]", e -> close());
         cancelar.addClassName("dc-btn-secundario");
-        Button autorizar = new Button("Autorizar", VaadinIcon.CHECK.create(), e -> {
+        Button autorizar = new Button("Autorizar [Enter]", VaadinIcon.CHECK.create(), e -> {
             try {
                 String supervisor = autorizacionService.autorizarSupervisor(txtUsuario.getValue(), txtClave.getValue());
                 close();

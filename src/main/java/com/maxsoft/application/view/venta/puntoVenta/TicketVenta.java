@@ -103,6 +103,33 @@ public class TicketVenta {
         this.id = id;
     }
 
+    /**
+     * Nombre que el cajero le puso al ticket (ej. "29-5"), o null si conserva
+     * el nombre automático "Venta N". En los delivery se usa como dirección
+     * de entrega.
+     */
+    public String getNombrePersonalizado() {
+        if (id == null || id.isBlank() || id.trim().matches("Venta \\d+")) {
+            return null;
+        }
+        return id.trim();
+    }
+
+    /**
+     * Dirección de entrega de un delivery: la escrita en el diálogo o, si está
+     * vacía, el nombre personalizado del ticket. Devuelve null si no hay
+     * ninguna de las dos: en ese caso el diálogo debe pedirla.
+     */
+    public String direccionEntrega(String escrita) {
+        // Cualquier formato ("29-8", "29 5", "C/5 #12 casa azul"): se guarda
+        // tal cual se escribió, igual que el nombre del ticket. Solo se quitan
+        // los espacios de los extremos y los repetidos.
+        if (escrita != null && !escrita.isBlank()) {
+            return escrita.trim().replaceAll("\\s+", " ");
+        }
+        return getNombrePersonalizado();
+    }
+
     public String getNombreCliente() {
         return nombreCliente;
     }

@@ -16,7 +16,6 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -83,6 +82,14 @@ public class PanelProductos extends VerticalLayout {
     private Button btnAbrirCaja;
     private Button btnCerrarCaja;
     private Button btnMovimientoPos;
+
+    // "Caja abierta desde 8:05 AM · Admin · 37 ventas · RD$ 12,450.00"
+    // como etiquetas de colores con ícono (ver mostrarTurnoAbierto)
+    private final Div barraEstadoTurno = new Div();
+
+    // Avisa a la vista que cambiaron las ventas (p. ej. una devolución) para
+    // refrescar el estado del turno
+    private Runnable onVentasCambiadas;
 
     // Existencia por artículo (unidad base) que muestran las tarjetas. Se
     // recarga después de cada venta, anulación o devolución.
@@ -169,6 +176,25 @@ public class PanelProductos extends VerticalLayout {
         // Los botones pasan a otra línea en pantallas angostas
         cajaButtonsLayout.getStyle().set("flex-wrap", "wrap");
 
+        // Encabezado compacto: título y botones de caja en una sola fila
+        // (antes eran dos filas más la etiqueta del buscador y el título
+        // "Ventas Rápidas"; ese espacio ahora es del catálogo)
+        // Debajo del título: estado de la caja y ventas del turno
+        barraEstadoTurno.getStyle()
+                .set("display", "flex")
+                .set("flex-wrap", "wrap")
+                .set("gap", "var(--lumo-space-xs)")
+                .set("margin-top", "var(--lumo-space-xs)");
+        Div bloqueTitulo = new Div(title, barraEstadoTurno);
+        bloqueTitulo.getStyle().set("display", "flex").set("flex-direction", "column");
+
+        HorizontalLayout encabezado = new HorizontalLayout(bloqueTitulo, cajaButtonsLayout);
+        encabezado.setWidthFull();
+        encabezado.setPadding(false);
+        encabezado.setAlignItems(FlexComponent.Alignment.CENTER);
+        encabezado.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        encabezado.getStyle().set("flex-wrap", "wrap").set("row-gap", "var(--lumo-space-xs)");
+
         searchBox.addValueChangeListener(e -> {
             if (e.getValue() != null) {
                 if (onAgregarAlTicketActivo != null) {
@@ -180,12 +206,9 @@ public class PanelProductos extends VerticalLayout {
             }
         });
 
-        H3 quickTitle = new H3("Ventas Rápidas (Catálogo)");
-        quickTitle.getStyle().set("margin", "0");
-
         // Catálogo en cuadrícula
         gridContainer.getStyle().set("display", "grid");
-        gridContainer.getStyle().set("grid-template-columns", "repeat(auto-fill, minmax(150px, 1fr))");
+        gridContainer.getStyle().set("grid-template-columns", "repeat(auto-fill, minmax(165px, 1fr))");
         gridContainer.getStyle().set("gap", "1rem");
         gridContainer.setWidthFull();
 
@@ -210,7 +233,7 @@ public class PanelProductos extends VerticalLayout {
         scrollCatalogo.setWidthFull();
         scrollCatalogo.getStyle().set("overflow-y", "auto").set("min-height", "0");
 
-        add(title, cajaButtonsLayout, searchBox, quickTitle, barraCategorias, scrollCatalogo);
+        add(encabezado, searchBox, barraCategorias, scrollCatalogo);
         expand(scrollCatalogo);
     }
 
@@ -219,7 +242,10 @@ public class PanelProductos extends VerticalLayout {
     // ============================================================
     private ComboBox<ArticuloEmpaque> crearBuscador() {
 
-        ComboBox<ArticuloEmpaque> combo = new ComboBox<>("Buscar producto o escanear código");
+        // Sin etiqueta: el texto de ayuda (placeholder) ya lo explica y la
+        // etiqueta ocupaba una línea. Se conserva para lectores de pantalla.
+        ComboBox<ArticuloEmpaque> combo = new ComboBox<>();
+        combo.setAriaLabel("Buscar producto o escanear código");
 
         // Cada opción muestra producto, presentación, factor y precio: así se
         // distinguen las presentaciones del mismo artículo.
@@ -229,7 +255,8 @@ public class PanelProductos extends VerticalLayout {
         // nombre, la presentación o el código.
         combo.setItems((empaque, texto) -> coincide(empaque, texto), catalogo);
 
-        combo.setPlaceholder("Escriba nombre o código, o escanee...");
+        combo.setPlaceholder("Buscar producto o escanear código [F4]");
+        combo.setPrefixComponent(VaadinIcon.SEARCH.create());
         combo.setWidthFull();
         combo.setClearButtonVisible(true);
         combo.setAutofocus(true);
@@ -458,6 +485,57 @@ public class PanelProductos extends VerticalLayout {
      * se oculta "Abrir Caja"; sin caja se oculta "Cerrar Caja" y se desactivan
      * los movimientos. La vista del POS lo llama cada vez que cambia el estado.
      */
+    /** Texto de la línea de estado del turno (lo arma la vista). */
+    /**
+     * Estado del turno como etiquetas de colores:
+     * [● Caja abierta 4:43 p. m.] [👤 Admin] [🧾 12 ventas] [💵 RD$ 3,375.00] [📒 Fiado RD$ 1,370.00]
+     */
+    public void mostrarTurnoAbierto(String desde, String cajero, long ventas,
+            BigDecimal total, BigDecimal fiado) {
+
+        barraEstadoTurno.removeAll();
+        barraEstadoTurno.add(chip(VaadinIcon.CIRCLE, "Caja abierta " + desde, "success"));
+        if (cajero != null && !cajero.isBlank()) {
+            barraEstadoTurno.add(chip(VaadinIcon.USER, cajero, "contrast"));
+        }
+        barraEstadoTurno.add(chip(VaadinIcon.RECORDS, ventas + (ventas == 1 ? " venta" : " ventas"), ""));
+
+        com.vaadin.flow.component.html.Span chipTotal
+                = chip(VaadinIcon.CASH, "RD$ " + FORMATO_PRECIO.format(total), "success primary");
+        chipTotal.getStyle().set("font-size", "var(--lumo-font-size-s)");
+        barraEstadoTurno.add(chipTotal);
+
+        if (fiado != null && fiado.signum() > 0) {
+            com.vaadin.flow.component.html.Span chipFiado
+                    = chip(VaadinIcon.BOOK, "Fiado RD$ " + FORMATO_PRECIO.format(fiado), "");
+            // Naranja: dinero que no entró a la gaveta
+            chipFiado.getStyle()
+                    .set("background", "rgba(234, 88, 12, 0.12)")
+                    .set("color", "#c2410c");
+            barraEstadoTurno.add(chipFiado);
+        }
+    }
+
+    public void mostrarCajaCerrada() {
+        barraEstadoTurno.removeAll();
+        barraEstadoTurno.add(chip(VaadinIcon.LOCK, "Caja cerrada", "error primary"));
+    }
+
+    /** Etiqueta (badge de Lumo) con ícono. */
+    private static com.vaadin.flow.component.html.Span chip(VaadinIcon icono, String texto, String variante) {
+        Icon i = icono.create();
+        i.getStyle().set("padding", "0 0.25em 0 0").set("width", "0.9em").set("height", "0.9em");
+        com.vaadin.flow.component.html.Span s = new com.vaadin.flow.component.html.Span(i,
+                new com.vaadin.flow.component.html.Span(texto));
+        s.getElement().getThemeList().add(("badge " + variante).trim());
+        s.getStyle().set("font-weight", "600");
+        return s;
+    }
+
+    public void setOnVentasCambiadas(Runnable onVentasCambiadas) {
+        this.onVentasCambiadas = onVentasCambiadas;
+    }
+
     public void actualizarEstadoCaja(boolean cajaAbierta) {
 
         btnAbrirCaja.setVisible(!cajaAbierta);
@@ -479,7 +557,7 @@ public class PanelProductos extends VerticalLayout {
         txtCodigo.setWidthFull();
         txtCodigo.setAutofocus(true);
 
-        Button btnBuscar = new Button("Buscar", new Icon(VaadinIcon.SEARCH));
+        Button btnBuscar = new Button("Buscar [Enter]", new Icon(VaadinIcon.SEARCH));
         btnBuscar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btnBuscar.addClickShortcut(Key.ENTER);
 
@@ -525,6 +603,9 @@ public class PanelProductos extends VerticalLayout {
                         () -> {
                             Notification.show("Devolución completada con éxito", 3000, Notification.Position.TOP_CENTER);
                             refrescarExistencias();
+                            if (onVentasCambiadas != null) {
+                                onVentasCambiadas.run();
+                            }
                         }
                 );
                 dialogoDev.open();
@@ -538,7 +619,7 @@ public class PanelProductos extends VerticalLayout {
         VerticalLayout content = new VerticalLayout(searchLayout);
         dialogBuscar.add(content);
 
-        Button btnCerrar = new Button("Cancelar", e -> dialogBuscar.close());
+        Button btnCerrar = new Button("Cancelar [Esc]", e -> dialogBuscar.close());
         dialogBuscar.getFooter().add(btnCerrar);
 
         dialogBuscar.open();

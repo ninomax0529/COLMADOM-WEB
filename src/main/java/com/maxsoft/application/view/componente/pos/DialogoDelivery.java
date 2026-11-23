@@ -16,6 +16,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -33,8 +34,8 @@ public class DialogoDelivery extends Dialog {
     private static final DecimalFormat MONEDA = new DecimalFormat("#,##0.00");
     private static final DecimalFormat MONEDA_ENTERA = new DecimalFormat("#,##0");
 
-    /** Largo de la columna factura_de_venta.direccion. */
-    private static final int MAX_DIRECCION = 45;
+    /** Largo de la columna factura_de_venta.direccion (VARCHAR 150). */
+    private static final int MAX_DIRECCION = 150;
 
     @FunctionalInterface
     public interface AccionConfirmarDelivery {
@@ -91,11 +92,18 @@ public class DialogoDelivery extends Dialog {
         // =========================================================
         // CLIENTE (opcional) Y DIRECCIÓN
         // =========================================================
-        TextField direccion = new TextField("Dirección y sector");
-        direccion.setPlaceholder("Ej: C/ Principal #5, Los Mina");
+        TextField direccion = new TextField("Dirección de entrega");
+        direccion.setPlaceholder("Ej: 29-5, C/ Principal #5");
         direccion.setWidthFull();
         direccion.setMaxLength(MAX_DIRECCION);
-        direccion.setHelperText("Máximo " + MAX_DIRECCION + " caracteres");
+        // El valor se envía mientras se escribe: con el modo por defecto solo
+        // llegaba al perder el foco, y al escribir "29-5" + Enter el atajo del
+        // diálogo veía el campo vacío y pedía la dirección.
+        direccion.setValueChangeMode(ValueChangeMode.EAGER);
+        // Si el ticket se renombró (ej. "29-5"), ese nombre es la dirección
+        if (ticket.getNombrePersonalizado() != null) {
+            direccion.setValue(recortar(ticket.getNombrePersonalizado()));
+        }
 
         ComboBox<Cliente> cbCliente = new ComboBox<>("Cliente (opcional)");
         cbCliente.setPlaceholder("Cliente de paso");
@@ -107,7 +115,7 @@ public class DialogoDelivery extends Dialog {
         cbCliente.addValueChangeListener(e -> {
             Cliente c = e.getValue();
             if (c != null && c.getDireccion() != null && !c.getDireccion().isBlank()) {
-                direccion.setValue(recortar(c.getDireccion().trim().toUpperCase()));
+                direccion.setValue(recortar(c.getDireccion().trim()));
             }
         });
 
@@ -152,7 +160,7 @@ public class DialogoDelivery extends Dialog {
         // =========================================================
         // BOTONES
         // =========================================================
-        Button cancelar = new Button("Cancelar", e -> close());
+        Button cancelar = new Button("Cancelar [Esc]", e -> close());
         Button confirmar = new Button("Enviar Delivery [Enter]", VaadinIcon.TRUCK.create());
         confirmar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
@@ -161,15 +169,16 @@ public class DialogoDelivery extends Dialog {
                 aviso("Elija el motorista que lleva el pedido");
                 return;
             }
-            String dir = direccion.getValue() == null ? "" : direccion.getValue().trim();
-            if (dir.isEmpty()) {
-                aviso("Escriba la dirección de entrega");
+            // Obligatoria, salvo que el ticket tenga nombre propio (ej. "29-5")
+            String dir = ticket.direccionEntrega(direccion.getValue());
+            if (dir == null) {
+                aviso("Escriba la dirección de entrega (o póngale nombre al ticket)");
                 direccion.focus();
                 return;
             }
             close();
             if (onConfirmar != null) {
-                onConfirmar.ejecutar(motoristaElegido, cbCliente.getValue(), recortar(dir.toUpperCase()));
+                onConfirmar.ejecutar(motoristaElegido, cbCliente.getValue(), recortar(dir));
             }
         });
         Shortcuts.addShortcutListener(this, confirmar::click, Key.ENTER);

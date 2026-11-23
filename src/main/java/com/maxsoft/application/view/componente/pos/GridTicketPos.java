@@ -123,7 +123,7 @@ public final class GridTicketPos {
                 .set("font-weight", "600")
                 .set("color", "var(--lumo-secondary-text-color)");
 
-        Span ayuda = new Span("Escanee o busque un producto (F4), o toque una tarjeta del catálogo.");
+        Span ayuda = new Span("Escanee o busque un producto [F4], o toque una tarjeta del catálogo.");
         ayuda.getStyle()
                 .set("font-size", "var(--lumo-font-size-s)")
                 .set("color", "var(--lumo-tertiary-text-color)")

@@ -64,7 +64,7 @@ public class DialogoAnulacionFactura extends Dialog {
         btnAnular.setDisableOnClick(true);
         btnAnular.addClickListener(e -> btnAnular.setEnabled(true));
 
-        Button btnCancelar = new Button("Cancelar", e -> close());
+        Button btnCancelar = new Button("Cancelar [Esc]", e -> close());
         btnCancelar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
         if (alCerrar != null) {

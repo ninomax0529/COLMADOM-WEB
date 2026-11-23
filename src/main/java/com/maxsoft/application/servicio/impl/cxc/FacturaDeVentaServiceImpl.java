@@ -477,4 +477,18 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
         return facttRepo.getListaFactPendiente(cliente);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public com.maxsoft.application.dto.ResumenVentasTurnoDTO resumenVentasDesde(java.time.LocalDateTime desde) {
+        List<Object[]> filas = facttRepo.resumenVentasDesde(desde);
+        if (filas.isEmpty()) {
+            return new com.maxsoft.application.dto.ResumenVentasTurnoDTO(0, BigDecimal.ZERO, BigDecimal.ZERO);
+        }
+        Object[] f = filas.get(0);
+        return new com.maxsoft.application.dto.ResumenVentasTurnoDTO(
+                ((Number) f[0]).longValue(),
+                new BigDecimal(f[1].toString()),
+                new BigDecimal(f[2].toString()));
+    }
+
 }

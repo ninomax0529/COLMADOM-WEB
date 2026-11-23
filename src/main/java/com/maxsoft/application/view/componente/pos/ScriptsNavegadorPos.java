@@ -7,8 +7,8 @@ import com.vaadin.flow.dom.Element;
  * buscador y "clic en zona vacía devuelve el foco al buscador".
  *
  * <p>Los atajos llaman a métodos {@code @ClientCallable} de la vista:
- * atajoNuevaVenta, atajoRenombrarTicket, atajoCancelarVenta, atajoAnularFactura,
- * atajoAbonoLibreta y atajoSeleccionarTicket(int).</p>
+ * atajoNuevaVenta, atajoRenombrarTicket, atajoCancelarVenta, atajoAnularFactura
+ * y atajoSeleccionarTicket(int).</p>
  */
 public final class ScriptsNavegadorPos {
 
@@ -29,7 +29,6 @@ public final class ScriptsNavegadorPos {
      * <li>Alt+R: cambiar nombre de la venta activa</li>
      * <li>Alt+C: cancelar la venta activa</li>
      * <li>Alt+X: anular factura</li>
-     * <li>Alt+A: abono de libreta</li>
      * <li>Alt+1 ... Alt+9: cambiar de venta</li>
      * </ul>
      *
@@ -112,7 +111,6 @@ public final class ScriptsNavegadorPos {
                         case 'KeyR': accion = () => vista.$server.atajoRenombrarTicket(); break;
                         case 'KeyC': accion = () => vista.$server.atajoCancelarVenta(); break;
                         case 'KeyX': accion = () => vista.$server.atajoAnularFactura(); break;
-                        case 'KeyA': accion = () => vista.$server.atajoAbonoLibreta(); break;
                         default: {
                             const m = /^(Digit|Numpad)([1-9])$/.exec(e.code);
                             if (m) {

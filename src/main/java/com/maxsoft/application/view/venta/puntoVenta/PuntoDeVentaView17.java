@@ -20,7 +20,6 @@ import com.maxsoft.application.servicio.interfaces.reporte.ReporteService;
 import com.maxsoft.application.servicio.interfaces.venta.TipoVentaService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.util.LineaPosUtil;
-import com.maxsoft.application.view.componente.pos.DialogoAbonoLibreta;
 import com.maxsoft.application.view.componente.pos.DialogoAnulacionFactura;
 import com.maxsoft.application.view.componente.pos.DialogoCobroEfectivo;
 import com.maxsoft.application.view.componente.pos.DialogoConfirmarEliminarItem;
@@ -115,7 +114,6 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     private final ArticuloService articuloService;
     private final ArticuloEmpaqueService articuloEmpaqueService; // MULTI-EMPAQUE
     private final ClienteService clienteService;
-    private final com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService reciboDeIngresoService;
     private final DeliveryService deliveryService;
     private final TipoVentaService tipoVentaService;
     private final EstadoFacturaService estadoFacturaService;
@@ -178,11 +176,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             TipoVentaService tipoVentaService,
             EstadoFacturaService estadoFacturaService,
             InventarioService inventarioService,
-            CategoriaService categoriaService,
-            com.maxsoft.application.servicio.interfaces.cxc.ReciboDeIngresoService reciboDeIngresoService
+            CategoriaService categoriaService
     ) {
-
-        this.reciboDeIngresoService = reciboDeIngresoService;
 
         this.impresora = new ImpresoraFacturaPos(reporteService);
         this.cajaService = cajaService;
@@ -256,7 +251,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         Button btnAnular
                 = new Button(
-                        "Anular factura (Alt+X)",
+                        "Anular Factura [Alt+X]",
                         VaadinIcon.CLOSE_CIRCLE.create(),
                         event -> abrirDialogoAnulacion()
                 );
@@ -321,6 +316,54 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         if (panelProductos != null) {
             panelProductos.actualizarEstadoCaja(abierta);
+        }
+
+        refrescarEstadoTurno();
+    }
+
+    private static final java.time.format.DateTimeFormatter FORMATO_HORA
+            = java.time.format.DateTimeFormatter.ofPattern("h:mm a", new java.util.Locale("es", "DO"));
+    private static final java.time.format.DateTimeFormatter FORMATO_FECHA_HORA
+            = java.time.format.DateTimeFormatter.ofPattern("dd/MM h:mm a", new java.util.Locale("es", "DO"));
+
+    /**
+     * Etiquetas de estado debajo del título: desde cuándo está abierta la
+     * caja, quién la abrió, cuántas ventas, el total y lo fiado del turno
+     * (ver PanelProductos.mostrarTurnoAbierto). Es informativa: si falla, no
+     * frena la venta.
+     */
+    private void refrescarEstadoTurno() {
+
+        if (panelProductos == null) {
+            return;
+        }
+
+        try {
+            Optional<CajaTurno> turno = cajaService.obtenerCajaAbierta();
+
+            if (turno.isEmpty() || turno.get().getFechaApertura() == null) {
+                panelProductos.mostrarCajaCerrada();
+                return;
+            }
+
+            java.time.LocalDateTime apertura = turno.get().getFechaApertura();
+            String desde = apertura.toLocalDate().equals(java.time.LocalDate.now())
+                    ? apertura.format(FORMATO_HORA)
+                    : apertura.format(FORMATO_FECHA_HORA);
+
+            com.maxsoft.application.dto.ResumenVentasTurnoDTO ventas
+                    = factService.resumenVentasDesde(apertura);
+
+            panelProductos.mostrarTurnoAbierto(
+                    desde,
+                    turno.get().getCajeroApertura(),
+                    ventas.facturas(),
+                    ventas.total(),
+                    ventas.fiado()
+            );
+
+        } catch (Exception ex) {
+            log.warn("No se pudo calcular el estado del turno", ex);
         }
     }
 
@@ -468,12 +511,6 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     }
 
     @ClientCallable
-    public void atajoAbonoLibreta() {
-
-        abrirDialogoAbonoLibreta();
-    }
-
-    @ClientCallable
     public void atajoSeleccionarTicket(int posicion) {
 
         seleccionarTicketPorPosicion(posicion);
@@ -563,6 +600,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         this.searchBox = panel.getSearchBox();
 
         this.panelProductos = panel;
+        panel.setOnVentasCambiadas(this::refrescarEstadoTurno);
 
         panel.actualizarEstadoCaja(cajaAbierta);
 
@@ -909,6 +947,11 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         return "Venta " + contadorSecuencialTickets;
     }
 
+    /** Nombre automático del ticket ("Venta N"), sin el nombre personalizado. */
+    private static String obtenerNombreGenerico(TicketVenta ticket) {
+        return "Venta " + ticket.getNumeroTicket();
+    }
+
     private void actualizarTitulosPestanas() {
 
         for (int i = 0;
@@ -973,12 +1016,12 @@ public class PuntoDeVentaView17 extends HorizontalLayout
             return;
         }
 
-        List<Delivery> motoristas = deliveryService.getLista();
+        List<Delivery> motoristas = deliveryService.getHabilitados();
 
         if (motoristas == null || motoristas.isEmpty()) {
 
             ClaseUtil.mostrarNotificacion(
-                    "No hay motoristas registrados.",
+                    "No hay motoristas habilitados.",
                     NotificationVariant.LUMO_WARNING
             );
 
@@ -1013,10 +1056,12 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                                     )
                             );
                             ticket.setCliente(clienteFactura);
+                            // Sin cliente: el nombre es la dirección o, si no
+                            // hay, el nombre del ticket
                             ticket.setNombreCliente(
                                     cliente != null
                                             ? cliente.getNombre()
-                                            : direccion
+                                            : Objects.requireNonNullElse(direccion, ticket.getId())
                             );
                             ticket.setDireccion(direccion);
 
@@ -1198,7 +1243,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     // ============================================================
     private void imprimir(int facturaCodigo) {
 
-        impresora.imprimir(facturaCodigo);
+        // El buscador recupera el foco cuando el navegador termina de
+        // imprimir (el iframe de impresión se lo quitaba)
+        impresora.imprimir(facturaCodigo, searchBox != null ? searchBox.getElement() : null);
 
         enfocarBuscador();
     }
@@ -1323,6 +1370,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         if (panelProductos != null) {
             panelProductos.refrescarExistencias();
         }
+        refrescarEstadoTurno();
     }
 
     private void eliminarTicket(
@@ -1413,6 +1461,10 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         ticket.setDelivery(null);
         ticket.setTipoVenta(null);
         ticket.setEstadoFactura(null);
+
+        // Un nombre como "29-5" era de esa venta (dirección del delivery): la
+        // siguiente venta en esta pestaña vuelve al nombre genérico "Venta N"
+        ticket.setId(obtenerNombreGenerico(ticket));
 
         ticket.updateUI();
 
@@ -1655,7 +1707,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 = new DialogoSeleccionCliente(
                         ticket,
                         libretaClientes,
-                        deliveryService.getLista(),
+                        deliveryService.getHabilitados(),
                         (
                                 clienteSeleccionado,
                                 esDelivery,
@@ -1737,7 +1789,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 && direccion != null
                 && !direccion.isBlank()) {
 
-            direccionFinal = direccion.trim().toUpperCase();
+            // Tal cual se escribió (cualquier formato)
+            direccionFinal = direccion.trim();
         }
 
         ticket.setDireccion(
@@ -1781,28 +1834,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         }
     }
 
-    private void abrirDialogoAbonoLibreta() {
-
-        if (!cajaAbierta) {
-            return;
-        }
-
-        // Solo los clientes que deben algo en su libreta
-        libretaClientes.clear();
-
-        libretaClientes.addAll(
-                clienteService.getLista().stream()
-                        .filter(c -> c.getBalance() != null && c.getBalance().signum() > 0)
-                        .toList()
-        );
-
-        new DialogoAbonoLibreta(
-                libretaClientes,
-                reciboDeIngresoService,
-                USUARIO_POR_DEFECTO,
-                this::enfocarBuscador
-        ).open();
-    }
+    // Nota: el abono de libreta (Alt+A) se quitó del POS. Los abonos se hacen
+    // con Recibo de Ingreso en Cuentas por Cobrar, donde se eligen las
+    // facturas pendientes que se pagan (no es solo un monto).
 
     // ============================================================
     // RENOMBRAR TICKET

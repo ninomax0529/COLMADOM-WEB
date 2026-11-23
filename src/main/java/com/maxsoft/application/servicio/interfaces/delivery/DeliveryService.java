@@ -16,4 +16,7 @@ public interface DeliveryService {
     Delivery guardar(Delivery obj);
 
     List<Delivery> getLista();
+
+    /** Solo los motoristas habilitados: los que se pueden asignar en el POS. */
+    List<Delivery> getHabilitados();
 }

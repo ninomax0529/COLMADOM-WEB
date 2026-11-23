@@ -64,7 +64,7 @@ public class DialogoCobroEfectivo extends Dialog {
         tipoEntregaLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
 
         Button btnLocal = new Button("1. Local [Alt+L]", VaadinIcon.SHOP.create());
-        Button btnDelivery = new Button("2. Delivery [Alt+D]", VaadinIcon.MOON.create());
+        Button btnDelivery = new Button("2. Delivery [Alt+D]", VaadinIcon.TRUCK.create());
 
         btnLocal.setWidth("48%");
         btnDelivery.setWidth("48%");
@@ -75,16 +75,23 @@ public class DialogoCobroEfectivo extends Dialog {
         deliveryLayout.setSpacing(true);
         deliveryLayout.setVisible(false);
 
-        TextField direccionField = new TextField("Dirección y Sector de Entrega");
-        direccionField.setPlaceholder("Ej: Ensanche Altagracia, C/ Principal #5");
+        TextField direccionField = new TextField("Dirección de entrega");
+        direccionField.setPlaceholder("Ej: 29-5, C/ Principal #5");
         direccionField.setWidthFull();
+        direccionField.setMaxLength(150);
+        // Valor al servidor mientras se escribe (Enter llegaba antes que el texto)
+        direccionField.setValueChangeMode(ValueChangeMode.EAGER);
+        // Ticket renombrado (ej. "29-5"): ese nombre es la dirección
+        if (ticket.getNombrePersonalizado() != null) {
+            direccionField.setValue(ticket.getNombrePersonalizado());
+        }
 
         TextField telefonoField = new TextField("Teléfono de Contacto");
         telefonoField.setPlaceholder("809-000-0000");
         telefonoField.setWidthFull();
 
         ComboBox<Delivery> cbDelivery = new ComboBox<>("Asignar Motorista (Delivery)");
-        cbDelivery.setItems(deliveryService.getLista());
+        cbDelivery.setItems(deliveryService.getHabilitados());
         cbDelivery.setWidthFull();
 
         BigDecimalField costoEnvioField = new BigDecimalField("Costo de Delivery (RD$)");
@@ -199,7 +206,7 @@ public class DialogoCobroEfectivo extends Dialog {
         dialogLayout.add(tipoEntregaLayout, deliveryLayout, totalToPayLabel, cashGivenField, billetesRapidos, changeDueLabel);
         add(dialogLayout);
 
-        Button cancelButton = new Button("Cancelar", e -> close());
+        Button cancelButton = new Button("Cancelar [Esc]", e -> close());
         Button confirmButton = new Button("Completar Venta [Enter]", VaadinIcon.CHECK.create());
         confirmButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
 
@@ -210,8 +217,10 @@ public class DialogoCobroEfectivo extends Dialog {
 
             if (esDeliveryState[0]) {
 
-                if (direccionField.getValue() == null || direccionField.getValue().trim().isEmpty()) {
-                    Notification.show("Debe ingresar la dirección para el delivery", 3000, Notification.Position.MIDDLE)
+                // Obligatoria, salvo que el ticket tenga nombre propio (ej. "29-5")
+                if (ticket.direccionEntrega(direccionField.getValue()) == null) {
+                    Notification.show("Escriba la dirección de entrega (o póngale nombre al ticket)",
+                            3000, Notification.Position.MIDDLE)
                             .addThemeVariants(NotificationVariant.LUMO_WARNING);
                     direccionField.focus();
                     return;
@@ -227,9 +236,11 @@ public class DialogoCobroEfectivo extends Dialog {
                 ticket.setDelivery(cbDelivery.getValue());
                 ticket.setEstadoFactura(estadoFacturaService.getEstadoFactura(1)); // Abierta
 
+                // Ya validada arriba: la escrita o el nombre del ticket
+                String dir = ticket.direccionEntrega(direccionField.getValue());
                 ticket.setCliente(clienteService.getLista().get(0));
-                ticket.setNombreCliente(direccionField.getValue().toUpperCase());
-                ticket.setDireccion(direccionField.getValue().toUpperCase());
+                ticket.setNombreCliente(dir);
+                ticket.setDireccion(dir);
 
             } else {
 
@@ -296,4 +307,4 @@ public class DialogoCobroEfectivo extends Dialog {
         }
         return montos.stream().limit(6).toList();
     }
-}
+}

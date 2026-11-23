@@ -17,7 +17,7 @@ public class DialogoConfirmarEliminarItem extends Dialog {
         setHeaderTitle("Eliminar Producto");
         add("¿Deseas quitar \"" + item.getDescripcionArticulo() + "\" del ticket?");
 
-        Button cancelBtn = new Button("Cancelar", e -> close());
+        Button cancelBtn = new Button("Cancelar [Esc]", e -> close());
 
         Button removeBtn = new Button("Sí, quitar [Enter]", e -> {
             ticket.getItems().remove(item);

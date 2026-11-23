@@ -58,7 +58,7 @@ public class FacturaDeVenta implements Serializable {
     @Size(max = 80)
     @Column(name = "anulada_por")
     private String anuladaPor;
-    @Size(max = 45)
+    @Size(max = 150)
     @Column(name = "direccion")
     private String direccion;
     @Column(name = "fecha_actualizacion")

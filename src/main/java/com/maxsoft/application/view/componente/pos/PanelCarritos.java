@@ -93,7 +93,7 @@ public class PanelCarritos extends VerticalLayout {
         // =========================================================
 
         Button addTicketBtn = new Button(
-                "Nueva Venta (+) [Alt+N]",
+                "Nueva Venta [Alt+N]",
                 VaadinIcon.PLUS.create()
         );
 

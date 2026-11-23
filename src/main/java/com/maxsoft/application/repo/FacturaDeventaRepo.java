@@ -40,5 +40,19 @@ public interface FacturaDeventaRepo extends JpaRepository<FacturaDeVenta, Intege
     @Query(value = strPend, nativeQuery = true)
     public List<FacturaDeVenta> getListaFactPendiente(@Param("cliente") int codPro);
 
-    
+    /**
+     * Ventas desde un momento (apertura del turno de caja), sin anuladas:
+     * una fila [facturas, total menos devuelto, parte fiada (tipo_venta 2)].
+     */
+    @Query(value = """
+            SELECT COUNT(*),
+                   COALESCE(SUM(total - total_devuelto), 0),
+                   COALESCE(SUM(CASE WHEN tipo_venta = 2 THEN total - total_devuelto ELSE 0 END), 0)
+            FROM factura_de_venta
+            WHERE (anulada IS NULL OR anulada = 0)
+              AND fecha_creacion >= :desde
+            """, nativeQuery = true)
+    List<Object[]> resumenVentasDesde(@Param("desde") java.time.LocalDateTime desde);
+
+
 }

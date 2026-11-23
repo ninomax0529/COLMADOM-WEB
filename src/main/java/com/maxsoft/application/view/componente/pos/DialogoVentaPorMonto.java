@@ -64,7 +64,7 @@ public class DialogoVentaPorMonto extends Dialog {
         layout.add(infoLabel, montoField, resultadoSpan);
         add(layout);
 
-        Button cancelBtn = new Button("Cancelar", e -> close());
+        Button cancelBtn = new Button("Cancelar [Esc]", e -> close());
         Button acceptBtn = new Button("Agregar al Ticket [Enter]", VaadinIcon.CHECK.create());
         acceptBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         acceptBtn.addClickShortcut(Key.ENTER);

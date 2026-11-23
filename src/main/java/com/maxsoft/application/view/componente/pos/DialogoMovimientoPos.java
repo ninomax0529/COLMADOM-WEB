@@ -108,7 +108,7 @@ public class DialogoMovimientoPos extends Dialog {
         add(layout);
 
         // Botones de acción del pie de página
-        Button cancelBtn = new Button("Cancelar", e -> close());
+        Button cancelBtn = new Button("Cancelar [Esc]", e -> close());
 
         cancelBtn.addClassName("dc-btn-secundario");
         Button saveBtn = new Button("Registrar [Enter]", VaadinIcon.CHECK.create());
@@ -206,4 +206,4 @@ public class DialogoMovimientoPos extends Dialog {
     public DialogoMovimientoPos(CajaService cajaService) {
         this(cajaService, "Administrador");
     }
-}
+}

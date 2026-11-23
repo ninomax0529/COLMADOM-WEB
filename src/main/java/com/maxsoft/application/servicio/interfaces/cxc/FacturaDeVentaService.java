@@ -32,4 +32,7 @@ public interface FacturaDeVentaService {
 
     List<FacturaDeVenta> getListaFactPendiente(int cliente);
 
+    /** Ventas desde la apertura del turno de caja (barra de estado del POS). */
+    com.maxsoft.application.dto.ResumenVentasTurnoDTO resumenVentasDesde(java.time.LocalDateTime desde);
+
 }

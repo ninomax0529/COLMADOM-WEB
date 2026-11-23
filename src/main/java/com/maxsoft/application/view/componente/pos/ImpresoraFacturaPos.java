@@ -44,11 +44,27 @@ public class ImpresoraFacturaPos {
 
                     iframe.src = blobUrl;
 
+                    // Para imprimir, el iframe toma el foco. Al terminar se
+                    // devuelve al buscador ($1) para seguir escaneando, salvo
+                    // que haya un diálogo abierto.
+                    const devolverFoco = () => {
+                        const buscador = $1;
+                        if (!buscador || !buscador.isConnected) { return; }
+                        if (document.querySelector($2)) { return; }
+                        window.focus();
+                        buscador.focus();
+                        if (buscador.inputElement) { buscador.inputElement.select(); }
+                    };
+
                     iframe.onload = function() {
                         setTimeout(() => {
+                            iframe.contentWindow.addEventListener('afterprint', devolverFoco, { once: true });
                             iframe.contentWindow.focus();
                             iframe.contentWindow.print();
                             URL.revokeObjectURL(blobUrl);
+                            // En modo kiosk print() vuelve enseguida y a veces
+                            // no llega "afterprint": se devuelve el foco igual.
+                            setTimeout(devolverFoco, 150);
                         }, 300);
                     };
                 })
@@ -69,6 +85,14 @@ public class ImpresoraFacturaPos {
      * reimprimirla desde la consulta de facturas.
      */
     public void imprimir(int facturaCodigo) {
+        imprimir(facturaCodigo, null);
+    }
+
+    /**
+     * Imprime la factura y, al terminar la impresión en el navegador, devuelve
+     * el foco al {@code buscador} (puede ser null).
+     */
+    public void imprimir(int facturaCodigo, com.vaadin.flow.dom.Element buscador) {
         try {
             StreamResource pdf = reporteService.generarReporteFacturaVenta(facturaCodigo);
             pdf.setContentType("application/pdf");
@@ -77,7 +101,8 @@ public class ImpresoraFacturaPos {
             ultimoPdf = VaadinSession.getCurrent().getResourceRegistry().registerResource(pdf);
 
             // La URL va como parámetro ($0), no concatenada en el script
-            UI.getCurrent().getPage().executeJs(SCRIPT_IMPRIMIR, ultimoPdf.getResourceUri().toString());
+            UI.getCurrent().getPage().executeJs(SCRIPT_IMPRIMIR, ultimoPdf.getResourceUri().toString(), buscador,
+                    ScriptsNavegadorPos.SELECTOR_DIALOGO_ABIERTO);
 
             Notification.show("Enviando a la impresora de caja...", 2000, Notification.Position.BOTTOM_END)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);

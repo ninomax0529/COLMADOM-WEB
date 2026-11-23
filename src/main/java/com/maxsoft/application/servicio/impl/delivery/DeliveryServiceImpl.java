@@ -23,6 +23,13 @@ public class DeliveryServiceImpl implements DeliveryService {
     }
 
     @Override
+    public List<Delivery> getHabilitados() {
+        return repo.getLista().stream()
+                .filter(d -> Boolean.TRUE.equals(d.getHabilitado()))
+                .toList();
+    }
+
+    @Override
     public Delivery guardar(Delivery obj) {
         return repo.save(obj);
     }

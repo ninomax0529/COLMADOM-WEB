@@ -119,7 +119,7 @@ public class DialogoDevolucionVenta extends Dialog {
         Button btnProcesar = new Button("Procesar Devolución", e -> ejecutarDevolucion(itemsModel));
         btnProcesar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        Button btnCancelar = new Button("Cancelar", e -> close());
+        Button btnCancelar = new Button("Cancelar [Esc]", e -> close());
 
         VerticalLayout layout = new VerticalLayout(gridItems, txtMotivo, lblTotalReembolso);
         add(layout);

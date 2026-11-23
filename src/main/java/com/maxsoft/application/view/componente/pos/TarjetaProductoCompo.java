@@ -209,23 +209,29 @@ public class TarjetaProductoCompo extends VerticalLayout {
      */
     private Div crearSelectorPresentacion() {
 
+        // Una sola fila compacta: [UND] [PAQ×5] [CAJA×10]. Antes cada botón
+        // ocupaba su propia línea y la tarjeta quedaba el doble de alta.
         Div selector = new Div();
+        selector.setWidthFull();
         selector.getStyle()
                 .set("display", "flex")
                 .set("flex-wrap", "wrap")
                 .set("justify-content", "center")
-                .set("gap", "0.25rem")
+                .set("gap", "2px")
                 .set("margin-top", "0.25rem");
 
         for (ArticuloEmpaque ae : presentaciones) {
-            Button b = new Button(textoPresentacion(ae));
+            Button b = new Button(textoCorto(ae));
             b.addThemeVariants(ButtonVariant.LUMO_SMALL);
             b.getStyle()
-                    .set("border-radius", "999px")
+                    .set("border-radius", "6px")
                     .set("margin", "0")
-                    .set("font-size", "0.7rem")
+                    .set("font-size", "0.68rem")
+                    .set("font-weight", "700")
+                    .set("height", "1.6rem")
                     .set("min-width", "0")
-                    .set("padding", "0 0.6em");
+                    .set("padding", "0 0.4em")
+                    .set("white-space", "nowrap");
             b.setTooltipText(textoPresentacion(ae) + " — RD$ " + FORMATO_PRECIO.format(precioDe(ae)));
             // Que el clic no burbujee a la zona de información
             b.getElement().addEventListener("click", ev -> {
@@ -343,6 +349,34 @@ public class TarjetaProductoCompo extends VerticalLayout {
             return unidad + " x" + factor.stripTrailingZeros().toPlainString();
         }
         return unidad;
+    }
+
+    /**
+     * Texto corto para el selector: "UND", "PAQ×5", "CAJA×10". El nombre
+     * completo y el precio quedan en el tooltip.
+     */
+    private static String textoCorto(ArticuloEmpaque ae) {
+
+        String unidad = (ae.getUnidadEmpaque() != null && ae.getUnidadEmpaque().getDescripcion() != null)
+                ? ae.getUnidadEmpaque().getDescripcion().trim().toUpperCase()
+                : "UNIDAD";
+
+        String corto = switch (unidad) {
+            case "UNIDAD", "UNIDADES" -> "UND";
+            case "PAQUETE", "PAQUETES" -> "PAQ";
+            case "FARDO", "FALDO" -> "FDO";
+            case "CAJITA" -> "CJTA";
+            case "DOCENA" -> "DOC";
+            case "LIBRA", "LIBRAS" -> "LB";
+            case "GALON", "GALÓN" -> "GAL";
+            default -> unidad.length() > 5 ? unidad.substring(0, 4) : unidad;
+        };
+
+        BigDecimal factor = ae.getFactorConversion();
+        if (factor != null && factor.compareTo(BigDecimal.ONE) != 0) {
+            return corto + "×" + factor.stripTrailingZeros().toPlainString();
+        }
+        return corto;
     }
 
     /** Presentación elegida en este momento. */

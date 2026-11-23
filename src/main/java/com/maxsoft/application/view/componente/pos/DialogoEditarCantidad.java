@@ -62,7 +62,7 @@ public class DialogoEditarCantidad extends Dialog {
         layout.add(qtyField, subtotalSpan);
         add(layout);
 
-        Button cancelBtn = new Button("Cancelar", e -> close());
+        Button cancelBtn = new Button("Cancelar [Esc]", e -> close());
         Button saveBtn = new Button("Guardar [Enter]", VaadinIcon.CHECK.create());
         saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveBtn.addClickShortcut(Key.ENTER);

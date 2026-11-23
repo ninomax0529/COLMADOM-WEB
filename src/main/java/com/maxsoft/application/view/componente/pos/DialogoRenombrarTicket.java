@@ -30,6 +30,11 @@ public class DialogoRenombrarTicket extends Dialog {
         dialogLayout.setSpacing(true);
 
         TextField nameField = new TextField("Nuevo nombre del cliente / venta");
+        nameField.setPlaceholder("Ej: 29-8, 29 5, Doña Rosa");
+        // Mismo largo que la dirección de la factura (se usa como dirección)
+        nameField.setMaxLength(150);
+        // Valor al servidor mientras se escribe: Enter no se adelanta al texto
+        nameField.setValueChangeMode(com.vaadin.flow.data.value.ValueChangeMode.EAGER);
         nameField.setValue(ticket.getId());
         nameField.setWidthFull();
         nameField.setClearButtonVisible(true);
@@ -37,7 +42,7 @@ public class DialogoRenombrarTicket extends Dialog {
         dialogLayout.add(nameField);
         add(dialogLayout);
 
-        Button cancelBtn = new Button("Cancelar", e -> close());
+        Button cancelBtn = new Button("Cancelar [Esc]", e -> close());
 
         Button saveBtn = new Button("Guardar [Enter]", VaadinIcon.CHECK.create());
         saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -46,9 +51,15 @@ public class DialogoRenombrarTicket extends Dialog {
         saveBtn.addClickListener(e -> {
             String nuevoNombre = nameField.getValue();
             if (nuevoNombre != null && !nuevoNombre.trim().isEmpty()) {
-                String nombreLimpio = nuevoNombre.trim();
+                // Cualquier formato: "29-8", "29 5", "C/5 #12"... Solo se
+                // quitan los espacios de los extremos y los repetidos.
+                String nombreLimpio = nuevoNombre.trim().replaceAll("\\s+", " ");
                 ticket.setId(nombreLimpio);
-                ticketNameSpan.setText(nombreLimpio);
+                // El botón "Renombrar" de la barra de ventas no pasa etiqueta
+                // (null): antes fallaba aquí y el diálogo no se cerraba.
+                if (ticketNameSpan != null) {
+                    ticketNameSpan.setText(nombreLimpio);
+                }
 
                 Notification.show("Venta renombrada a: " + nombreLimpio, 2000, Notification.Position.BOTTOM_END);
 
