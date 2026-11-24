@@ -48,6 +48,18 @@ public class Configuracion implements Serializable {
     @ManyToOne
     private Almacen almacenVentaId;
 
+    // Clasificación ABC (ver ClasificacionAbcService)
+    @Column(name = "abc_dias_periodo")
+    private Integer abcDiasPeriodo;
+    @Column(name = "abc_limite_a")
+    private java.math.BigDecimal abcLimiteA;
+    @Column(name = "abc_limite_b")
+    private java.math.BigDecimal abcLimiteB;
+    @Column(name = "abc_dias_nuevo")
+    private Integer abcDiasNuevo;
+    @Column(name = "abc_ultimo_calculo")
+    private java.time.LocalDateTime abcUltimoCalculo;
+
     public Configuracion() {
     }
 
@@ -101,6 +113,46 @@ public class Configuracion implements Serializable {
 
     public void setAlmacenVentaId(Almacen almacenVentaId) {
         this.almacenVentaId = almacenVentaId;
+    }
+
+    public Integer getAbcDiasPeriodo() {
+        return abcDiasPeriodo;
+    }
+
+    public void setAbcDiasPeriodo(Integer abcDiasPeriodo) {
+        this.abcDiasPeriodo = abcDiasPeriodo;
+    }
+
+    public java.math.BigDecimal getAbcLimiteA() {
+        return abcLimiteA;
+    }
+
+    public void setAbcLimiteA(java.math.BigDecimal abcLimiteA) {
+        this.abcLimiteA = abcLimiteA;
+    }
+
+    public java.math.BigDecimal getAbcLimiteB() {
+        return abcLimiteB;
+    }
+
+    public void setAbcLimiteB(java.math.BigDecimal abcLimiteB) {
+        this.abcLimiteB = abcLimiteB;
+    }
+
+    public Integer getAbcDiasNuevo() {
+        return abcDiasNuevo;
+    }
+
+    public void setAbcDiasNuevo(Integer abcDiasNuevo) {
+        this.abcDiasNuevo = abcDiasNuevo;
+    }
+
+    public java.time.LocalDateTime getAbcUltimoCalculo() {
+        return abcUltimoCalculo;
+    }
+
+    public void setAbcUltimoCalculo(java.time.LocalDateTime abcUltimoCalculo) {
+        this.abcUltimoCalculo = abcUltimoCalculo;
     }
 
     @Override

@@ -141,6 +141,10 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 
     private Articulo articuloActual;
 
+    // Clasificación ABC del artículo (solo lectura, pestaña Inventario)
+    private final com.maxsoft.application.servicio.interfaces.inventario.ClasificacionAbcService clasificacionAbcService;
+    private final com.vaadin.flow.component.html.Div panelAbc = new com.vaadin.flow.component.html.Div();
+
     @Autowired
     public RegistrarArticuloViewV4(
             
@@ -153,8 +157,10 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
             UnidadService unidadService,
             ProveedorService proveedorServiceArg,
             com.maxsoft.application.servicio.interfaces.inventario.LoteService loteServiceArg,
-            CategoriaService categoriaServiceArg
+            CategoriaService categoriaServiceArg,
+            com.maxsoft.application.servicio.interfaces.inventario.ClasificacionAbcService clasificacionAbcServiceArg
     ) {
+        this.clasificacionAbcService = clasificacionAbcServiceArg;
         this.loteService = loteServiceArg;
         this.categoriaService = categoriaServiceArg;
         this.articuloService = articuloServiceArg;
@@ -406,7 +412,62 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         binder.bind(txtCodigoBarraPrincipal,
                 a -> a.getCodigoDeBarra() == null ? "" : a.getCodigoDeBarra(), Articulo::setCodigoDeBarra);
 
-        containerTabInventario.add(form);
+        // "fv-vista" en el panel para que el chip de la clase tenga sus colores
+        panelAbc.addClassName("fv-vista");
+        panelAbc.setWidthFull();
+        panelAbc.getStyle()
+                .set("display", "flex")
+                .set("flex-wrap", "wrap")
+                .set("align-items", "center")
+                .set("gap", "var(--lumo-space-s)")
+                .set("padding", "var(--lumo-space-s) var(--lumo-space-m)")
+                .set("border", "1px solid var(--lumo-contrast-10pct)")
+                .set("border-radius", "var(--lumo-border-radius-m)")
+                .set("font-size", "var(--lumo-font-size-s)");
+
+        containerTabInventario.add(panelAbc, form);
+    }
+
+    /**
+     * Clasificación ABC del artículo en la pestaña Inventario: clase, por qué
+     * (valor / rotación, ventas y facturas) y el período. Es automática: no se
+     * edita aquí.
+     */
+    private void mostrarClasificacionAbc() {
+        panelAbc.removeAll();
+
+        com.vaadin.flow.component.html.Span titulo = new com.vaadin.flow.component.html.Span("Clasificación ABC:");
+        titulo.getStyle().set("font-weight", "600");
+        panelAbc.add(titulo);
+
+        java.util.Optional<com.maxsoft.application.modelo.ArticuloClasificacionAbc> abc
+                = articuloActual == null || articuloActual.getCodigo() == null
+                ? java.util.Optional.empty()
+                : clasificacionAbcService.obtenerPorArticulo(articuloActual.getCodigo());
+
+        if (abc.isEmpty()) {
+            panelAbc.add(new com.vaadin.flow.component.html.Span(
+                    "todavía sin clasificar (se calcula sola cada noche con las ventas)."));
+            return;
+        }
+
+        com.maxsoft.application.modelo.ArticuloClasificacionAbc c = abc.get();
+        java.time.format.DateTimeFormatter fecha = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        java.text.DecimalFormat porciento = new java.text.DecimalFormat("0.0'%'");
+
+        panelAbc.add(com.maxsoft.application.view.inventario.abc.ClasificacionAbcView.chip(c.getClase()));
+        if (Boolean.TRUE.equals(c.getSinMovimiento())) {
+            panelAbc.add(com.maxsoft.application.view.componente.EstiloConsulta.chip("SIN MOVIMIENTO", "fv-chip-devuelto"));
+        }
+
+        com.vaadin.flow.component.html.Span detalle = new com.vaadin.flow.component.html.Span(
+                "Valor " + c.getClaseValor() + " / Rotación " + c.getClaseRotacion()
+                + "  ·  " + com.maxsoft.application.view.componente.EstiloConsulta.moneda(c.getVentas())
+                + " (" + porciento.format(c.getPorcientoValor()) + " de las ventas)"
+                + " en " + c.getFacturas() + (c.getFacturas() == 1 ? " factura" : " facturas")
+                + "  ·  Ventas del " + c.getFechaDesde().format(fecha) + " al " + c.getFechaHasta().format(fecha));
+        detalle.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        panelAbc.add(detalle);
     }
 
     /**
@@ -950,6 +1011,7 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
         }
         actualizarEstadoCamposInventario();
         actualizarEstadoCamposCompra();
+        mostrarClasificacionAbc();
 
         listaEmpaques.clear();
         listaArticuloAlmacen.clear();

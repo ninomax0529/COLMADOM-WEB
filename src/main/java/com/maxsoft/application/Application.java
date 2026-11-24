@@ -18,6 +18,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  */
 @SpringBootApplication
+// Tareas programadas (p. ej. la clasificación ABC de las 2:00 a.m.)
+@org.springframework.scheduling.annotation.EnableScheduling
 //@ComponentScan(basePackages= {"com.maxsoft.application.*"})
 // lsof -i :8081
 // kill -9 <PID>

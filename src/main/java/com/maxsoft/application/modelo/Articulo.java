@@ -144,9 +144,14 @@ public class Articulo implements Serializable {
     private Integer secuenciaDocumento;
     @Column(name = "itbis_gravado")
     private BigDecimal itbisGravado;
-    @Column(name = "fecha_creacion")
+    // Las dos fechas las pone MySQL (DEFAULT / ON UPDATE CURRENT_TIMESTAMP):
+    // Hibernate no las escribe, así la de creación no se pierde al editar.
+    @Column(name = "fecha_creacion", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
+    @Column(name = "fecha_actualizacion", insertable = false, updatable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaActualizacion;
     @Column(name = "fecha_vencimiento")
     @Temporal(TemporalType.DATE)
     private Date fechaVencimiento;
@@ -412,6 +417,10 @@ public class Articulo implements Serializable {
 
     public void setFechaCreacion(Date fechaCreacion) {
         this.fechaCreacion = fechaCreacion;
+    }
+
+    public Date getFechaActualizacion() {
+        return fechaActualizacion;
     }
 
 
