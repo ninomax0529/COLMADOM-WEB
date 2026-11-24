@@ -182,7 +182,8 @@ public class RegistroFacturaDeCompraView extends VerticalLayout {
         try {
             ArticuloDialogoFilteringView dialog = new ArticuloDialogoFilteringView(articuloService, articulo -> {
                 if (articulo != null) {
-                    new EmpaqueSeleccionDialogo(
+                    // Solo presentaciones de compra; una sola → directo, sin diálogo
+                    EmpaqueSeleccionDialogo.seleccionarParaCompra(
                             articulo,
                             articuloEmpaqueService,
                             empaque -> {
@@ -190,7 +191,7 @@ public class RegistroFacturaDeCompraView extends VerticalLayout {
                                     agregarOActualizar(articulo, empaque);
                                 }
                             }
-                    ).open();
+                    );
                 }
             });
             dialog.open();

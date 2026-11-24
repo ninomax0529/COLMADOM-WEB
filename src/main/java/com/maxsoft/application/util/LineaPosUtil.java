@@ -20,6 +20,82 @@ public final class LineaPosUtil {
     private LineaPosUtil() {
     }
 
+    /** Nombres de unidad que se venden fraccionadas (con decimales). */
+    private static final List<String> UNIDADES_FRACCIONABLES
+            = List.of("LIBRA", "PESAD", "FRACC", "FRACION");
+
+    /**
+     * true si la presentación se puede vender con decimales (2.5): el artículo
+     * "se vende en" LIBRA / pesado / fraccionado, es venta a granel, o la
+     * presentación misma es de libra. UNIDAD, PAQUETE, CAJA... solo enteros.
+     * Sin datos del artículo no se bloquea.
+     */
+    public static boolean permiteDecimales(ArticuloEmpaque empaque) {
+        if (empaque == null || empaque.getArticulo() == null) {
+            return true;
+        }
+        com.maxsoft.application.modelo.Articulo a = empaque.getArticulo();
+        if (a.getVentaAgranel()) {
+            return true;
+        }
+        if (a.getUnidadDeVenta() != null && esFraccionable(a.getUnidadDeVenta().getNombre())) {
+            return true;
+        }
+        return empaque.getUnidadEmpaque() != null
+                && esFraccionable(empaque.getUnidadEmpaque().getDescripcion());
+    }
+
+    /** true si la cantidad tiene parte decimal (2.5 sí; 2 y 2.00 no). */
+    public static boolean tieneDecimales(BigDecimal cantidad) {
+        return cantidad != null && cantidad.stripTrailingZeros().scale() > 0;
+    }
+
+    private static boolean esFraccionable(String nombreUnidad) {
+        if (nombreUnidad == null) {
+            return false;
+        }
+        String n = nombreUnidad.trim().toUpperCase();
+        return UNIDADES_FRACCIONABLES.stream().anyMatch(n::contains);
+    }
+
+    /**
+     * Abreviatura de la unidad para espacios cortos: UNIDAD → UND, PAQUETE →
+     * PAQ, FARDO/FALDO → FDO, CAJITA → CJTA, LIBRA → LB... Otros nombres
+     * de más de 5 letras se cortan a 4. null → UND.
+     */
+    public static String abreviaturaUnidad(String nombreUnidad) {
+        String unidad = nombreUnidad != null && !nombreUnidad.isBlank()
+                ? nombreUnidad.trim().toUpperCase()
+                : "UNIDAD";
+        return switch (unidad) {
+            case "UNIDAD", "UNIDADES" -> "UND";
+            case "PAQUETE", "PAQUETES" -> "PAQ";
+            case "FARDO", "FALDO" -> "FDO";
+            case "CAJITA" -> "CJTA";
+            case "DOCENA" -> "DOC";
+            case "LIBRA", "LIBRAS" -> "LB";
+            case "GALON", "GALÓN" -> "GAL";
+            default -> unidad.length() > 5 ? unidad.substring(0, 4) : unidad;
+        };
+    }
+
+    /**
+     * Presentación en corto para la tarjeta del POS y la columna "Unidad" del
+     * ticket: la abreviatura y, si trae varias unidades, el factor ("PAQ×20").
+     */
+    public static String presentacionCorta(ArticuloEmpaque empaque) {
+        if (empaque == null) {
+            return abreviaturaUnidad(null);
+        }
+        String corto = abreviaturaUnidad(empaque.getUnidadEmpaque() != null
+                ? empaque.getUnidadEmpaque().getDescripcion() : null);
+        BigDecimal factor = empaque.getFactorConversion();
+        if (factor != null && factor.compareTo(BigDecimal.ONE) != 0) {
+            return corto + "×" + factor.stripTrailingZeros().toPlainString();
+        }
+        return corto;
+    }
+
     /** Factor de conversión del empaque a unidad base; 1 si no hay empaque o el factor es inválido. */
     public static BigDecimal factorConversion(ArticuloEmpaque empaque) {
         if (empaque == null) {

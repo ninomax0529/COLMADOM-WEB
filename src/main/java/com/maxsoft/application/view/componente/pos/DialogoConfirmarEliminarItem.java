@@ -31,7 +31,7 @@ public class DialogoConfirmarEliminarItem extends Dialog {
         removeBtn.addClickShortcut(Key.ENTER);
 
         getFooter().add(cancelBtn, removeBtn);
-        open();
+        // Lo abre quien lo crea (antes se abría aquí y otra vez en la vista)
     }
 
     // Sobrecarga por si no se requiere ejecutar el enfocarBuscador

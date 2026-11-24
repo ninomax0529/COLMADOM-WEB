@@ -78,7 +78,8 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
             throw new IllegalArgumentException("La factura no tiene detalle.");
         }
 
-        Almacen alm = this.almacenService.getAlmacen(2);
+        // Se vende del almacén de venta (mostrador), no del principal
+        Almacen alm = this.almacenService.getAlmacen(InventarioService.ALMACEN_VENTA);
         java.util.Map<Integer, BigDecimal> requeridoBasePorArticulo = new java.util.LinkedHashMap<>();
 
         for (DetalleFacturaDeVenta det : ticketVenta.getItems()) {
@@ -90,6 +91,14 @@ public class FacturaDeVentaServiceImpl implements FacturaDeVentaService {
                 throw new IllegalArgumentException("El artículo '"
                         + (det.getDescripcionArticulo() != null ? det.getDescripcionArticulo() : "Desconocido")
                         + "' tiene la cantidad en cero o no válida.");
+            }
+
+            // Decimales (2.5) solo en libra / pesado / fraccionado
+            if (com.maxsoft.application.util.LineaPosUtil.tieneDecimales(cantidad)
+                    && !com.maxsoft.application.util.LineaPosUtil.permiteDecimales(det.getArticuloEmpaque())) {
+                throw new IllegalArgumentException("'"
+                        + (det.getDescripcionArticulo() != null ? det.getDescripcionArticulo() : "Desconocido")
+                        + "' se vende por unidad: la cantidad debe ser entera.");
             }
 
             // Asignación de almacén predeterminado

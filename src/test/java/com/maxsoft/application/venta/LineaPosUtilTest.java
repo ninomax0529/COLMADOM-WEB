@@ -66,6 +66,43 @@ class LineaPosUtilTest {
     }
 
     @Test
+    void soloLibraPesadoOFraccionadoAceptanDecimales() {
+        Articulo arroz = articulo(20, "35", "100");
+        arroz.setUnidadDeVenta(new com.maxsoft.application.modelo.UnidadDeVenta(2, "LIBRA"));
+        assertTrue(LineaPosUtil.permiteDecimales(empaque(6, arroz, "Libra", "1", null)));
+
+        Articulo queso = articulo(21, "250", "10");
+        queso.setUnidadDeVenta(new com.maxsoft.application.modelo.UnidadDeVenta(9, "Pesado"));
+        assertTrue(LineaPosUtil.permiteDecimales(empaque(7, queso, "Pesado", "1", null)));
+
+        Articulo aguacate = articulo(22, "50", "10");
+        aguacate.setVentaAgranel(true);
+        assertTrue(LineaPosUtil.permiteDecimales(empaque(8, aguacate, "Unidad", "1", null)), "a granel");
+
+        cerveza.setUnidadDeVenta(new com.maxsoft.application.modelo.UnidadDeVenta(1, "UNIDAD"));
+        org.junit.jupiter.api.Assertions.assertFalse(LineaPosUtil.permiteDecimales(unidad));
+        org.junit.jupiter.api.Assertions.assertFalse(LineaPosUtil.permiteDecimales(caja));
+    }
+
+    @Test
+    void abreviaturasDeUnidad() {
+        assertEquals("UND", LineaPosUtil.abreviaturaUnidad("Unidad"));
+        assertEquals("PAQ", LineaPosUtil.abreviaturaUnidad("PAQUETE"));
+        assertEquals("FDO", LineaPosUtil.abreviaturaUnidad("FALDO"));
+        assertEquals("LB", LineaPosUtil.abreviaturaUnidad("LIBRA"));
+        assertEquals("CAJA", LineaPosUtil.abreviaturaUnidad("CAJA"));
+        assertEquals("UND", LineaPosUtil.abreviaturaUnidad(null));
+        assertEquals("BOTE", LineaPosUtil.abreviaturaUnidad("BOTELLA"));
+    }
+
+    @Test
+    void detectaCantidadesConDecimales() {
+        assertTrue(LineaPosUtil.tieneDecimales(new BigDecimal("2.5")));
+        org.junit.jupiter.api.Assertions.assertFalse(LineaPosUtil.tieneDecimales(new BigDecimal("2.0000")));
+        org.junit.jupiter.api.Assertions.assertFalse(LineaPosUtil.tieneDecimales(new BigDecimal("3")));
+    }
+
+    @Test
     void descripcionSinPresentacionNoDiceNull() {
         assertEquals("Cerveza", LineaPosUtil.descripcion(empaque(5, cerveza, null, "1", null)));
     }

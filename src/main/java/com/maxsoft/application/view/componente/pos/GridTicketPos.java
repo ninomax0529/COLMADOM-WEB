@@ -1,6 +1,7 @@
 package com.maxsoft.application.view.componente.pos;
 
 import com.maxsoft.application.modelo.DetalleFacturaDeVenta;
+import com.maxsoft.application.util.LineaPosUtil;
 import com.maxsoft.application.view.venta.puntoVenta.TicketVenta;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.Shortcuts;
@@ -52,8 +53,11 @@ public final class GridTicketPos {
                 .setTooltipGenerator(DetalleFacturaDeVenta::getDescripcionArticulo);
 
         // MULTI-EMPAQUE: muestra la presentación vendida en cada línea
-        grid.addColumn(DetalleFacturaDeVenta::getNombreUnidad)
+        // En corto, igual que en la tarjeta (UND, PAQ×20, LB...): el nombre
+        // completo no cabía ("UNI…"). El completo queda en el tooltip.
+        grid.addColumn(GridTicketPos::unidadCorta)
                 .setHeader("Unidad")
+                .setTooltipGenerator(DetalleFacturaDeVenta::getNombreUnidad)
                 .setAutoWidth(true)
                 .setFlexGrow(0);
 
@@ -139,6 +143,13 @@ public final class GridTicketPos {
                 .set("min-height", "45vh")
                 .set("gap", "var(--lumo-space-s)");
         return estadoVacio;
+    }
+
+    /** Presentación de la línea en corto (UND, PAQ×20, LB...). */
+    private static String unidadCorta(DetalleFacturaDeVenta item) {
+        return item.getArticuloEmpaque() != null
+                ? LineaPosUtil.presentacionCorta(item.getArticuloEmpaque())
+                : LineaPosUtil.abreviaturaUnidad(item.getNombreUnidad());
     }
 
     private static BigDecimal nz(BigDecimal v) {

@@ -25,8 +25,15 @@ public class DialogoVentaPorMonto extends Dialog {
 
     private static final DecimalFormat CANTIDAD_FORMAT = new DecimalFormat("#,##0.00");
 
+    private static final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");
+
+    /**
+     * @param presentacion nombre de la presentación del precio (LIBRA,
+     *                     UNIDAD, PAQUETE...); null → "unidad"
+     */
     public DialogoVentaPorMonto(
             String producto,
+            String presentacion,
             BigDecimal precioUnitario,
             BiConsumer<Double, Double> onAceptar // Recibe (monto, cantidadCalculada)
     ) {
@@ -35,7 +42,11 @@ public class DialogoVentaPorMonto extends Dialog {
 
         VerticalLayout layout = new VerticalLayout();
 
-        Span infoLabel = new Span(producto + " - Precio: RD$ " + precioUnitario + " / unidad o lb");
+        // Ej.: "QUESO CHEDA LB - Precio: RD$ 250.00 / LIBRA"
+        String porPresentacion = presentacion == null || presentacion.isBlank()
+                ? "unidad" : presentacion.trim();
+        Span infoLabel = new Span(producto + " - Precio: RD$ "
+                + MONEDA_FORMAT.format(precioUnitario) + " / " + porPresentacion);
         infoLabel.getStyle().set("font-size", "0.85rem").set("color", "var(--lumo-secondary-text-color)");
 
         BigDecimalField montoField = new BigDecimalField("Monto deseado (RD$)");

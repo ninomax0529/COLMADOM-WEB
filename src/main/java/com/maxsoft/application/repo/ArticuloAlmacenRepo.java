@@ -17,6 +17,16 @@ import org.springframework.data.repository.query.Param;
  */
 public interface ArticuloAlmacenRepo extends JpaRepository<ArticuloAlmacen, Integer> {
 
+    /** Existencia del artículo en un almacén (sin bloquear); vacío si no está registrado ahí. */
+    @Query(value = "select existencia from articulo_almacen where articulo = :idArticulo and almacen = :idAlmacen"
+            + " limit 1", nativeQuery = true)
+    Optional<java.math.BigDecimal> existenciaEnAlmacen(@Param("idArticulo") Integer idArticulo,
+            @Param("idAlmacen") Integer idAlmacen);
+
+    /** [código de artículo, existencia] de todos los artículos registrados en un almacén. */
+    @Query("SELECT aa.articulo.codigo, aa.existencia FROM ArticuloAlmacen aa WHERE aa.almacen.codigo = :idAlmacen")
+    java.util.List<Object[]> existenciasDelAlmacen(@Param("idAlmacen") Integer idAlmacen);
+
     /** Existencia total del artículo: suma de todos sus almacenes (unidad base). */
     @Query("SELECT COALESCE(SUM(a.existencia), 0) FROM ArticuloAlmacen a WHERE a.articulo.codigo = :idArticulo")
     java.math.BigDecimal sumarExistencia(@Param("idArticulo") Integer idArticulo);

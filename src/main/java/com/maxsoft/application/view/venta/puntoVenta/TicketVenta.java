@@ -19,7 +19,6 @@ public class TicketVenta {
 
     // DecimalFormat no es thread-safe: una instancia por ticket en lugar de una
     // estática compartida entre todas las sesiones.
-    private final DecimalFormat CANTIDAD_FORMAT = new DecimalFormat("#,##0.##");
     private final DecimalFormat MONEDA_FORMAT = new DecimalFormat("#,##0.00");
     private String id;
     private final int numeroTicket;
@@ -35,6 +34,19 @@ public class TicketVenta {
     private String direccion;
     /** Supervisor que autorizó vender de lotes vencidos en este ticket (null = sin autorización). */
     private String autorizadoLoteVencidoPor;
+    /**
+     * Con cuánto pagó el cliente (cobro) o con cuánto va a pagar (delivery),
+     * para mostrar la devuelta después de facturar. null = exacto / no se dijo.
+     */
+    private BigDecimal efectivoRecibido;
+
+    public BigDecimal getEfectivoRecibido() {
+        return efectivoRecibido;
+    }
+
+    public void setEfectivoRecibido(BigDecimal efectivoRecibido) {
+        this.efectivoRecibido = efectivoRecibido;
+    }
 
     public String getAutorizadoLoteVencidoPor() {
         return autorizadoLoteVencidoPor;

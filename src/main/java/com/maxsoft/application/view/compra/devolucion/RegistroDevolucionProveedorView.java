@@ -309,11 +309,12 @@ public class RegistroDevolucionProveedorView extends VerticalLayout implements B
         }
         new ArticuloDialogoFilteringView(articuloService, articulo -> {
             if (articulo != null) {
-                new EmpaqueSeleccionDialogo(articulo, empaqueService, empaque -> {
+                // Solo presentaciones de compra; una sola → directo, sin diálogo
+                EmpaqueSeleccionDialogo.seleccionarParaCompra(articulo, empaqueService, empaque -> {
                     if (empaque != null) {
                         agregarLinea(articulo, empaque, BigDecimal.ONE, null);
                     }
-                }).open();
+                });
             }
         }).open();
     }

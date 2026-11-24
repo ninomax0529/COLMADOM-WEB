@@ -24,8 +24,62 @@ public class EmpaqueSeleccionDialogo extends Dialog {
 
     private final Grid<ArticuloEmpaque> grid = new Grid<>(ArticuloEmpaque.class, false);
 
-    public EmpaqueSeleccionDialogo(Articulo articulo, 
-                                  ArticuloEmpaqueService articuloEmpaqueService, 
+    /**
+     * Elige la presentación del artículo: si tiene una sola, la usa directo
+     * (sin abrir el diálogo); si tiene varias, abre el diálogo; si no tiene
+     * ninguna, avisa.
+     */
+    public static void seleccionar(Articulo articulo,
+            ArticuloEmpaqueService articuloEmpaqueService,
+            Consumer<ArticuloEmpaque> onSeleccionarListener) {
+        seleccionar(articulo, articuloEmpaqueService, ae -> true, "", onSeleccionarListener);
+    }
+
+    /**
+     * Igual que {@link #seleccionar} pero solo con las presentaciones marcadas
+     * "se compra en" (recepción de mercancía, compras).
+     */
+    public static void seleccionarParaCompra(Articulo articulo,
+            ArticuloEmpaqueService articuloEmpaqueService,
+            Consumer<ArticuloEmpaque> onSeleccionarListener) {
+        seleccionar(articulo, articuloEmpaqueService,
+                ae -> Boolean.TRUE.equals(ae.getSeCompraEn()), " de compra", onSeleccionarListener);
+    }
+
+    private static void seleccionar(Articulo articulo,
+            ArticuloEmpaqueService articuloEmpaqueService,
+            java.util.function.Predicate<ArticuloEmpaque> filtro,
+            String tipo,
+            Consumer<ArticuloEmpaque> onSeleccionarListener) {
+
+        List<ArticuloEmpaque> todos = articuloEmpaqueService.getPorArticulo(articulo.getCodigo());
+        List<ArticuloEmpaque> empaques = todos == null ? List.of() : todos.stream().filter(filtro).toList();
+
+        if (empaques.isEmpty()) {
+            com.vaadin.flow.component.notification.Notification.show(
+                    "El artículo " + articulo.getDescripcion() + " no tiene presentaciones" + tipo
+                    + " configuradas. Márquelas en la ficha del artículo.",
+                    3000, com.vaadin.flow.component.notification.Notification.Position.MIDDLE)
+                    .addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_WARNING);
+            return;
+        }
+
+        if (empaques.size() == 1) {
+            onSeleccionarListener.accept(empaques.get(0));
+            return;
+        }
+
+        new EmpaqueSeleccionDialogo(articulo, empaques, onSeleccionarListener).open();
+    }
+
+    public EmpaqueSeleccionDialogo(Articulo articulo,
+                                  ArticuloEmpaqueService articuloEmpaqueService,
+                                  Consumer<ArticuloEmpaque> onSeleccionarListener) {
+        this(articulo, articuloEmpaqueService.getPorArticulo(articulo.getCodigo()), onSeleccionarListener);
+    }
+
+    private EmpaqueSeleccionDialogo(Articulo articulo,
+                                  List<ArticuloEmpaque> empaques,
                                   Consumer<ArticuloEmpaque> onSeleccionarListener) {
 
         setHeaderTitle("Seleccionar Empaque / Presentación");
@@ -40,7 +94,9 @@ public class EmpaqueSeleccionDialogo extends Dialog {
                 .setHeader("Empaque")
                 .setAutoWidth(true);
 
-        grid.addColumn(ArticuloEmpaque::getUnidadEmpaque)
+        // Unidades base que trae cada empaque (antes mostraba el objeto Unidad)
+        grid.addColumn(ae -> ae.getFactorConversion() != null
+                ? ae.getFactorConversion().stripTrailingZeros().toPlainString() : "1")
                 .setHeader("Cant. x Empaque")
                 .setAutoWidth(true);
 
@@ -49,7 +105,6 @@ public class EmpaqueSeleccionDialogo extends Dialog {
                 .setAutoWidth(true);
 
         // Cargar datos
-        List<ArticuloEmpaque> empaques = articuloEmpaqueService.getPorArticulo(articulo.getCodigo());
         grid.setItems(empaques);
 
         // Selección por doble clic

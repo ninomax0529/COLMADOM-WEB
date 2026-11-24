@@ -356,27 +356,8 @@ public class TarjetaProductoCompo extends VerticalLayout {
      * completo y el precio quedan en el tooltip.
      */
     private static String textoCorto(ArticuloEmpaque ae) {
-
-        String unidad = (ae.getUnidadEmpaque() != null && ae.getUnidadEmpaque().getDescripcion() != null)
-                ? ae.getUnidadEmpaque().getDescripcion().trim().toUpperCase()
-                : "UNIDAD";
-
-        String corto = switch (unidad) {
-            case "UNIDAD", "UNIDADES" -> "UND";
-            case "PAQUETE", "PAQUETES" -> "PAQ";
-            case "FARDO", "FALDO" -> "FDO";
-            case "CAJITA" -> "CJTA";
-            case "DOCENA" -> "DOC";
-            case "LIBRA", "LIBRAS" -> "LB";
-            case "GALON", "GALÓN" -> "GAL";
-            default -> unidad.length() > 5 ? unidad.substring(0, 4) : unidad;
-        };
-
-        BigDecimal factor = ae.getFactorConversion();
-        if (factor != null && factor.compareTo(BigDecimal.ONE) != 0) {
-            return corto + "×" + factor.stripTrailingZeros().toPlainString();
-        }
-        return corto;
+        // La misma abreviatura que la columna "Unidad" del ticket
+        return com.maxsoft.application.util.LineaPosUtil.presentacionCorta(ae);
     }
 
     /** Presentación elegida en este momento. */

@@ -1,6 +1,7 @@
 package com.maxsoft.application.servicio.impl.inventario;
 
 import com.maxsoft.application.modelo.Articulo;
+import com.maxsoft.application.repo.ArticuloAlmacenRepo;
 import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
 import java.math.BigDecimal;
@@ -16,9 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class InventarioServiceImpl implements InventarioService {
 
     private final ArticuloRepo articuloRepo;
+    private final ArticuloAlmacenRepo articuloAlmacenRepo;
 
-    public InventarioServiceImpl(ArticuloRepo articuloRepo) {
+    public InventarioServiceImpl(ArticuloRepo articuloRepo, ArticuloAlmacenRepo articuloAlmacenRepo) {
         this.articuloRepo = articuloRepo;
+        this.articuloAlmacenRepo = articuloAlmacenRepo;
     }
 
     @Override
@@ -56,13 +59,18 @@ public class InventarioServiceImpl implements InventarioService {
     @Transactional(readOnly = true)
     public java.util.Map<Integer, BigDecimal> existenciasPorArticulo() {
         java.util.Map<Integer, BigDecimal> mapa = new java.util.HashMap<>();
-        for (Object[] fila : articuloRepo.obtenerExistencias()) {
+        for (Object[] fila : articuloAlmacenRepo.existenciasDelAlmacen(ALMACEN_VENTA)) {
             mapa.put((Integer) fila[0], fila[1] != null ? (BigDecimal) fila[1] : BigDecimal.ZERO);
         }
         return mapa;
     }
 
+    /**
+     * Existencia en el almacén de venta (no la total del artículo, que suma
+     * también el almacén principal y no se puede vender desde el POS).
+     */
     private BigDecimal existenciaDe(Articulo articulo) {
-        return articulo.getExistencia() != null ? articulo.getExistencia() : BigDecimal.ZERO;
+        return articuloAlmacenRepo.existenciaEnAlmacen(articulo.getCodigo(), ALMACEN_VENTA)
+                .orElse(BigDecimal.ZERO);
     }
 }

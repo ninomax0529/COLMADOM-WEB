@@ -25,6 +25,15 @@ public class PanelCarritos extends VerticalLayout {
 
     private final HorizontalLayout acciones;
 
+    /**
+     * Resumen de la última venta facturada (número, total y devuelta). Queda
+     * visible hasta la siguiente venta: al cerrar el diálogo de cobro la
+     * devuelta ya no se veía.
+     */
+    private final com.vaadin.flow.component.html.Div ultimaVenta = new com.vaadin.flow.component.html.Div();
+    private final com.vaadin.flow.component.html.Span ultimaVentaResumen = new com.vaadin.flow.component.html.Span();
+    private final com.vaadin.flow.component.html.Span ultimaVentaDevuelta = new com.vaadin.flow.component.html.Span();
+
     @FunctionalInterface
     public interface AccionCambioSeleccionTicket {
         void ejecutar(TicketVenta ticketSeleccionado);
@@ -138,7 +147,25 @@ public class PanelCarritos extends VerticalLayout {
             headerLayout.add(new H3("Ventas Abiertas"));
         }
 
-        headerLayout.add(acciones);
+        // Última venta a la izquierda (espacio libre); los botones a la derecha
+        ultimaVenta.getStyle()
+                .set("display", "flex")
+                .set("flex-wrap", "wrap")
+                .set("align-items", "baseline")
+                .set("gap", "0 0.6rem")
+                .set("padding", "0.3rem 0.7rem")
+                .set("border-radius", "8px")
+                .set("background", "var(--lumo-success-color-10pct)")
+                .set("border", "1px solid var(--lumo-success-color-50pct)")
+                .set("color", "var(--lumo-success-text-color)");
+        ultimaVentaResumen.getStyle().set("font-size", "0.85rem");
+        ultimaVentaDevuelta.getStyle().set("font-size", "1.15rem").set("font-weight", "700");
+        ultimaVenta.add(ultimaVentaResumen, ultimaVentaDevuelta);
+        ultimaVenta.setVisible(false);
+
+        acciones.getStyle().set("margin-left", "auto");
+        headerLayout.setWrap(true);
+        headerLayout.add(ultimaVenta, acciones);
 
         // =========================================================
         // TABS
@@ -189,6 +216,20 @@ public class PanelCarritos extends VerticalLayout {
                 1,
                 ticketTabSheet
         );
+    }
+
+    /**
+     * Muestra la última venta facturada hasta la siguiente.
+     *
+     * @param resumen  ej. "✔ #145 · Total RD$ 435.00 · Pagó RD$ 500.00"
+     * @param destacado lo que el cajero tiene que ver de un vistazo (ej.
+     *                  "Devuelta RD$ 65.00"); null si no aplica
+     */
+    public void mostrarUltimaVenta(String resumen, String destacado) {
+        ultimaVentaResumen.setText(resumen);
+        ultimaVentaDevuelta.setText(destacado != null ? destacado : "");
+        ultimaVentaDevuelta.setVisible(destacado != null);
+        ultimaVenta.setVisible(true);
     }
 
     /**

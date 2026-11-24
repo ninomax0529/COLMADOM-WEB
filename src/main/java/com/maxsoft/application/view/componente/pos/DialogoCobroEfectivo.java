@@ -292,6 +292,12 @@ public class DialogoCobroEfectivo extends Dialog {
             procesando = true;
             confirmButton.setEnabled(false);
 
+            // Para mostrar la devuelta en el POS después de cerrar este diálogo
+            // (en delivery no se cobra ahora: lo cobra el motorista)
+            Double recibido = cashGivenField.getValue();
+            ticket.setEfectivoRecibido(!esDeliveryState[0] && recibido != null
+                    ? BigDecimal.valueOf(recibido) : null);
+
             if (onGuardar != null) {
                 onGuardar.ejecutar(ticket);
             }

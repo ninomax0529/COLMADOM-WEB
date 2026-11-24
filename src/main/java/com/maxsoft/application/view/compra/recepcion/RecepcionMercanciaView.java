@@ -496,11 +496,13 @@ public class RecepcionMercanciaView extends VerticalLayout {
         }
         new ArticuloDialogoFilteringView(articuloService, articulo -> {
             if (articulo != null) {
-                new EmpaqueSeleccionDialogo(articulo, articuloEmpaqueService, empaque -> {
+                // Solo presentaciones de compra; si hay una sola, se agrega
+                // directo, sin el diálogo
+                EmpaqueSeleccionDialogo.seleccionarParaCompra(articulo, articuloEmpaqueService, empaque -> {
                     if (empaque != null) {
                         agregarLinea(articulo, empaque);
                     }
-                }).open();
+                });
             }
         }).open();
     }

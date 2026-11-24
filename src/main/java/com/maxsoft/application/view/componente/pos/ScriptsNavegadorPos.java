@@ -7,8 +7,8 @@ import com.vaadin.flow.dom.Element;
  * buscador y "clic en zona vacía devuelve el foco al buscador".
  *
  * <p>Los atajos llaman a métodos {@code @ClientCallable} de la vista:
- * atajoNuevaVenta, atajoRenombrarTicket, atajoCancelarVenta, atajoAnularFactura
- * y atajoSeleccionarTicket(int).</p>
+ * atajoNuevaVenta, atajoRenombrarTicket, atajoCancelarVenta, atajoAnularFactura,
+ * atajoReimprimir y atajoSeleccionarTicket(int).</p>
  */
 public final class ScriptsNavegadorPos {
 
@@ -29,6 +29,7 @@ public final class ScriptsNavegadorPos {
      * <li>Alt+R: cambiar nombre de la venta activa</li>
      * <li>Alt+C: cancelar la venta activa</li>
      * <li>Alt+X: anular factura</li>
+     * <li>Alt+P: reimprimir la última factura</li>
      * <li>Alt+1 ... Alt+9: cambiar de venta</li>
      * </ul>
      *
@@ -111,6 +112,7 @@ public final class ScriptsNavegadorPos {
                         case 'KeyR': accion = () => vista.$server.atajoRenombrarTicket(); break;
                         case 'KeyC': accion = () => vista.$server.atajoCancelarVenta(); break;
                         case 'KeyX': accion = () => vista.$server.atajoAnularFactura(); break;
+                        case 'KeyP': accion = () => vista.$server.atajoReimprimir(); break;
                         default: {
                             const m = /^(Digit|Numpad)([1-9])$/.exec(e.code);
                             if (m) {
@@ -240,6 +242,67 @@ public final class ScriptsNavegadorPos {
                 """,
                 vista
         );
+    }
+
+    /**
+     * Cantidad antes del producto: en el buscador se escribe "50" y luego "*"
+     * (teclado numérico o Shift+8); se llama a
+     * {@code fijarCantidadPendiente(String)} de la vista y el buscador queda
+     * vacío para escanear o buscar el producto, que entra con esa cantidad.
+     * Esc en el buscador con una cantidad pendiente llama a
+     * {@code cancelarCantidadPendiente()}.
+     *
+     * <p>Se atiende en fase de captura y se detiene el evento: así el "*" no
+     * llega al atajo de la vista que abre "Editar cantidad". Si el buscador no
+     * tiene solo un número, "*" sigue funcionando como antes.</p>
+     */
+    public static void instalarCantidadConAsterisco(Element vista, Element buscador) {
+        vista.executeJs(
+                """
+                const vista = $0;
+                const buscador = $1;
+                if (vista.__cantidadAsteriscoInstalada) { return; }
+                vista.__cantidadAsteriscoInstalada = true;
+
+                const manejador = e => {
+                    if (!vista.isConnected) {
+                        document.removeEventListener('keydown', manejador, true);
+                        vista.__cantidadAsteriscoInstalada = false;
+                        return;
+                    }
+                    if (!e.composedPath().includes(buscador)) { return; }
+
+                    const input = buscador.inputElement;
+                    const texto = input ? input.value.trim() : '';
+
+                    if (e.key === 'Escape' && vista.__cantidadPendiente && texto === '') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        vista.$server.cancelarCantidadPendiente();
+                        return;
+                    }
+
+                    if (e.key !== '*' || e.altKey || e.ctrlKey || e.metaKey) { return; }
+                    if (!/^\\d{1,5}([.,]\\d{1,3})?$/.test(texto)) { return; }
+
+                    e.preventDefault();
+                    e.stopPropagation();
+                    buscador.opened = false;
+                    buscador.filter = '';
+                    input.value = '';
+                    vista.$server.fijarCantidadPendiente(texto.replace(',', '.'));
+                };
+
+                document.addEventListener('keydown', manejador, true);
+                """,
+                vista,
+                buscador
+        );
+    }
+
+    /** Indica al navegador si hay una cantidad esperando producto (para Esc). */
+    public static void marcarCantidadPendiente(Element vista, boolean pendiente) {
+        vista.executeJs("$0.__cantidadPendiente = $1;", vista, pendiente);
     }
 
     /** Indica al navegador si hay ventas con productos (activa el bloqueo de recarga). */

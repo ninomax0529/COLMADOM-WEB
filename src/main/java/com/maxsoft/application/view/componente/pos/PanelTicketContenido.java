@@ -182,14 +182,27 @@ public class PanelTicketContenido extends VerticalLayout {
         BigDecimal descuento = BigDecimal.ZERO;
         BigDecimal itbis = BigDecimal.ZERO;
 
+        // Artículos para contar la funda: las unidades, paquetes, cajas...
+        // suman su cantidad; lo pesado (libra) cuenta 1 por línea.
+        BigDecimal articulos = BigDecimal.ZERO;
+
         for (DetalleFacturaDeVenta d : items) {
             subTotal = subTotal.add(valor(d.getSubTotal()));
             descuento = descuento.add(valor(d.getTotalDescuento()));
             itbis = itbis.add(valor(d.getTotalItbis()));
+            articulos = articulos.add(
+                    com.maxsoft.application.util.LineaPosUtil.permiteDecimales(d.getArticuloEmpaque())
+                    ? BigDecimal.ONE
+                    : valor(d.getCantidad()));
         }
 
         StringBuilder sb = new StringBuilder();
         sb.append(lineas).append(lineas == 1 ? " línea" : " líneas");
+        if (lineas > 0) {
+            String cant = articulos.stripTrailingZeros().toPlainString();
+            sb.append("  ·  ").append(cant)
+                    .append(articulos.compareTo(BigDecimal.ONE) == 0 ? " artículo" : " artículos");
+        }
         sb.append("  ·  Subtotal RD$ ").append(FORMATO_MONEDA.format(subTotal));
         if (descuento.signum() > 0) {
             sb.append("  ·  Desc. RD$ ").append(FORMATO_MONEDA.format(descuento));

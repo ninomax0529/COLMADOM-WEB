@@ -14,6 +14,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.BigDecimalField;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 
@@ -39,8 +40,10 @@ public class DialogoEditarCantidad extends Dialog {
 
         BigDecimalField qtyField = new BigDecimalField("Nueva cantidad (Unidades / Libras)");
         qtyField.setValue(item.getCantidad());
-        qtyField.getValue().add(BigDecimal.valueOf(0.25));
-//        qtyField..setStep(0.25); // Permite incrementos de cuarto de libra (0.25)
+        // El valor llega al servidor mientras se escribe: con el modo por
+        // defecto solo llegaba al perder el foco y, al escribir "3" + Enter,
+        // la línea podía quedarse con la cantidad anterior.
+        qtyField.setValueChangeMode(ValueChangeMode.EAGER);
         qtyField.setClearButtonVisible(true);
         qtyField.setWidthFull();
 
@@ -69,6 +72,17 @@ public class DialogoEditarCantidad extends Dialog {
 
         saveBtn.addClickListener(e -> {
             BigDecimal nuevaQty = qtyField.getValue();
+            // Decimales (2.5) solo en libra / pesado / fraccionado
+            if (nuevaQty != null && nuevaQty.signum() > 0
+                    && com.maxsoft.application.util.LineaPosUtil.tieneDecimales(nuevaQty)
+                    && !com.maxsoft.application.util.LineaPosUtil.permiteDecimales(item.getArticuloEmpaque())) {
+                com.vaadin.flow.component.notification.Notification.show(
+                        item.getDescripcionArticulo() + " se vende por unidad: escriba una cantidad entera.",
+                        3000, com.vaadin.flow.component.notification.Notification.Position.MIDDLE)
+                        .addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_WARNING);
+                qtyField.focus();
+                return;
+            }
             if (nuevaQty != null && nuevaQty.doubleValue() > 0) {
                 item.setCantidad(nuevaQty);
                 ticket.updateUI();

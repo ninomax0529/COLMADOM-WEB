@@ -139,6 +139,8 @@ public class DialogoDelivery extends Dialog {
         billetes.setWidthFull();
         billetes.getStyle().set("display", "flex").set("flex-wrap", "wrap").set("gap", "var(--lumo-space-xs)");
         List<Button> botonesBillete = new ArrayList<>();
+        // Sin billete elegido todavía (no arrastrar el de un intento anterior)
+        ticket.setEfectivoRecibido(null);
         List<BigDecimal> montos = DialogoCobroEfectivo.montosRapidos(total);
         for (int i = 0; i < montos.size(); i++) {
             BigDecimal monto = montos.get(i);
@@ -148,6 +150,8 @@ public class DialogoDelivery extends Dialog {
             b.addClickListener(e -> {
                 botonesBillete.forEach(x -> x.removeThemeVariants(ButtonVariant.LUMO_PRIMARY));
                 b.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+                // Se muestra en el POS después de enviar ("Llevar devuelta")
+                ticket.setEfectivoRecibido(monto);
                 BigDecimal devuelta = monto.subtract(total);
                 lblDevuelta.setText(devuelta.signum() > 0
                         ? "Mandar devuelta: RD$ " + MONEDA.format(devuelta)

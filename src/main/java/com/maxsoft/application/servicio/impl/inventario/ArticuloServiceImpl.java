@@ -43,7 +43,23 @@ public class ArticuloServiceImpl implements ArticuloService {
     @Override
     public Articulo guardar(Articulo art) {
 
+        if (art != null) {
+            art.setDescripcion(normalizarNombre(art.getDescripcion()));
+        }
         return repo.save(art);
+    }
+
+    /**
+     * Nombre de producto uniforme: en MAYÚSCULAS, sin espacios al inicio ni al
+     * final y sin espacios repetidos ("leche rica  lista " → "LECHE RICA
+     * LISTA"). Así se ve igual en el POS y la búsqueda no depende de cómo se
+     * escribió.
+     */
+    public static String normalizarNombre(String nombre) {
+        if (nombre == null) {
+            return null;
+        }
+        return nombre.trim().replaceAll("\\s+", " ").toUpperCase(new java.util.Locale("es", "DO"));
     }
 
     @Override
@@ -92,6 +108,12 @@ public class ArticuloServiceImpl implements ArticuloService {
         }
 
         Articulo articulo = dto.getArticulo();
+        articulo.setDescripcion(normalizarNombre(articulo.getDescripcion()));
+        // Las presentaciones guardan una copia del nombre (es la que muestra el
+        // POS): se mantiene igual al nombre del artículo
+        for (ArticuloEmpaque emp : dto.getEmpaques()) {
+            emp.setNombreArticulo(articulo.getDescripcion());
+        }
         articulo.setUnidadBase(unidadBase);
         articulo.setNombreUnidadBase(unidadBase.getDescripcion());
 

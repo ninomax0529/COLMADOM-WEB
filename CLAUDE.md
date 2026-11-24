@@ -30,7 +30,7 @@ COLMADOM-WEB es un sistema web de punto de venta / ERP para un colmado, construi
 ./mvnw test -Dtest=NombreClase#metodo   # una sola prueba
 ```
 
-En Windows usar `mvnw.cmd`. Pruebas en `src/test/java/.../venta/` (`CalculoFacturaUtilTest`, `ItbisIncluidoTest`, `LineaPosUtilTest`, `MontosRapidosTest`): son unitarias y no usan BD, así que el build de NetBeans (`mvn install`) las corre sin la app ni MySQL. Las pruebas `@SpringBootTest` contra la BD real se eliminaron porque escribían en `db_colmadom` y rompían el build; no volver a agregar pruebas que escriban en la BD real.
+En Windows usar `mvnw.cmd`. Pruebas en `src/test/java/.../venta/` (`CalculoFacturaUtilTest`, `ItbisIncluidoTest`, `LineaPosUtilTest`, `MontosRapidosTest`, `NombreArticuloTest`): son unitarias y no usan BD, así que el build de NetBeans (`mvn install`) las corre sin la app ni MySQL. Las pruebas `@SpringBootTest` contra la BD real se eliminaron porque escribían en `db_colmadom` y rompían el build; no volver a agregar pruebas que escriban en la BD real.
 
 ## Base de datos
 

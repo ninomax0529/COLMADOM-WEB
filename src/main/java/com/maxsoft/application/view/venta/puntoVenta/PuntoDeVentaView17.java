@@ -139,8 +139,17 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     // enfocarBuscador() no tenía ningún efecto.
     private ComboBox<ArticuloEmpaque> searchBox;
 
+    // Cantidad escrita antes del producto ("50*"): el siguiente producto que
+    // se escanee, busque o toque entra con ella. null = 1 (lo normal).
+    private BigDecimal cantidadPendiente;
+
     // Panel izquierdo (catálogo y botones de caja)
     private PanelProductos panelProductos;
+
+    // Panel derecho (ventas abiertas); muestra la última venta facturada
+    private PanelCarritos panelCarritos;
+
+    private final java.text.DecimalFormat formatoMoneda = new java.text.DecimalFormat("#,##0.00");
 
     private final List<Cliente> libretaClientes
             = new ArrayList<>();
@@ -212,7 +221,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 Key.NUMPAD_MULTIPLY
         );
 
-        // Los atajos Alt+tecla (N, R, C, X, 1..9) se instalan en el navegador
+        // Los atajos Alt+tecla (N, R, C, X, P, 1..9) se instalan en el navegador
         // desde onAttach(): ver instalarAtajosAlt().
         // F2 (cobrar) y F3 (fiar) son click-shortcuts de los botones de cada
         // ticket (PanelTicketContenido). Antes F3 también se registraba aquí y
@@ -269,6 +278,58 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         btnAnular.setTabIndex(-1);
 
         return btnAnular;
+    }
+
+    /**
+     * Reimprime la última factura (papel trabado, se acabó el rollo, el
+     * cliente pide otra copia) sin tener que buscarla en Consultas.
+     */
+    private Button crearBotonReimprimir() {
+
+        Button btn = new Button(
+                "Reimprimir [Alt+P]",
+                VaadinIcon.PRINT.create(),
+                event -> reimprimirUltimaFactura()
+        );
+
+        btn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        btn.setTooltipText("Volver a imprimir la última factura");
+        // Fuera del orden de tabulación, igual que "Anular"
+        btn.setTabIndex(-1);
+
+        return btn;
+    }
+
+    private void reimprimirUltimaFactura() {
+
+        if (ultimaFacturaImpresa == null) {
+
+            ClaseUtil.mostrarNotificacion(
+                    "Todavía no se ha impreso ninguna factura en esta pantalla.",
+                    NotificationVariant.LUMO_WARNING
+            );
+
+            enfocarBuscador();
+
+            return;
+        }
+
+        ClaseUtil.mostrarNotificacion(
+                "Reimprimiendo factura #" + ultimaFacturaImpresa,
+                NotificationVariant.LUMO_SUCCESS, 2000
+        );
+
+        imprimir(ultimaFacturaImpresa);
+    }
+
+    @ClientCallable
+    public void atajoReimprimir() {
+
+        if (!cajaAbierta) {
+            return;
+        }
+
+        reimprimirUltimaFactura();
     }
 
     private void configurarEventos() {
@@ -381,6 +442,10 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         ScriptsNavegadorPos.instalarAvisoOtraPestana(getElement());
 
+        if (searchBox != null) {
+            ScriptsNavegadorPos.instalarCantidadConAsterisco(getElement(), searchBox.getElement());
+        }
+
         salidaConfirmada = false;
 
         // Tanto en el primer attach como al volver a la vista se consulta la
@@ -478,7 +543,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     // ============================================================
     // ATAJOS DE TECLADO
     // ============================================================
-    /** Atajos Alt+tecla (N, R, C, X, 1..9); ver ScriptsNavegadorPos. */
+    /** Atajos Alt+tecla (N, R, C, X, P, 1..9); ver ScriptsNavegadorPos. */
     private void instalarAtajosAlt() {
 
         ScriptsNavegadorPos.instalarAtajosAlt(getElement());
@@ -613,7 +678,14 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         PanelProductos panel = new PanelProductos(
                 articuloEmpaqueService,
                 this::agregarAlTicketActivo,
-                this::agregarAlTicketActivo,
+                // Tarjeta: con "50*" pendiente, el toque entra con esa cantidad
+                (articulo, cantidad) -> {
+                    if (cantidadPendiente != null && BigDecimal.ONE.compareTo(cantidad) == 0) {
+                        agregarAlTicketActivo(articulo);
+                    } else {
+                        agregarAlTicketActivo(articulo, cantidad);
+                    }
+                },
                 this::abrirDialogoVentaPorMonto,
                 this::abrirDialogoAperturaCaja,
                 this::abrirDialogoCierreCaja,
@@ -653,7 +725,11 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                 }
         );
 
+        // agregarAccion pone cada uno al inicio: quedan Reimprimir, Anular, ...
         panel.agregarAccion(crearBotonAnular());
+        panel.agregarAccion(crearBotonReimprimir());
+
+        this.panelCarritos = panel;
 
         return panel;
     }
@@ -663,9 +739,75 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     // ============================================================
     private void agregarAlTicketActivo(ArticuloEmpaque articulo) {
 
-        // Elegir un producto (buscador o toque en la tarjeta) agrega 1 unidad.
-        // Antes se enviaba 0 y la validación siempre rechazaba la operación.
-        agregarAlTicketActivo(articulo, BigDecimal.ONE);
+        // Elegir un producto (buscador o toque en la tarjeta) agrega 1 unidad,
+        // o la cantidad escrita antes con "50*".
+        if (cantidadPendiente == null || articulo == null) {
+            agregarAlTicketActivo(articulo, BigDecimal.ONE);
+            return;
+        }
+
+        BigDecimal cantidad = cantidadPendiente;
+        // Se usa una sola vez, aunque el producto no se pueda agregar
+        quitarCantidadPendiente();
+
+        if (LineaPosUtil.tieneDecimales(cantidad) && !LineaPosUtil.permiteDecimales(articulo)) {
+            ClaseUtil.mostrarNotificacion(
+                    articulo.getNombreArticulo() + " se vende por unidad: escriba una cantidad entera.",
+                    NotificationVariant.LUMO_WARNING
+            );
+            enfocarBuscador();
+            return;
+        }
+
+        agregarAlTicketActivo(articulo, cantidad);
+    }
+
+    /**
+     * "50*" en el buscador (ver ScriptsNavegadorPos.instalarCantidadConAsterisco):
+     * el siguiente producto entra con esa cantidad en vez de 1.
+     */
+    @ClientCallable
+    public void fijarCantidadPendiente(String texto) {
+
+        BigDecimal cantidad;
+        try {
+            cantidad = new BigDecimal(texto.trim());
+        } catch (RuntimeException e) {
+            return;
+        }
+
+        if (cantidad.signum() <= 0) {
+            ClaseUtil.mostrarNotificacion(
+                    "La cantidad debe ser mayor que cero.",
+                    NotificationVariant.LUMO_WARNING
+            );
+            return;
+        }
+
+        cantidadPendiente = cantidad;
+
+        // Se ve dentro del buscador, donde está mirando el cajero
+        Span indicador = new Span(cantidad.stripTrailingZeros().toPlainString() + " ×");
+        indicador.getElement().getThemeList().add("badge primary");
+        indicador.setTitle("El próximo producto entra con esta cantidad (Esc cancela)");
+        searchBox.setPrefixComponent(indicador);
+        ScriptsNavegadorPos.marcarCantidadPendiente(getElement(), true);
+    }
+
+    /** Esc en el buscador vacío con una cantidad pendiente. */
+    @ClientCallable
+    public void cancelarCantidadPendiente() {
+        quitarCantidadPendiente();
+    }
+
+    private void quitarCantidadPendiente() {
+
+        if (cantidadPendiente == null) {
+            return;
+        }
+        cantidadPendiente = null;
+        searchBox.setPrefixComponent(VaadinIcon.SEARCH.create());
+        ScriptsNavegadorPos.marcarCantidadPendiente(getElement(), false);
     }
 
     /**
@@ -1068,6 +1210,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                                 return;
                             }
 
+                            mostrarUltimaVenta(factura, ticket);
+
                             cerrarTicketFacturado(ticket);
 
                             ClaseUtil.mostrarNotificacion(
@@ -1134,6 +1278,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                             if (factura != null) {
 
                                 ventaGuardada[0] = true;
+
+                                mostrarUltimaVenta(factura, ticketAGuardar);
 
                                 imprimir(
                                         factura.getCodigo()
@@ -1233,10 +1379,56 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         }
     }
 
+    /**
+     * Resumen de la venta recién facturada en el panel derecho, hasta la
+     * siguiente: el cajero ve la devuelta aunque ya se cerró el diálogo.
+     * Se llama antes de cerrar el ticket (todavía tiene los datos).
+     */
+    private void mostrarUltimaVenta(FacturaDeVenta factura, TicketVenta ticket) {
+
+        if (panelCarritos == null || factura == null || ticket == null) {
+            return;
+        }
+
+        BigDecimal total = ticket.getTotalAmount().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal recibido = ticket.getEfectivoRecibido();
+        boolean hayDevuelta = recibido != null && recibido.compareTo(total) > 0;
+        String numero = "✔ #" + factura.getCodigo();
+
+        String resumen;
+        String destacado = null;
+
+        if (ticket.getDelivery() != null) {
+            resumen = numero + " · Delivery con " + ticket.getDelivery().getNombre()
+                    + " · RD$ " + formatoMoneda.format(total);
+            if (hayDevuelta) {
+                destacado = "Llevar devuelta RD$ " + formatoMoneda.format(recibido.subtract(total));
+            }
+        } else if (ticket.getTipoVenta() != null
+                && Integer.valueOf(TIPO_VENTA_LIBRETA).equals(ticket.getTipoVenta().getCodigo())) {
+            resumen = numero + " · Fiado a " + ticket.getNombreCliente();
+            destacado = "RD$ " + formatoMoneda.format(total);
+        } else if (hayDevuelta) {
+            resumen = numero + " · Total RD$ " + formatoMoneda.format(total)
+                    + " · Pagó RD$ " + formatoMoneda.format(recibido);
+            destacado = "Devuelta RD$ " + formatoMoneda.format(recibido.subtract(total));
+        } else {
+            resumen = numero + " · Total RD$ " + formatoMoneda.format(total);
+            destacado = "Pagó exacto";
+        }
+
+        panelCarritos.mostrarUltimaVenta(resumen, destacado);
+    }
+
     // ============================================================
     // IMPRESIÓN
     // ============================================================
+    /** Última factura impresa en esta pantalla (para "Reimprimir"); null = ninguna. */
+    private Integer ultimaFacturaImpresa;
+
     private void imprimir(int facturaCodigo) {
+
+        ultimaFacturaImpresa = facturaCodigo;
 
         // El buscador recupera el foco cuando el navegador termina de
         // imprimir (el iframe de impresión se lo quitaba)
@@ -1456,6 +1648,7 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         ticket.setDelivery(null);
         ticket.setTipoVenta(null);
         ticket.setEstadoFactura(null);
+        ticket.setEfectivoRecibido(null);
 
         // Un nombre como "29-5" era de esa venta (dirección del delivery): la
         // siguiente venta en esta pestaña vuelve al nombre genérico "Venta N"
@@ -1563,6 +1756,10 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         new DialogoVentaPorMonto(
                 articulo.getNombreArticulo(),
+                // Presentación del precio: LIBRA, UNIDAD, PAQUETE...
+                articulo.getUnidadEmpaque() != null
+                ? articulo.getUnidadEmpaque().getDescripcion()
+                : articulo.getNombreEmpaque(),
                 precioUnitario,
                 (monto, cantidadCalculada) -> {
 
@@ -1580,6 +1777,22 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                                     ESCALA_CALCULO,
                                     RoundingMode.HALF_UP
                             );
+
+                    // Producto por unidad: el monto debe dar unidades enteras
+                    // (RD$ 75 de un refresco de RD$ 50 serían 1.5 refrescos)
+                    if (LineaPosUtil.tieneDecimales(cantidad)
+                    && !LineaPosUtil.permiteDecimales(articulo)) {
+
+                        ClaseUtil.mostrarNotificacion(
+                                articulo.getNombreArticulo() + " se vende por unidad: con RD$ "
+                                + aDecimal(monto).stripTrailingZeros().toPlainString()
+                                + " no salen unidades completas (precio RD$ "
+                                + precioUnitario.setScale(2, RoundingMode.HALF_UP).toPlainString() + ").",
+                                NotificationVariant.LUMO_WARNING
+                        );
+                        enfocarBuscador();
+                        return;
+                    }
 
                     if (cantidad.signum() > 0) {
 
@@ -1811,6 +2024,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
             return;
         }
+
+        mostrarUltimaVenta(factura, ticket);
 
         cerrarTicketFacturado(ticket);
 

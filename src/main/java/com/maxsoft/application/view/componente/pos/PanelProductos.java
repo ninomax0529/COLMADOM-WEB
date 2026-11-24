@@ -120,9 +120,14 @@ public class PanelProductos extends VerticalLayout {
         this.onAgregarCantidadAlTicketActivo = onAgregarCantidadAlTicketActivo;
         this.onAbrirVentaPorMonto = onAbrirVentaPorMonto;
 
-        // Una sola consulta al servicio para el buscador y para el catálogo
+        // Una sola consulta al servicio para el buscador y para el catálogo.
+        // Solo los artículos registrados en el almacén de venta (mostrador):
+        // los que están solo en el almacén principal no se venden en el POS.
         this.catalogo = ordenarPorMasVendidos(
-                articuloServicel.getArticuloEmpaqueParaVenta(),
+                articuloServicel.getArticuloEmpaqueParaVenta().stream()
+                        .filter(ae -> ae.getArticulo() != null
+                        && existencias.containsKey(ae.getArticulo().getCodigo()))
+                        .toList(),
                 articuloServicel.vecesVendidoUltimosDias(DIAS_MAS_VENDIDOS));
         this.catalogoFiltrado = agruparPorArticulo(catalogo);
 
@@ -255,7 +260,7 @@ public class PanelProductos extends VerticalLayout {
         // nombre, la presentación o el código.
         combo.setItems((empaque, texto) -> coincide(empaque, texto), catalogo);
 
-        combo.setPlaceholder("Buscar producto o escanear código [F4]");
+        combo.setPlaceholder("Buscar producto o escanear código [F4]  ·  Cantidad: 50* y escanee");
         combo.setPrefixComponent(VaadinIcon.SEARCH.create());
         combo.setWidthFull();
         combo.setClearButtonVisible(true);
@@ -398,7 +403,7 @@ public class PanelProductos extends VerticalLayout {
      * orden de la lista: el artículo queda donde aparece su presentación más
      * vendida.
      */
-    private static List<List<ArticuloEmpaque>> agruparPorArticulo(List<ArticuloEmpaque> lista) {
+    private List<List<ArticuloEmpaque>> agruparPorArticulo(List<ArticuloEmpaque> lista) {
         Map<Object, List<ArticuloEmpaque>> grupos = new LinkedHashMap<>();
         for (ArticuloEmpaque ae : lista) {
             Object clave = (ae.getArticulo() != null && ae.getArticulo().getCodigo() != null)
@@ -406,7 +411,23 @@ public class PanelProductos extends VerticalLayout {
                     : "empaque-" + ae.getCodigo();
             grupos.computeIfAbsent(clave, k -> new ArrayList<>()).add(ae);
         }
-        return new ArrayList<>(grupos.values());
+        List<List<ArticuloEmpaque>> resultado = new ArrayList<>(grupos.values());
+        // Los agotados al final: primero lo que se puede vender. El orden es
+        // estable, así que dentro de cada bloque sigue el de más vendidos.
+        resultado.sort(Comparator.comparing(grupo -> estaAgotado(grupo.get(0))));
+        return resultado;
+    }
+
+    /**
+     * Misma regla que la etiqueta "Agotado" de la tarjeta: artículo
+     * inventariable sin existencia en el almacén de venta.
+     */
+    private boolean estaAgotado(ArticuloEmpaque ae) {
+        if (ae.getArticulo() == null || !ae.getArticulo().getInventariable()) {
+            return false;
+        }
+        BigDecimal existencia = existencias.get(ae.getArticulo().getCodigo());
+        return existencia == null || existencia.signum() <= 0;
     }
 
     private static Integer categoriaDe(ArticuloEmpaque ae) {
