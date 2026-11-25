@@ -115,7 +115,8 @@ public class ClasificacionAbcServiceImpl implements ClasificacionAbcService {
     public List<ArticuloPorReponer> porReponer(boolean soloClaseA) {
         List<ArticuloPorReponer> lista = new ArrayList<>();
         for (Object[] f : abcRepo.articulosQueVenden()) {
-            String clase = (String) f[2];
+            // clase es CHAR(1): la consulta nativa la devuelve como Character
+            String clase = f[2] != null ? f[2].toString() : null;
             if (soloClaseA && !ClasificacionAbcUtil.CLASE_A.equals(clase)) {
                 continue;
             }
@@ -126,7 +127,7 @@ public class ClasificacionAbcServiceImpl implements ClasificacionAbcService {
             if (!ClasificacionAbcUtil.porReponer(existencia, demanda, minimo)) {
                 continue;
             }
-            lista.add(new ArticuloPorReponer(((Number) f[0]).intValue(), (String) f[1], clase, existencia,
+            lista.add(new ArticuloPorReponer(((Number) f[0]).intValue(), f[1] != null ? f[1].toString() : null, clase, existencia,
                     ClasificacionAbcUtil.diasCobertura(existencia, demanda), minimo, maximo,
                     ClasificacionAbcUtil.cantidadAPedir(existencia, maximo)));
         }

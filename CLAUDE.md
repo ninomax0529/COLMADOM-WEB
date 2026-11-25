@@ -30,7 +30,7 @@ COLMADOM-WEB es un sistema web de punto de venta / ERP para un colmado, construi
 ./mvnw test -Dtest=NombreClase#metodo   # una sola prueba
 ```
 
-En Windows usar `mvnw.cmd`. Pruebas en `src/test/java/.../venta/` (`CalculoFacturaUtilTest`, `ItbisIncluidoTest`, `LineaPosUtilTest`, `MontosRapidosTest`, `NombreArticuloTest`) y `.../inventario/` (`ClasificacionAbcUtilTest`): son unitarias y no usan BD, así que el build de NetBeans (`mvn install`) las corre sin la app ni MySQL. Las pruebas `@SpringBootTest` contra la BD real se eliminaron porque escribían en `db_colmadom` y rompían el build; no volver a agregar pruebas que escriban en la BD real.
+En Windows usar `mvnw.cmd`. Pruebas en `src/test/java/.../venta/` (`CalculoFacturaUtilTest`, `ItbisIncluidoTest`, `LineaPosUtilTest`, `MontosRapidosTest`, `NombreArticuloTest`) y `.../inventario/` (`ClasificacionAbcUtilTest`, `ConteoCiclicoUtilTest`): son unitarias y no usan BD, así que el build de NetBeans (`mvn install`) las corre sin la app ni MySQL. Las pruebas `@SpringBootTest` contra la BD real se eliminaron porque escribían en `db_colmadom` y rompían el build; no volver a agregar pruebas que escriban en la BD real.
 
 ## Base de datos
 
@@ -51,7 +51,7 @@ Todo el código está en `src/main/java/com/maxsoft/application`:
 - Inventario: no hay eventos de Spring. Las ventas, anulaciones y devoluciones llaman directamente a `SalidaInventarioService` / `EntradaDeInventarioService`, que registran el kardex con `MovimientoInventarioService` (bloquea la existencia con `FOR UPDATE`). `InventarioService` solo valida stock antes de vender.
 - `view/` — UI Vaadin (ver abajo). `view/componente/` contiene widgets reutilizables (barras del POS, diálogos de cobro, filtros); `view/dialogo/` diálogos compartidos.
 - `reporte/` + `src/main/resources/reporte/` — JasperReports (archivos `.jasper`); la impresión también pasa por `servicio/impl/venta/ImpresionDirectaService`.
-- `util/` — `CalculoFacturaUtil` (totales/impuestos de factura), `LineaPosUtil` (líneas del POS con multi-empaque: factor, precio por presentación, línea nueva; sin UI y con pruebas), `ClasificacionAbcUtil` (ABC de artículos por valor y rotación, Pareto 80/95; sin BD y con pruebas), `FiltroUtil`/`FiltroGenerico` (filtrado de grids), `SonidoUtil` (reproduce archivos de `META-INF/resources/sounds`), `NavigationContext` (ver abajo).
+- `util/` — `CalculoFacturaUtil` (totales/impuestos de factura), `LineaPosUtil` (líneas del POS con multi-empaque: factor, precio por presentación, línea nueva; sin UI y con pruebas), `ClasificacionAbcUtil` (ABC de artículos por valor y rotación, Pareto 80/95, demanda diaria y mínimo/máximo sugeridos; sin BD y con pruebas), `ConteoCiclicoUtil` (qué artículos toca contar hoy según su clase ABC; con pruebas), `FiltroUtil`/`FiltroGenerico` (filtrado de grids), `SonidoUtil` (reproduce archivos de `META-INF/resources/sounds`), `NavigationContext` (ver abajo).
 
 ### Estructura de UI / navegación
 

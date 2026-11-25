@@ -76,6 +76,16 @@ public class Configuracion implements Serializable {
     @Column(name = "abc_compra_c")
     private Integer abcCompraC;
 
+    // Conteo cíclico: cada cuántos días se cuenta cada clase y cuántos por día
+    @Column(name = "abc_conteo_dias_a")
+    private Integer abcConteoDiasA;
+    @Column(name = "abc_conteo_dias_b")
+    private Integer abcConteoDiasB;
+    @Column(name = "abc_conteo_dias_c")
+    private Integer abcConteoDiasC;
+    @Column(name = "abc_conteo_por_dia")
+    private Integer abcConteoPorDia;
+
     public Configuracion() {
     }
 
@@ -225,6 +235,38 @@ public class Configuracion implements Serializable {
 
     public void setAbcCompraC(Integer abcCompraC) {
         this.abcCompraC = abcCompraC;
+    }
+
+    public Integer getAbcConteoDiasA() {
+        return abcConteoDiasA;
+    }
+
+    public void setAbcConteoDiasA(Integer abcConteoDiasA) {
+        this.abcConteoDiasA = abcConteoDiasA;
+    }
+
+    public Integer getAbcConteoDiasB() {
+        return abcConteoDiasB;
+    }
+
+    public void setAbcConteoDiasB(Integer abcConteoDiasB) {
+        this.abcConteoDiasB = abcConteoDiasB;
+    }
+
+    public Integer getAbcConteoDiasC() {
+        return abcConteoDiasC;
+    }
+
+    public void setAbcConteoDiasC(Integer abcConteoDiasC) {
+        this.abcConteoDiasC = abcConteoDiasC;
+    }
+
+    public Integer getAbcConteoPorDia() {
+        return abcConteoPorDia;
+    }
+
+    public void setAbcConteoPorDia(Integer abcConteoPorDia) {
+        this.abcConteoPorDia = abcConteoPorDia;
     }
 
     @Override

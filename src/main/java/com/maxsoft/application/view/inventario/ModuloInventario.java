@@ -62,6 +62,8 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
     /** Atributo de sesión con la fecha del último aviso de artículos A por agotarse. */
     private static final String SESION_AVISO_REPONER = "aviso-reponer-fecha";
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ModuloInventario.class);
+
     private final LoteService loteService;
     private final com.maxsoft.application.servicio.interfaces.inventario.ClasificacionAbcService abcService;
     private final Button btnAlertaLotes = new Button();
@@ -96,6 +98,7 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
         try {
             lista = abcService.porReponer(true);
         } catch (RuntimeException ex) {
+            log.warn("No se pudo calcular el aviso de artículos A por agotarse", ex);
             btnAlertaReponer.setVisible(false);
             return;
         }
@@ -183,6 +186,8 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
         RouterLink linkLotes = createLink(VaadinIcon.CALENDAR_CLOCK, "Lotes y vencimientos", LotesVencimientosView.class);
         RouterLink linkAbc = createLink(VaadinIcon.BAR_CHART, "Clasificación ABC",
                 com.maxsoft.application.view.inventario.abc.ClasificacionAbcView.class);
+        RouterLink linkConteo = createLink(VaadinIcon.CLIPBOARD_CHECK, "Conteo cíclico",
+                com.maxsoft.application.view.inventario.conteo.ConteoCiclicoView.class);
         RouterLink linkTrasladoInventario = createLink(VaadinIcon.FILE_TABLE, "Traslado", ConsultaTrasladoInventarioView.class);
         RouterLink linkTrasladoArticalmacen = createLink(VaadinIcon.FILE_TABLE, "Articulo Almacen", ArticuloAlmacenView.class);
         RouterLink linkGestionEtiquetasView = createLink(VaadinIcon.FILE_TABLE, "Gestion de Etiqueta", GestionEtiquetasView.class);
@@ -207,6 +212,7 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
                 linkMovimiento,
                 linkLotes,
                 linkAbc,
+                linkConteo,
                 linkTrasladoArticalmacen,
                 linkGestionEtiquetasView,
                 linkImpresionCodigoBarraView,
