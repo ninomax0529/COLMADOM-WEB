@@ -209,6 +209,18 @@ public final class ClasificacionAbcUtil {
         return existencia.divide(demandaDiaria, 1, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Valor en inventario (RD$): existencia x costo promedio (articulo.precio_compra,
+     * que se recalcula en cada compra). La existencia negativa cuenta como 0 y
+     * sin costo vale 0.
+     */
+    public static BigDecimal valorInventario(BigDecimal existencia, BigDecimal costoPromedio) {
+        if (existencia == null || existencia.signum() <= 0 || costoPromedio == null || costoPromedio.signum() <= 0) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        return existencia.multiply(costoPromedio).setScale(2, RoundingMode.HALF_UP);
+    }
+
     /** A si alguno es A; C si los dos son C; B en los demás casos. */
     public static String combinar(String claseValor, String claseRotacion) {
         if (CLASE_A.equals(claseValor) || CLASE_A.equals(claseRotacion)) {

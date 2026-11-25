@@ -118,7 +118,17 @@ public class ClasificacionAbcView extends VerticalLayout implements com.vaadin.f
 
     /** Una fila del grid: el resultado guardado más datos del artículo. */
     private record Fila(ArticuloClasificacionAbc abc, String articulo, BigDecimal existencia,
-            BigDecimal minimo, BigDecimal maximo) {
+            BigDecimal minimo, BigDecimal maximo, BigDecimal costo) {
+
+        /** Existencia actual x costo promedio. */
+        BigDecimal valorInventario() {
+            return ClasificacionAbcUtil.valorInventario(existencia, costo);
+        }
+
+        /** Tiene existencia pero no costo: su valor no se puede saber. */
+        boolean sinCosto() {
+            return existencia != null && existencia.signum() > 0 && (costo == null || costo.signum() <= 0);
+        }
 
         boolean tieneSugerido() {
             return abc.getMinimoSugerido() != null;
@@ -332,6 +342,21 @@ public class ClasificacionAbcView extends VerticalLayout implements com.vaadin.f
                 .setHeader("Existencia").setAutoWidth(true)
                 .setComparator(Comparator.comparing(Fila::existencia, Comparator.nullsFirst(Comparator.naturalOrder())));
 
+        // Lo que hay hoy en el almacén, al costo promedio de compra
+        grid.addComponentColumn(f -> {
+            if (f.sinCosto()) {
+                Span s = EstiloConsulta.chip("SIN COSTO", "fv-chip-credito");
+                s.getElement().setAttribute("title", "Tiene existencia pero no tiene costo de compra");
+                return s;
+            }
+            return new Span(EstiloConsulta.moneda(f.valorInventario()));
+        }).setHeader("Valor en inventario").setAutoWidth(true).setFlexGrow(0)
+                .setPartNameGenerator(f -> "fv-monto")
+                .setTooltipGenerator(f -> f.costo() == null ? ""
+                : CANTIDAD.format(f.existencia() == null ? BigDecimal.ZERO : f.existencia().max(BigDecimal.ZERO))
+                + " x " + EstiloConsulta.moneda(f.costo()) + " (costo promedio de compra)")
+                .setComparator(Comparator.comparing(Fila::valorInventario));
+
         EstiloConsulta.monto(grid.addColumn(f -> f.demanda().signum() == 0 ? "—" : DEMANDA.format(f.demanda())))
                 .setHeader("Vende/día").setAutoWidth(true)
                 .setTooltipGenerator(f -> CANTIDAD.format(f.abc().getUnidades()) + " unidades en "
@@ -388,7 +413,8 @@ public class ClasificacionAbcView extends VerticalLayout implements com.vaadin.f
                     a != null && a.getDescripcion() != null ? a.getDescripcion() : "Artículo " + abc.getArticulo(),
                     a != null ? a.getExistencia() : null,
                     a != null ? a.getMinimo() : null,
-                    a != null ? a.getMaximo() : null));
+                    a != null ? a.getMaximo() : null,
+                    a != null ? a.getPrecioCompra() : null));
         }
         // Lo más importante arriba: por clase y, dentro de cada una, por ventas
         filas.sort(Comparator.comparing(Fila::clase)
@@ -467,9 +493,12 @@ public class ClasificacionAbcView extends VerticalLayout implements com.vaadin.f
         BigDecimal totalVentas = filas.stream().map(f -> f.abc().getVentas())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        BigDecimal totalInventario = sumaInventario(filas);
+
         resumen.removeAll();
+        resumen.add(tarjetaValorInventario(totalInventario));
         for (Clase c : Clase.values()) {
-            resumen.add(tarjetaClase(c, totalVentas));
+            resumen.add(tarjetaClase(c, totalVentas, totalInventario));
         }
         resumen.add(tarjetaSinMovimiento());
         resumen.add(tarjetaPorReponer());
@@ -489,15 +518,38 @@ public class ClasificacionAbcView extends VerticalLayout implements com.vaadin.f
         return d;
     }
 
-    /** Artículos de la clase y su parte de las ventas; al hacer clic filtra por la clase. */
-    private Div tarjetaClase(Clase clase, BigDecimal totalVentas) {
+    /** Dinero en mercancía (existencia x costo promedio) de los artículos de la lista. */
+    private Div tarjetaValorInventario(BigDecimal total) {
+        long sinCosto = filas.stream().filter(Fila::sinCosto).count();
+        Div d = tarjeta(VaadinIcon.MONEY, "Valor en inventario", EstiloConsulta.moneda(total),
+                sinCosto == 0 ? "existencia x costo promedio"
+                : sinCosto + (sinCosto == 1 ? " artículo sin costo" : " artículos sin costo"),
+                "fv-tarjeta-total", "Lo que costó la mercancía que hay hoy, al costo promedio de compra");
+        // No filtra: sin "clic para ver"
+        d.getStyle().remove("cursor");
+        d.getElement().setAttribute("title", "Lo que costó la mercancía que hay hoy, al costo promedio de compra"
+                + " (se recalcula en cada compra)");
+        return d;
+    }
+
+    private static BigDecimal sumaInventario(List<Fila> lista) {
+        return lista.stream().map(Fila::valorInventario).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private static String porciento(BigDecimal parte, BigDecimal total) {
+        return total.signum() == 0 ? "0 %"
+                : parte.multiply(BigDecimal.valueOf(100)).divide(total, 0, RoundingMode.HALF_UP) + " %";
+    }
+
+    /** Artículos de la clase, su parte de las ventas y del inventario; al hacer clic filtra por la clase. */
+    private Div tarjetaClase(Clase clase, BigDecimal totalVentas, BigDecimal totalInventario) {
         List<Fila> de = filtrar(f -> f.clase() == clase);
         BigDecimal ventas = de.stream().map(f -> f.abc().getVentas()).reduce(BigDecimal.ZERO, BigDecimal::add);
-        String parte = totalVentas.signum() == 0 ? "0 %"
-                : ventas.multiply(BigDecimal.valueOf(100)).divide(totalVentas, 0, RoundingMode.HALF_UP) + " %";
 
-        Div d = tarjeta(clase.icono, clase.nombre, de.size(), parte + " de las ventas", clase.tarjeta,
-                clase.descripcion);
+        Div d = tarjeta(clase.icono, clase.nombre, de.size(),
+                porciento(ventas, totalVentas) + " de las ventas · "
+                + porciento(sumaInventario(de), totalInventario) + " del inventario",
+                clase.tarjeta, clase.descripcion);
         d.addClickListener(e -> {
             chkSinMovimiento.setValue(false);
             chkPorReponer.setValue(false);
@@ -508,7 +560,8 @@ public class ClasificacionAbcView extends VerticalLayout implements com.vaadin.f
 
     private Div tarjetaSinMovimiento() {
         List<Fila> parados = filtrar(Fila::sinMovimiento);
-        Div d = tarjeta(VaadinIcon.PAUSE, "Sin movimiento", parados.size(), "sin ventas en el período",
+        Div d = tarjeta(VaadinIcon.PAUSE, "Sin movimiento", parados.size(),
+                EstiloConsulta.moneda(sumaInventario(parados)) + " de mercancía parada",
                 "fv-tarjeta-pendiente", "Mercancía parada: no se vendió en el período");
         d.addClickListener(e -> {
             cbClase.clear();
@@ -524,11 +577,16 @@ public class ClasificacionAbcView extends VerticalLayout implements com.vaadin.f
 
     private static Div tarjeta(VaadinIcon icono, String etiqueta, int cantidad, String detalle,
             String clase, String ayuda) {
+        return tarjeta(icono, etiqueta, cantidad + (cantidad == 1 ? " artículo" : " artículos"), detalle, clase, ayuda);
+    }
+
+    private static Div tarjeta(VaadinIcon icono, String etiqueta, String valor, String detalle,
+            String clase, String ayuda) {
         Icon ic = icono.create();
         ic.addClassName("fv-tarjeta-icono");
         Span lbl = new Span(etiqueta);
         lbl.addClassName("fv-tarjeta-etiqueta");
-        Span val = new Span(cantidad + (cantidad == 1 ? " artículo" : " artículos"));
+        Span val = new Span(valor);
         val.addClassName("fv-tarjeta-valor");
         Span det = new Span(detalle);
         det.getStyle().set("font-size", "var(--lumo-font-size-xs)")

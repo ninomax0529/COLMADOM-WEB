@@ -200,6 +200,17 @@ class ClasificacionAbcUtilTest {
         assertEquals(0, BigDecimal.ZERO.compareTo(ClasificacionAbcUtil.cantidadAPedir(BigDecimal.TEN, null)));
     }
 
+    @Test
+    void valorEnInventarioPorCostoPromedio() {
+        assertEquals(new BigDecimal("531.65"),
+                ClasificacionAbcUtil.valorInventario(new BigDecimal("7"), new BigDecimal("75.95")));
+        assertEquals(new BigDecimal("0.00"),
+                ClasificacionAbcUtil.valorInventario(new BigDecimal("-3"), new BigDecimal("50")), "negativo = 0");
+        assertEquals(new BigDecimal("0.00"),
+                ClasificacionAbcUtil.valorInventario(BigDecimal.TEN, null), "sin costo");
+        assertEquals(new BigDecimal("0.00"), ClasificacionAbcUtil.valorInventario(null, BigDecimal.TEN));
+    }
+
     private static VentaArticulo venta(int articulo, String ventas, long facturas) {
         return new VentaArticulo(articulo, ventas == null ? null : new BigDecimal(ventas),
                 facturas, BigDecimal.ZERO, false);
