@@ -55,6 +55,12 @@ public class ArticuloView extends VerticalLayout {
     ToolBarBotonera botonera = new ToolBarBotonera(true, false, false);
     TextField txtFiltroArt = new TextField();
     ComboBox<String> cbClaseAbc = new ComboBox<>();
+    ComboBox<String> cbEstado = new ComboBox<>();
+
+    // Filtro de estado: habilitado y de venta (ver chipEstado)
+    private static final String ESTADO_ACTIVOS = "Activos";
+    private static final String ESTADO_DESHABILITADOS = "Deshabilitados";
+    private static final String ESTADO_NO_VENTA = "No se venden";
 
     // Clasificación ABC por código de artículo (la calcula ClasificacionAbcService)
     private Map<Integer, ArticuloClasificacionAbc> clasificacion = Map.of();
@@ -75,7 +81,7 @@ public class ArticuloView extends VerticalLayout {
         configurarGrid();
         configurarFiltros();
 
-        HorizontalLayout filtros = new HorizontalLayout(txtFiltroArt, cbClaseAbc);
+        HorizontalLayout filtros = new HorizontalLayout(txtFiltroArt, cbEstado, cbClaseAbc);
         filtros.setWidthFull();
         filtros.setAlignItems(Alignment.BASELINE);
         filtros.expand(txtFiltroArt);
@@ -99,6 +105,11 @@ public class ArticuloView extends VerticalLayout {
 
         grid.addColumn(Articulo::getCodigo).setHeader("Código").setAutoWidth(true);
         grid.addColumn(Articulo::getDescripcion).setHeader("Descripcion").setAutoWidth(true);
+
+        // Solo se marca lo que no es normal: deshabilitado o que no se vende
+        grid.addComponentColumn(this::chipEstado)
+                .setHeader("Estado").setAutoWidth(true).setFlexGrow(0)
+                .setComparator(Comparator.comparing(this::ordenEstado));
 
         // Clasificación ABC automática; el detalle (por qué) al pasar el mouse
         grid.addComponentColumn(this::chipAbc)
@@ -147,6 +158,34 @@ public class ArticuloView extends VerticalLayout {
         return chip;
     }
 
+    private Span chipEstado(Articulo articulo) {
+        if (!articulo.getHabilitado()) {
+            Span chip = EstiloConsulta.chip("DESHABILITADO", "fv-chip-anulada");
+            chip.getElement().setAttribute("title", "Dado de baja: no sale en el POS ni en las compras");
+            return chip;
+        }
+        if (!articulo.getParaVenta()) {
+            Span chip = EstiloConsulta.chip("NO SE VENDE", "fv-chip-devuelto");
+            chip.getElement().setAttribute("title", "No es de venta: no sale en el POS (sí en las compras)");
+            return chip;
+        }
+        return new Span();
+    }
+
+    /** Orden de la columna Estado: activos, los que no se venden y deshabilitados. */
+    private int ordenEstado(Articulo articulo) {
+        return !articulo.getHabilitado() ? 2 : !articulo.getParaVenta() ? 1 : 0;
+    }
+
+    private boolean cumpleEstado(Articulo art, String estado) {
+        return switch (estado) {
+            case ESTADO_ACTIVOS -> art.getHabilitado() && art.getParaVenta();
+            case ESTADO_DESHABILITADOS -> !art.getHabilitado();
+            case ESTADO_NO_VENTA -> art.getHabilitado() && !art.getParaVenta();
+            default -> true;
+        };
+    }
+
     private int ordenAbc(Articulo articulo) {
         ArticuloClasificacionAbc abc = clasificacion.get(articulo.getCodigo());
         int i = abc == null ? -1 : ORDEN_CLASES.indexOf(abc.getClase());
@@ -169,8 +208,18 @@ public class ArticuloView extends VerticalLayout {
         cbClaseAbc.setWidth("220px");
         cbClaseAbc.addValueChangeListener(e -> dataView.refreshAll());
 
-        // Un solo filtro: texto (nombre o código) y clase ABC
+        cbEstado.setItems(ESTADO_ACTIVOS, ESTADO_NO_VENTA, ESTADO_DESHABILITADOS);
+        cbEstado.setPlaceholder("Estado: todos");
+        cbEstado.setClearButtonVisible(true);
+        cbEstado.setWidth("200px");
+        cbEstado.addValueChangeListener(e -> dataView.refreshAll());
+
+        // Un solo filtro: texto (nombre o código), estado y clase ABC
         dataView.setFilter(art -> {
+
+            if (cbEstado.getValue() != null && !cumpleEstado(art, cbEstado.getValue())) {
+                return false;
+            }
 
             String clase = cbClaseAbc.getValue();
             if (clase != null) {

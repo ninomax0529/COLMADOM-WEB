@@ -1034,6 +1034,12 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 
             listaArticuloAlmacen.addAll(articuloAlmacenService.buscarPorArticulo(articuloActual.getCodigo()).get());
         }
+        if (dataProvider != null) {
+            dataProvider.refreshAll();
+        }
+        if (artalmDataProvider != null) {
+            artalmDataProvider.refreshAll();
+        }
 
         cargarLotes();
 
@@ -1125,10 +1131,19 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
                 );
 
                 // Ejecución transaccional atómica desde la capa de servicios
+                boolean eraEdicion = articuloActual.getCodigo() != null;
                 Articulo guardado = articuloService.guardarArticuloCompleto(dto);
 
                 Notification.show("Artículo #" + guardado.getCodigo() + " guardado de forma atómica y sincronizado correctamente.", 3000, Notification.Position.TOP_CENTER);
-                limpiarFormulario();
+                if (eraEdicion) {
+                    // Al editar se queda en el artículo, recargado de la BD
+                    // (empaques, almacenes y lotes como quedaron), en la
+                    // misma pestaña; uno nuevo deja el formulario limpio
+                    // para registrar el siguiente.
+                    editarArticulo(articuloService.buscarPorCodigo(guardado.getCodigo()));
+                } else {
+                    limpiarFormulario();
+                }
 
             } catch (IllegalArgumentException ex) {
                 Notification.show(ex.getMessage(), 4000, Notification.Position.MIDDLE);
