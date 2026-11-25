@@ -171,7 +171,10 @@ public class OrdenDeCompraView extends VerticalLayout {
         layoutDetalle.setWidthFull();
         layoutDetalle.setAlignItems(FlexComponent.Alignment.BASELINE);
 
-        cbArticulo.setItems(articuloService.getLista());
+        // Los artículos deshabilitados (dados de baja) no se piden al suplidor
+        cbArticulo.setItems(articuloService.getLista().stream()
+                .filter(Articulo::getHabilitado)
+                .toList());
         cbArticulo.setItemLabelGenerator(a -> a.getCodigo() + " - " + a.getDescripcion());
         cbArticulo.setPlaceholder("Buscar artículo...");
         cbArticulo.setWidth("20%");

@@ -97,6 +97,16 @@ public final class ArticuloDialogoFilteringView extends Dialog {
         add(filtroDataView.getTxtBuscar(), grid);
     }
 
+    /**
+     * Oculta los artículos deshabilitados (dados de baja). Para compras,
+     * órdenes de compra y recepción; los ajustes, mermas y traslados siguen
+     * viéndolos porque pueden tener existencia que corregir.
+     */
+    public ArticuloDialogoFilteringView soloHabilitados() {
+        dataView.addFilter(Articulo::getHabilitado);
+        return this;
+    }
+
     public Articulo getArticulo() {
         return articulo;
     }

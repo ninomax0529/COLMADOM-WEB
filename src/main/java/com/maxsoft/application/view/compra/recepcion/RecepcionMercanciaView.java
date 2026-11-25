@@ -504,7 +504,7 @@ public class RecepcionMercanciaView extends VerticalLayout {
                     }
                 });
             }
-        }).open();
+        }).soloHabilitados().open();
     }
 
     private void agregarLinea(Articulo articulo, ArticuloEmpaque empaque) {

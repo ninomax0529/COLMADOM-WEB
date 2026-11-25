@@ -27,9 +27,17 @@ public interface ArticuloEmpaqueRepo extends JpaRepository<ArticuloEmpaque, Inte
 
     List<ArticuloEmpaque> findByArticuloCodigoAndEstadoTrue(Integer codArticulo);
 
-    String strDet = "  SELECT * FROM  articulo_empaque   where  se_vende_en=1 ";
-
-    @Query(value = strDet, nativeQuery = true)
+    /**
+     * Presentaciones que ofrece el POS (buscador, escáner y catálogo): las
+     * marcadas "se vende en" de artículos de venta y habilitados.
+     */
+    @Query(value = """
+            SELECT ae.* FROM articulo_empaque ae
+            JOIN articulo a ON a.codigo = ae.articulo
+            WHERE ae.se_vende_en = 1
+              AND a.para_venta = 1
+              AND a.habilitado = 1
+            """, nativeQuery = true)
     public List<ArticuloEmpaque> getArticuloEmpaqueParaVenta();
 
     /**

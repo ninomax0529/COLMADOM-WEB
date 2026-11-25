@@ -194,7 +194,7 @@ public class RegistroFacturaDeCompraView extends VerticalLayout {
                     );
                 }
             });
-            dialog.open();
+            dialog.soloHabilitados().open();
         } catch (Exception e) {
             Notification.show("Error abriendo diálogo de artículos: " + e.getMessage(), 3000, Position.TOP_CENTER);
         }
