@@ -60,6 +60,22 @@ public class Configuracion implements Serializable {
     @Column(name = "abc_ultimo_calculo")
     private java.time.LocalDateTime abcUltimoCalculo;
 
+    // Mínimo y máximo sugeridos (días); ver ClasificacionAbcUtil.PoliticaStock
+    @Column(name = "abc_dias_reposicion")
+    private Integer abcDiasReposicion;
+    @Column(name = "abc_seguridad_a")
+    private Integer abcSeguridadA;
+    @Column(name = "abc_seguridad_b")
+    private Integer abcSeguridadB;
+    @Column(name = "abc_seguridad_c")
+    private Integer abcSeguridadC;
+    @Column(name = "abc_compra_a")
+    private Integer abcCompraA;
+    @Column(name = "abc_compra_b")
+    private Integer abcCompraB;
+    @Column(name = "abc_compra_c")
+    private Integer abcCompraC;
+
     public Configuracion() {
     }
 
@@ -153,6 +169,62 @@ public class Configuracion implements Serializable {
 
     public void setAbcUltimoCalculo(java.time.LocalDateTime abcUltimoCalculo) {
         this.abcUltimoCalculo = abcUltimoCalculo;
+    }
+
+    public Integer getAbcDiasReposicion() {
+        return abcDiasReposicion;
+    }
+
+    public void setAbcDiasReposicion(Integer abcDiasReposicion) {
+        this.abcDiasReposicion = abcDiasReposicion;
+    }
+
+    public Integer getAbcSeguridadA() {
+        return abcSeguridadA;
+    }
+
+    public void setAbcSeguridadA(Integer abcSeguridadA) {
+        this.abcSeguridadA = abcSeguridadA;
+    }
+
+    public Integer getAbcSeguridadB() {
+        return abcSeguridadB;
+    }
+
+    public void setAbcSeguridadB(Integer abcSeguridadB) {
+        this.abcSeguridadB = abcSeguridadB;
+    }
+
+    public Integer getAbcSeguridadC() {
+        return abcSeguridadC;
+    }
+
+    public void setAbcSeguridadC(Integer abcSeguridadC) {
+        this.abcSeguridadC = abcSeguridadC;
+    }
+
+    public Integer getAbcCompraA() {
+        return abcCompraA;
+    }
+
+    public void setAbcCompraA(Integer abcCompraA) {
+        this.abcCompraA = abcCompraA;
+    }
+
+    public Integer getAbcCompraB() {
+        return abcCompraB;
+    }
+
+    public void setAbcCompraB(Integer abcCompraB) {
+        this.abcCompraB = abcCompraB;
+    }
+
+    public Integer getAbcCompraC() {
+        return abcCompraC;
+    }
+
+    public void setAbcCompraC(Integer abcCompraC) {
+        this.abcCompraC = abcCompraC;
     }
 
     @Override

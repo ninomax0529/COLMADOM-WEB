@@ -128,6 +128,78 @@ class ClasificacionAbcUtilTest {
         assertEquals("B", r.get(2).claseValor(), "200 empieza en 80 %");
     }
 
+    @Test
+    void demandaDiariaPorDiasConDatos() {
+        // 45 tomates en 8 días con datos
+        assertEquals(new BigDecimal("5.6250"), ClasificacionAbcUtil.demandaDiaria(new BigDecimal("45"), 8));
+        assertEquals(0, BigDecimal.ZERO.compareTo(ClasificacionAbcUtil.demandaDiaria(new BigDecimal("45"), 0)));
+        assertEquals(0, BigDecimal.ZERO.compareTo(ClasificacionAbcUtil.demandaDiaria(null, 8)));
+    }
+
+    @Test
+    void diasDeCobertura() {
+        // 44 yucas, vende 6 al día: le alcanza para 7.3 días
+        assertEquals(new BigDecimal("7.3"),
+                ClasificacionAbcUtil.diasCobertura(new BigDecimal("44"), new BigDecimal("6")));
+        assertEquals(new BigDecimal("0.0"),
+                ClasificacionAbcUtil.diasCobertura(new BigDecimal("-2"), new BigDecimal("6")), "agotado");
+        assertEquals(null, ClasificacionAbcUtil.diasCobertura(new BigDecimal("44"), BigDecimal.ZERO),
+                "sin ventas no se puede saber");
+    }
+
+    @Test
+    void minimoYMaximoSugeridosSegunLaClase() {
+        ClasificacionAbcUtil.PoliticaStock p = ClasificacionAbcUtil.PoliticaStock.POR_DEFECTO;
+        BigDecimal seisPorDia = new BigDecimal("6");
+
+        // A: mínimo 6 x (7 + 3) = 60; máximo 60 + 6 x 7 = 102
+        assertEquals(0, new BigDecimal("60").compareTo(ClasificacionAbcUtil.minimoSugerido(seisPorDia, "A", p)));
+        assertEquals(0, new BigDecimal("102").compareTo(ClasificacionAbcUtil.maximoSugerido(seisPorDia, "A", p)));
+        // C: mínimo 6 x (7 + 1) = 48; máximo 48 + 6 x 15 = 138
+        assertEquals(0, new BigDecimal("48").compareTo(ClasificacionAbcUtil.minimoSugerido(seisPorDia, "C", p)));
+        assertEquals(0, new BigDecimal("138").compareTo(ClasificacionAbcUtil.maximoSugerido(seisPorDia, "C", p)));
+        // Nuevo usa los días de B: 6 x (7 + 2) = 54
+        assertEquals(0, new BigDecimal("54").compareTo(ClasificacionAbcUtil.minimoSugerido(seisPorDia, "N", p)));
+    }
+
+    @Test
+    void sugeridosRedondeanHaciaArribaYSinVentasNoSugiere() {
+        ClasificacionAbcUtil.PoliticaStock p = ClasificacionAbcUtil.PoliticaStock.POR_DEFECTO;
+        // 0.375 por día x 10 = 3.75 -> 4 unidades (no quedarse corto)
+        assertEquals(0, new BigDecimal("4").compareTo(
+                ClasificacionAbcUtil.minimoSugerido(new BigDecimal("0.375"), "A", p)));
+        assertEquals(null, ClasificacionAbcUtil.minimoSugerido(BigDecimal.ZERO, "A", p));
+        assertEquals(null, ClasificacionAbcUtil.maximoSugerido(null, "C", p));
+    }
+
+    @Test
+    void porReponerPorMinimoOPorDias() {
+        BigDecimal seis = new BigDecimal("6");
+        // Mínimo 57: con 57 o menos hay que reponer
+        assertTrue(ClasificacionAbcUtil.porReponer(new BigDecimal("57"), seis, new BigDecimal("57")));
+        assertFalse(ClasificacionAbcUtil.porReponer(new BigDecimal("58"), seis, new BigDecimal("57")));
+        // Sin mínimo: por días (18 / 6 = 3 días -> sí; 19 -> 3.2 días -> no)
+        assertTrue(ClasificacionAbcUtil.porReponer(new BigDecimal("18"), seis, null));
+        assertFalse(ClasificacionAbcUtil.porReponer(new BigDecimal("19"), seis, null));
+        // Agotado o en negativo
+        assertTrue(ClasificacionAbcUtil.porReponer(new BigDecimal("-3"), seis, null));
+        // No vende: nunca
+        assertFalse(ClasificacionAbcUtil.porReponer(BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("5")));
+    }
+
+    @Test
+    void cantidadAPedirHastaElMaximo() {
+        assertEquals(0, new BigDecimal("97").compareTo(
+                ClasificacionAbcUtil.cantidadAPedir(BigDecimal.ZERO, new BigDecimal("97"))));
+        assertEquals(0, new BigDecimal("16").compareTo(
+                ClasificacionAbcUtil.cantidadAPedir(new BigDecimal("38"), new BigDecimal("54"))));
+        assertEquals(0, new BigDecimal("97").compareTo(
+                ClasificacionAbcUtil.cantidadAPedir(new BigDecimal("-4"), new BigDecimal("97"))), "negativo = 0");
+        assertEquals(0, BigDecimal.ZERO.compareTo(
+                ClasificacionAbcUtil.cantidadAPedir(new BigDecimal("200"), new BigDecimal("97"))), "sobra");
+        assertEquals(0, BigDecimal.ZERO.compareTo(ClasificacionAbcUtil.cantidadAPedir(BigDecimal.TEN, null)));
+    }
+
     private static VentaArticulo venta(int articulo, String ventas, long facturas) {
         return new VentaArticulo(articulo, ventas == null ? null : new BigDecimal(ventas),
                 facturas, BigDecimal.ZERO, false);

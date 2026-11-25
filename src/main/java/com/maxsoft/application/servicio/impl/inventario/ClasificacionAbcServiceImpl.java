@@ -12,8 +12,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -76,8 +79,11 @@ public class ClasificacionAbcServiceImpl implements ClasificacionAbcService {
     public boolean recalcularSiEstaVencida() {
         Optional<LocalDateTime> ultimo = ultimoCalculo();
         LocalDateTime limite = LocalDateTime.now(ZONA).minusHours(HORAS_VIGENCIA);
-        // Sin filas guardadas también se recalcula (un cálculo vacío no vale)
-        if (ultimo.isPresent() && ultimo.get().isAfter(limite) && abcRepo.count() > 0) {
+        // Sin filas guardadas también se recalcula (un cálculo vacío no vale),
+        // y si quedan filas de antes de guardar la demanda o los sugeridos
+        if (ultimo.isPresent() && ultimo.get().isAfter(limite) && abcRepo.count() > 0
+                && !abcRepo.existsByDiasConDatos(0)
+                && !abcRepo.existsByDemandaDiariaGreaterThanAndMinimoSugeridoIsNull(BigDecimal.ZERO)) {
             log.debug("Clasificación ABC vigente (último cálculo {})", ultimo.get());
             return false;
         }
@@ -96,6 +102,40 @@ public class ClasificacionAbcServiceImpl implements ClasificacionAbcService {
     }
 
     @Override
+    public int aplicarSugeridos(java.util.Collection<Integer> codigosArticulo) {
+        if (codigosArticulo == null || codigosArticulo.isEmpty()) {
+            return 0;
+        }
+        Integer actualizados = transaccion.execute(estado -> abcRepo.aplicarSugeridos(codigosArticulo));
+        log.info("Mínimo y máximo sugeridos aplicados a {} artículos", actualizados);
+        return actualizados != null ? actualizados : 0;
+    }
+
+    @Override
+    public List<ArticuloPorReponer> porReponer(boolean soloClaseA) {
+        List<ArticuloPorReponer> lista = new ArrayList<>();
+        for (Object[] f : abcRepo.articulosQueVenden()) {
+            String clase = (String) f[2];
+            if (soloClaseA && !ClasificacionAbcUtil.CLASE_A.equals(clase)) {
+                continue;
+            }
+            BigDecimal existencia = aDecimal(f[3]);
+            BigDecimal demanda = aDecimal(f[4]);
+            BigDecimal minimo = f[5] != null ? aDecimal(f[5]) : null;
+            BigDecimal maximo = f[6] != null ? aDecimal(f[6]) : null;
+            if (!ClasificacionAbcUtil.porReponer(existencia, demanda, minimo)) {
+                continue;
+            }
+            lista.add(new ArticuloPorReponer(((Number) f[0]).intValue(), (String) f[1], clase, existencia,
+                    ClasificacionAbcUtil.diasCobertura(existencia, demanda), minimo, maximo,
+                    ClasificacionAbcUtil.cantidadAPedir(existencia, maximo)));
+        }
+        lista.sort(java.util.Comparator.comparing(ArticuloPorReponer::diasCobertura,
+                java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())));
+        return lista;
+    }
+
+    @Override
     public Optional<LocalDateTime> ultimoCalculo() {
         return configuracionRepo.findById(ID_CONFIGURACION).map(Configuracion::getAbcUltimoCalculo);
     }
@@ -107,16 +147,29 @@ public class ClasificacionAbcServiceImpl implements ClasificacionAbcService {
         int diasNuevo = positivo(config != null ? config.getAbcDiasNuevo() : null, DIAS_NUEVO_POR_DEFECTO);
         BigDecimal limiteA = config != null ? config.getAbcLimiteA() : null;
         BigDecimal limiteB = config != null ? config.getAbcLimiteB() : null;
+        ClasificacionAbcUtil.PoliticaStock politica = politica(config);
 
         LocalDateTime ahora = LocalDateTime.now(ZONA).withNano(0);
-        LocalDate hasta = ahora.toLocalDate();
+        // Solo días completos (hasta ayer): a las 2:00 a.m. el día de hoy casi
+        // no tiene ventas y contarlo baja la demanda diaria
+        LocalDate hasta = ahora.toLocalDate().minusDays(1);
         LocalDate desde = hasta.minusDays(diasPeriodo - 1L);
         LocalDate nuevoDesde = hasta.minusDays(diasNuevo);
 
+        // Antes de la primera factura el sistema no vendía: esos días no
+        // cuentan para la demanda diaria
+        LocalDate primeraVenta = aFecha(abcRepo.primeraFechaDeVenta());
+        LocalDate inicioDatos = primeraVenta != null && primeraVenta.isAfter(desde) ? primeraVenta : desde;
+
         List<VentaArticulo> ventas = new ArrayList<>();
+        Map<Integer, Integer> diasConDatos = new HashMap<>();
         for (Object[] fila : abcRepo.ventasPorArticulo(desde, hasta)) {
             LocalDate creado = aFecha(fila[1]);
             boolean nuevo = creado != null && creado.isAfter(nuevoDesde);
+            // Un artículo creado dentro del período solo cuenta sus días
+            LocalDate inicio = creado != null && creado.isAfter(inicioDatos) ? creado : inicioDatos;
+            diasConDatos.put(((Number) fila[0]).intValue(),
+                    (int) Math.max(1, ChronoUnit.DAYS.between(inicio, hasta) + 1));
             ventas.add(new VentaArticulo(
                     ((Number) fila[0]).intValue(),
                     aDecimal(fila[2]),
@@ -133,7 +186,13 @@ public class ClasificacionAbcServiceImpl implements ClasificacionAbcService {
         List<ArticuloClasificacionAbc> filas = new ArrayList<>(resultados.size());
         int a = 0, b = 0, c = 0, n = 0, parados = 0;
         for (ResultadoAbc r : resultados) {
-            filas.add(aEntidad(r, desde, hasta, ahora));
+            ArticuloClasificacionAbc fila = aEntidad(r, desde, hasta, ahora);
+            int dias = diasConDatos.getOrDefault(r.articulo(), 1);
+            fila.setDiasConDatos(dias);
+            fila.setDemandaDiaria(ClasificacionAbcUtil.demandaDiaria(r.unidades(), dias));
+            fila.setMinimoSugerido(ClasificacionAbcUtil.minimoSugerido(fila.getDemandaDiaria(), r.clase(), politica));
+            fila.setMaximoSugerido(ClasificacionAbcUtil.maximoSugerido(fila.getDemandaDiaria(), r.clase(), politica));
+            filas.add(fila);
             switch (r.clase()) {
                 case ClasificacionAbcUtil.CLASE_A -> a++;
                 case ClasificacionAbcUtil.CLASE_B -> b++;
@@ -176,6 +235,26 @@ public class ClasificacionAbcServiceImpl implements ClasificacionAbcService {
         return e;
     }
 
+    /** Días de la configuración; los vacíos o en cero usan los de siempre. */
+    private static ClasificacionAbcUtil.PoliticaStock politica(Configuracion c) {
+        ClasificacionAbcUtil.PoliticaStock d = ClasificacionAbcUtil.PoliticaStock.POR_DEFECTO;
+        if (c == null) {
+            return d;
+        }
+        return new ClasificacionAbcUtil.PoliticaStock(
+                positivo(c.getAbcDiasReposicion(), d.diasReposicion()),
+                noNegativo(c.getAbcSeguridadA(), d.seguridadA()),
+                noNegativo(c.getAbcSeguridadB(), d.seguridadB()),
+                noNegativo(c.getAbcSeguridadC(), d.seguridadC()),
+                positivo(c.getAbcCompraA(), d.compraA()),
+                positivo(c.getAbcCompraB(), d.compraB()),
+                positivo(c.getAbcCompraC(), d.compraC()));
+    }
+
+    private static int noNegativo(Integer valor, int porDefecto) {
+        return valor != null && valor >= 0 ? valor : porDefecto;
+    }
+
     private static int positivo(Integer valor, int porDefecto) {
         return valor != null && valor > 0 ? valor : porDefecto;
     }
@@ -194,6 +273,11 @@ public class ClasificacionAbcServiceImpl implements ClasificacionAbcService {
         }
         if (valor instanceof java.sql.Timestamp ts) {
             return ts.toLocalDateTime().toLocalDate();
+        }
+        // DATE llega como java.sql.Date, cuyo toInstant() siempre lanza
+        // UnsupportedOperationException: va antes que java.util.Date
+        if (valor instanceof java.sql.Date sd) {
+            return sd.toLocalDate();
         }
         if (valor instanceof java.util.Date d) {
             return d.toInstant().atZone(ZONA).toLocalDate();

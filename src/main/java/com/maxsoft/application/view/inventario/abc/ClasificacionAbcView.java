@@ -46,12 +46,16 @@ import java.util.stream.Collectors;
  */
 @PageTitle("Clasificación ABC | MaxSoft ERP")
 @Route(value = "inventario/clasificacionAbc")
-public class ClasificacionAbcView extends VerticalLayout {
+public class ClasificacionAbcView extends VerticalLayout implements com.vaadin.flow.router.BeforeEnterObserver {
 
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter FECHA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a");
     private static final DecimalFormat CANTIDAD = new DecimalFormat("#,##0.##");
     private static final DecimalFormat PORCIENTO = new DecimalFormat("0.0'%'");
+    private static final DecimalFormat DEMANDA = new DecimalFormat("#,##0.#");
+
+    /** ?reponer=A (desde el aviso del módulo): artículos A por agotarse. */
+    public static final String PARAM_REPONER = "reponer";
 
     /** Clase ABC: texto para el usuario y estilo del chip y la tarjeta. */
     private enum Clase {
@@ -113,7 +117,22 @@ public class ClasificacionAbcView extends VerticalLayout {
     }
 
     /** Una fila del grid: el resultado guardado más datos del artículo. */
-    private record Fila(ArticuloClasificacionAbc abc, String articulo, BigDecimal existencia) {
+    private record Fila(ArticuloClasificacionAbc abc, String articulo, BigDecimal existencia,
+            BigDecimal minimo, BigDecimal maximo) {
+
+        boolean tieneSugerido() {
+            return abc.getMinimoSugerido() != null;
+        }
+
+        /** El mínimo o el máximo actual no coincide con el sugerido. */
+        boolean difiereDelSugerido() {
+            return tieneSugerido()
+                    && (!iguales(minimo, abc.getMinimoSugerido()) || !iguales(maximo, abc.getMaximoSugerido()));
+        }
+
+        private static boolean iguales(BigDecimal a, BigDecimal b) {
+            return a != null && b != null && a.compareTo(b) == 0;
+        }
 
         Clase clase() {
             return Clase.de(abc.getClase());
@@ -122,6 +141,47 @@ public class ClasificacionAbcView extends VerticalLayout {
         boolean sinMovimiento() {
             return Boolean.TRUE.equals(abc.getSinMovimiento());
         }
+
+        BigDecimal demanda() {
+            return abc.getDemandaDiaria() != null ? abc.getDemandaDiaria() : BigDecimal.ZERO;
+        }
+
+        /** Días que le alcanza la existencia actual; null si no vende. */
+        BigDecimal cobertura() {
+            return ClasificacionAbcUtil.diasCobertura(existencia, demanda());
+        }
+
+        /** Por agotarse: en su mínimo sugerido o le quedan 3 días o menos. */
+        boolean porReponer() {
+            return ClasificacionAbcUtil.porReponer(existencia, demanda(), abc.getMinimoSugerido());
+        }
+
+        /** Cuánto pedir para llegar al máximo sugerido (solo si hay que reponer). */
+        BigDecimal pedir() {
+            return porReponer()
+                    ? ClasificacionAbcUtil.cantidadAPedir(existencia, abc.getMaximoSugerido())
+                    : BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * "Agotado" (rojo), "N días" (naranja si son 3 o menos) o "—" si no vende
+     * (no se puede saber).
+     */
+    private Span cobertura(Fila f) {
+        BigDecimal dias = f.cobertura();
+        if (dias == null) {
+            Span s = new Span("—");
+            s.getElement().setAttribute("title", "No vendió en el período: no se puede calcular");
+            return s;
+        }
+        if (dias.signum() == 0) {
+            return EstiloConsulta.chip("AGOTADO", "fv-chip-anulada");
+        }
+        String texto = DEMANDA.format(dias) + (dias.compareTo(BigDecimal.ONE) == 0 ? " día" : " días");
+        return dias.compareTo(ClasificacionAbcUtil.DIAS_COBERTURA_CRITICA) <= 0
+                ? EstiloConsulta.chip(texto, "fv-chip-devuelto")
+                : new Span(texto);
     }
 
     private final ClasificacionAbcService abcService;
@@ -129,6 +189,7 @@ public class ClasificacionAbcView extends VerticalLayout {
 
     private final ComboBox<Clase> cbClase = new ComboBox<>();
     private final Checkbox chkSinMovimiento = new Checkbox("Solo sin movimiento");
+    private final Checkbox chkPorReponer = new Checkbox("Por reponer");
     private final TextField txtBuscar = new TextField();
     private final Span lblPeriodo = new Span();
     private final Div resumen = new Div();
@@ -161,6 +222,17 @@ public class ClasificacionAbcView extends VerticalLayout {
         cargar();
     }
 
+    /** ?reponer=A desde el aviso de Inventario: clase A y "Por reponer". */
+    @Override
+    public void beforeEnter(com.vaadin.flow.router.BeforeEnterEvent event) {
+        List<String> reponer = event.getLocation().getQueryParameters().getParameters().get(PARAM_REPONER);
+        if (reponer != null && !reponer.isEmpty()) {
+            cbClase.setValue(Clase.de(reponer.get(0)));
+            chkSinMovimiento.setValue(false);
+            chkPorReponer.setValue(true);
+        }
+    }
+
     // ============================================================
     // FILTROS
     // ============================================================
@@ -174,6 +246,9 @@ public class ClasificacionAbcView extends VerticalLayout {
         cbClase.addValueChangeListener(e -> aplicarFiltros());
 
         chkSinMovimiento.addValueChangeListener(e -> aplicarFiltros());
+        chkPorReponer.addValueChangeListener(e -> aplicarFiltros());
+        chkPorReponer.setTooltipText("En su mínimo sugerido o con "
+                + ClasificacionAbcUtil.DIAS_COBERTURA_CRITICA + " días o menos de existencia");
 
         txtBuscar.setWidth("240px");
         txtBuscar.setPlaceholder("Buscar artículo...");
@@ -188,7 +263,11 @@ public class ClasificacionAbcView extends VerticalLayout {
         btnRecalcular.setDisableOnClick(true);
         btnRecalcular.addClickListener(e -> btnRecalcular.setEnabled(true));
 
-        HorizontalLayout barra = new HorizontalLayout(cbClase, txtBuscar, chkSinMovimiento, btnRecalcular,
+        Button btnAplicar = new Button("Aplicar sugeridos", VaadinIcon.CHECK.create(), e -> confirmarAplicarSugeridos());
+        btnAplicar.setTooltipText("Copia el mínimo y el máximo sugeridos a los artículos que se ven en la lista");
+
+        HorizontalLayout barra = new HorizontalLayout(cbClase, txtBuscar, chkPorReponer, chkSinMovimiento,
+                btnRecalcular, btnAplicar,
                 EstiloConsulta.ayuda("A = 80 % de las ventas o de las facturas · B = hasta el 95 % · C = el resto"));
         barra.setAlignItems(Alignment.BASELINE);
         barra.setWidthFull();
@@ -199,10 +278,12 @@ public class ClasificacionAbcView extends VerticalLayout {
     private void aplicarFiltros() {
         Clase clase = cbClase.getValue();
         boolean soloParados = Boolean.TRUE.equals(chkSinMovimiento.getValue());
+        boolean soloPorReponer = Boolean.TRUE.equals(chkPorReponer.getValue());
         String texto = txtBuscar.getValue() == null ? "" : txtBuscar.getValue().trim().toUpperCase();
 
         dataView.setFilter(f -> (clase == null || f.clase() == clase)
                 && (!soloParados || f.sinMovimiento())
+                && (!soloPorReponer || f.porReponer())
                 && (texto.isEmpty() || f.articulo().toUpperCase().contains(texto)
                 || String.valueOf(f.abc().getArticulo()).equals(texto)));
     }
@@ -251,6 +332,41 @@ public class ClasificacionAbcView extends VerticalLayout {
                 .setHeader("Existencia").setAutoWidth(true)
                 .setComparator(Comparator.comparing(Fila::existencia, Comparator.nullsFirst(Comparator.naturalOrder())));
 
+        EstiloConsulta.monto(grid.addColumn(f -> f.demanda().signum() == 0 ? "—" : DEMANDA.format(f.demanda())))
+                .setHeader("Vende/día").setAutoWidth(true)
+                .setTooltipGenerator(f -> CANTIDAD.format(f.abc().getUnidades()) + " unidades en "
+                + f.abc().getDiasConDatos() + " días")
+                .setComparator(Comparator.comparing(Fila::demanda));
+
+        // Con la existencia de este momento, no la de la noche
+        grid.addComponentColumn(this::cobertura)
+                .setHeader("Le alcanza para").setAutoWidth(true).setFlexGrow(0)
+                .setComparator(Comparator.comparing(Fila::cobertura,
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+
+        EstiloConsulta.monto(grid.addColumn(f -> f.tieneSugerido()
+                ? CANTIDAD.format(f.abc().getMinimoSugerido()) + " / " + CANTIDAD.format(f.abc().getMaximoSugerido())
+                : "—"))
+                .setHeader("Mín / Máx sugerido").setAutoWidth(true)
+                .setTooltipGenerator(f -> f.tieneSugerido()
+                ? "Mínimo: lo que se vende mientras llega el proveedor más un colchón. Máximo: el mínimo"
+                + " más lo que se vende en los días de compra de su clase."
+                : "No vendió en el período: no hay sugerencia");
+
+        // Solo en los que hay que reponer: hasta el máximo sugerido
+        EstiloConsulta.monto(grid.addColumn(f -> f.pedir().signum() > 0 ? CANTIDAD.format(f.pedir()) : ""))
+                .setHeader("Pedir").setAutoWidth(true)
+                .setTooltipGenerator(f -> f.pedir().signum() > 0
+                ? "Para llegar al máximo sugerido (" + CANTIDAD.format(f.abc().getMaximoSugerido()) + ")" : "")
+                .setComparator(Comparator.comparing(Fila::pedir));
+
+        // En naranja si no coincide con lo sugerido
+        grid.addComponentColumn(f -> {
+            String texto = (f.minimo() == null ? "—" : CANTIDAD.format(f.minimo()))
+                    + " / " + (f.maximo() == null ? "—" : CANTIDAD.format(f.maximo()));
+            return f.difiereDelSugerido() ? EstiloConsulta.chip(texto, "fv-chip-devuelto") : new Span(texto);
+        }).setHeader("Mín / Máx actual").setAutoWidth(true).setFlexGrow(0);
+
         grid.addComponentColumn(f -> f.sinMovimiento()
                 ? EstiloConsulta.chip("SIN MOVIMIENTO", "fv-chip-devuelto")
                 : new Span())
@@ -270,7 +386,9 @@ public class ClasificacionAbcView extends VerticalLayout {
             Articulo a = articulos.get(abc.getArticulo());
             filas.add(new Fila(abc,
                     a != null && a.getDescripcion() != null ? a.getDescripcion() : "Artículo " + abc.getArticulo(),
-                    a != null ? a.getExistencia() : null));
+                    a != null ? a.getExistencia() : null,
+                    a != null ? a.getMinimo() : null,
+                    a != null ? a.getMaximo() : null));
         }
         // Lo más importante arriba: por clase y, dentro de cada una, por ventas
         filas.sort(Comparator.comparing(Fila::clase)
@@ -309,6 +427,39 @@ public class ClasificacionAbcView extends VerticalLayout {
         }
     }
 
+    /**
+     * Aplica los sugeridos a los artículos que se ven en la lista (respeta los
+     * filtros) y que no coinciden todavía. Pide confirmación antes.
+     */
+    private void confirmarAplicarSugeridos() {
+        List<Fila> aCambiar = dataView.getItems().filter(Fila::difiereDelSugerido).toList();
+        if (aCambiar.isEmpty()) {
+            Notification.show("Los artículos de la lista ya tienen el mínimo y el máximo sugeridos.",
+                    3000, Notification.Position.TOP_CENTER);
+            return;
+        }
+
+        com.vaadin.flow.component.confirmdialog.ConfirmDialog dlg
+                = new com.vaadin.flow.component.confirmdialog.ConfirmDialog();
+        dlg.setHeader("Aplicar mínimo y máximo sugeridos");
+        String ejemplos = aCambiar.stream().limit(5).map(Fila::articulo).collect(Collectors.joining(", "))
+                + (aCambiar.size() > 5 ? "..." : "");
+        dlg.setText("Se cambiará el mínimo y el máximo de " + aCambiar.size()
+                + (aCambiar.size() == 1 ? " artículo" : " artículos") + ": " + ejemplos
+                + ". Use los filtros si quiere aplicarlo solo a una clase.");
+        dlg.setCancelable(true);
+        dlg.setCancelText("Cancelar");
+        dlg.setConfirmText("Aplicar");
+        dlg.addConfirmListener(e -> {
+            int n = abcService.aplicarSugeridos(aCambiar.stream().map(f -> f.abc().getArticulo()).toList());
+            cargar();
+            Notification ok = Notification.show("Mínimo y máximo actualizados en " + n
+                    + (n == 1 ? " artículo." : " artículos."), 3000, Notification.Position.TOP_CENTER);
+            ok.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        });
+        dlg.open();
+    }
+
     // ============================================================
     // TARJETAS
     // ============================================================
@@ -321,6 +472,21 @@ public class ClasificacionAbcView extends VerticalLayout {
             resumen.add(tarjetaClase(c, totalVentas));
         }
         resumen.add(tarjetaSinMovimiento());
+        resumen.add(tarjetaPorReponer());
+    }
+
+    private Div tarjetaPorReponer() {
+        List<Fila> reponer = filtrar(Fila::porReponer);
+        long claseA = reponer.stream().filter(f -> f.clase() == Clase.A).count();
+        Div d = tarjeta(VaadinIcon.WARNING, "Por reponer", reponer.size(),
+                claseA + (claseA == 1 ? " es A" : " son A"), "fv-tarjeta-pendiente",
+                "En su mínimo sugerido o con " + ClasificacionAbcUtil.DIAS_COBERTURA_CRITICA + " días o menos");
+        d.addClickListener(e -> {
+            cbClase.clear();
+            chkSinMovimiento.setValue(false);
+            chkPorReponer.setValue(true);
+        });
+        return d;
     }
 
     /** Artículos de la clase y su parte de las ventas; al hacer clic filtra por la clase. */
@@ -334,6 +500,7 @@ public class ClasificacionAbcView extends VerticalLayout {
                 clase.descripcion);
         d.addClickListener(e -> {
             chkSinMovimiento.setValue(false);
+            chkPorReponer.setValue(false);
             cbClase.setValue(clase);
         });
         return d;
@@ -345,6 +512,7 @@ public class ClasificacionAbcView extends VerticalLayout {
                 "fv-tarjeta-pendiente", "Mercancía parada: no se vendió en el período");
         d.addClickListener(e -> {
             cbClase.clear();
+            chkPorReponer.setValue(false);
             chkSinMovimiento.setValue(true);
         });
         return d;

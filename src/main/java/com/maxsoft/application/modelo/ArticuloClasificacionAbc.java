@@ -53,6 +53,21 @@ public class ArticuloClasificacionAbc implements Serializable {
     @Column(name = "porciento_rotacion", nullable = false)
     private BigDecimal porcientoRotacion = BigDecimal.ZERO;
 
+    /** Días que se usaron para la demanda (los del período o menos si es reciente). */
+    @Column(name = "dias_con_datos", nullable = false)
+    private Integer diasConDatos = 0;
+
+    /** Unidades base que vende por día. */
+    @Column(name = "demanda_diaria", nullable = false)
+    private BigDecimal demandaDiaria = BigDecimal.ZERO;
+
+    /** Sugerencias (unidad base); null si no vende. Ver ClasificacionAbcUtil.minimoSugerido. */
+    @Column(name = "minimo_sugerido")
+    private BigDecimal minimoSugerido;
+
+    @Column(name = "maximo_sugerido")
+    private BigDecimal maximoSugerido;
+
     @Column(name = "fecha_desde", nullable = false)
     private LocalDate fechaDesde;
 
@@ -140,6 +155,38 @@ public class ArticuloClasificacionAbc implements Serializable {
 
     public void setPorcientoRotacion(BigDecimal porcientoRotacion) {
         this.porcientoRotacion = porcientoRotacion;
+    }
+
+    public Integer getDiasConDatos() {
+        return diasConDatos;
+    }
+
+    public void setDiasConDatos(Integer diasConDatos) {
+        this.diasConDatos = diasConDatos;
+    }
+
+    public BigDecimal getDemandaDiaria() {
+        return demandaDiaria;
+    }
+
+    public void setDemandaDiaria(BigDecimal demandaDiaria) {
+        this.demandaDiaria = demandaDiaria;
+    }
+
+    public BigDecimal getMinimoSugerido() {
+        return minimoSugerido;
+    }
+
+    public void setMinimoSugerido(BigDecimal minimoSugerido) {
+        this.minimoSugerido = minimoSugerido;
+    }
+
+    public BigDecimal getMaximoSugerido() {
+        return maximoSugerido;
+    }
+
+    public void setMaximoSugerido(BigDecimal maximoSugerido) {
+        this.maximoSugerido = maximoSugerido;
     }
 
     public LocalDate getFechaDesde() {

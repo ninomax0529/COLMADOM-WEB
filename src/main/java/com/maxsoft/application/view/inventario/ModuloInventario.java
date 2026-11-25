@@ -59,12 +59,19 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
     /** Atributo de sesión con la fecha del último aviso de vencimientos mostrado. */
     private static final String SESION_AVISO_LOTES = "aviso-lotes-fecha";
 
-    private final LoteService loteService;
-    private final Button btnAlertaLotes = new Button();
+    /** Atributo de sesión con la fecha del último aviso de artículos A por agotarse. */
+    private static final String SESION_AVISO_REPONER = "aviso-reponer-fecha";
 
-    public ModuloInventario(LoteService loteService) {
+    private final LoteService loteService;
+    private final com.maxsoft.application.servicio.interfaces.inventario.ClasificacionAbcService abcService;
+    private final Button btnAlertaLotes = new Button();
+    private final Button btnAlertaReponer = new Button();
+
+    public ModuloInventario(LoteService loteService,
+            com.maxsoft.application.servicio.interfaces.inventario.ClasificacionAbcService abcService) {
 
         this.loteService = loteService;
+        this.abcService = abcService;
         createHeader();
         createDrawer();
     }
@@ -76,6 +83,43 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         actualizarAlertaLotes();
+        actualizarAlertaReponer();
+    }
+
+    /**
+     * Aviso de artículos A (los que no pueden faltar) por agotarse: en su
+     * mínimo sugerido o con 3 días o menos de existencia. La primera vez del
+     * día en la sesión también muestra una notificación con los primeros.
+     */
+    private void actualizarAlertaReponer() {
+        java.util.List<com.maxsoft.application.servicio.interfaces.inventario.ClasificacionAbcService.ArticuloPorReponer> lista;
+        try {
+            lista = abcService.porReponer(true);
+        } catch (RuntimeException ex) {
+            btnAlertaReponer.setVisible(false);
+            return;
+        }
+        if (lista.isEmpty()) {
+            btnAlertaReponer.setVisible(false);
+            return;
+        }
+
+        int n = lista.size();
+        btnAlertaReponer.setText(n + (n == 1 ? " artículo A por agotarse" : " artículos A por agotarse"));
+        btnAlertaReponer.setVisible(true);
+
+        LocalDate hoy = LocalDate.now();
+        VaadinSession sesion = VaadinSession.getCurrent();
+        if (sesion != null && !hoy.equals(sesion.getAttribute(SESION_AVISO_REPONER))) {
+            sesion.setAttribute(SESION_AVISO_REPONER, hoy);
+            String nombres = lista.stream().limit(3)
+                    .map(a -> a.descripcion() + (a.existencia().signum() <= 0 ? " (agotado)" : ""))
+                    .collect(java.util.stream.Collectors.joining(", "));
+            Notification aviso = Notification.show("Por agotarse (clase A): " + nombres
+                    + (n > 3 ? " y " + (n - 3) + " más" : "") + ". Vea \"Clasificación ABC\" para saber cuánto pedir.",
+                    7000, Notification.Position.TOP_END);
+            aviso.addThemeVariants(NotificationVariant.LUMO_WARNING);
+        }
     }
 
     /**
@@ -217,7 +261,17 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
         btnAlertaLotes.addClickListener(e -> UI.getCurrent().navigate(LotesVencimientosView.class,
                 QueryParameters.simple(java.util.Map.of("estado", "POR_ATENDER"))));
 
-        HorizontalLayout header = new HorizontalLayout(menuIcon, logo, spacer, btnAlertaLotes, userIcon);
+        // Aviso de artículos A por agotarse (se llena en afterNavigation)
+        btnAlertaReponer.setIcon(VaadinIcon.WARNING.create());
+        btnAlertaReponer.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        btnAlertaReponer.setTooltipText("Ver cuáles son y cuánto pedir");
+        btnAlertaReponer.setVisible(false);
+        btnAlertaReponer.addClickListener(e -> UI.getCurrent().navigate(
+                com.maxsoft.application.view.inventario.abc.ClasificacionAbcView.class,
+                QueryParameters.simple(java.util.Map.of(
+                        com.maxsoft.application.view.inventario.abc.ClasificacionAbcView.PARAM_REPONER, "A"))));
+
+        HorizontalLayout header = new HorizontalLayout(menuIcon, logo, spacer, btnAlertaReponer, btnAlertaLotes, userIcon);
         header.setWidth("100%");
         header.setAlignItems(Alignment.CENTER);
         header.addClassName("header");

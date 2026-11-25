@@ -96,6 +96,119 @@ public final class ClasificacionAbcUtil {
         return resultado;
     }
 
+    /**
+     * Días para el mínimo y el máximo sugeridos. Reposición: cada cuánto llega
+     * el proveedor. Seguridad: colchón por si se vende más o el proveedor se
+     * atrasa. Compra: para cuántos días se compra de una vez. Un artículo
+     * nuevo (N) usa los días de la clase B.
+     */
+    public record PoliticaStock(int diasReposicion, int seguridadA, int seguridadB, int seguridadC,
+            int compraA, int compraB, int compraC) {
+
+        public static final PoliticaStock POR_DEFECTO = new PoliticaStock(7, 3, 2, 1, 7, 10, 15);
+
+        int seguridad(String clase) {
+            return switch (clase) {
+                case CLASE_A -> seguridadA;
+                case CLASE_C -> seguridadC;
+                default -> seguridadB;
+            };
+        }
+
+        int compra(String clase) {
+            return switch (clase) {
+                case CLASE_A -> compraA;
+                case CLASE_C -> compraC;
+                default -> compraB;
+            };
+        }
+    }
+
+    /**
+     * Mínimo sugerido: demanda diaria x (reposición + seguridad de la clase),
+     * redondeado hacia arriba a unidades enteras. Sin demanda: null (no se
+     * sugiere nada para lo que no se vende).
+     */
+    public static BigDecimal minimoSugerido(BigDecimal demandaDiaria, String clase, PoliticaStock politica) {
+        if (demandaDiaria == null || demandaDiaria.signum() <= 0) {
+            return null;
+        }
+        PoliticaStock p = politica != null ? politica : PoliticaStock.POR_DEFECTO;
+        int dias = p.diasReposicion() + p.seguridad(clase);
+        return demandaDiaria.multiply(BigDecimal.valueOf(dias)).setScale(0, RoundingMode.CEILING);
+    }
+
+    /**
+     * Máximo sugerido: el mínimo más lo que se vende en los días de compra de
+     * la clase (redondeado hacia arriba). Sin demanda: null.
+     */
+    public static BigDecimal maximoSugerido(BigDecimal demandaDiaria, String clase, PoliticaStock politica) {
+        BigDecimal minimo = minimoSugerido(demandaDiaria, clase, politica);
+        if (minimo == null) {
+            return null;
+        }
+        PoliticaStock p = politica != null ? politica : PoliticaStock.POR_DEFECTO;
+        return minimo.add(demandaDiaria.multiply(BigDecimal.valueOf(p.compra(clase)))
+                .setScale(0, RoundingMode.CEILING));
+    }
+
+    /** Con esta cobertura (días) o menos, el artículo está por agotarse. */
+    public static final BigDecimal DIAS_COBERTURA_CRITICA = new BigDecimal("3");
+
+    /**
+     * Hay que reponer: la existencia está en el mínimo sugerido o por debajo,
+     * o le alcanza para {@link #DIAS_COBERTURA_CRITICA} días o menos. Lo que no
+     * se vende nunca está por reponer.
+     */
+    public static boolean porReponer(BigDecimal existencia, BigDecimal demandaDiaria, BigDecimal minimoSugerido) {
+        if (demandaDiaria == null || demandaDiaria.signum() <= 0) {
+            return false;
+        }
+        BigDecimal ex = existencia != null ? existencia : BigDecimal.ZERO;
+        if (minimoSugerido != null && ex.compareTo(minimoSugerido) <= 0) {
+            return true;
+        }
+        BigDecimal dias = diasCobertura(ex, demandaDiaria);
+        return dias != null && dias.compareTo(DIAS_COBERTURA_CRITICA) <= 0;
+    }
+
+    /**
+     * Cuánto pedir para llegar al máximo (unidades enteras, hacia arriba). Una
+     * existencia negativa cuenta como 0. Sin máximo: 0.
+     */
+    public static BigDecimal cantidadAPedir(BigDecimal existencia, BigDecimal maximoSugerido) {
+        if (maximoSugerido == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal ex = existencia != null && existencia.signum() > 0 ? existencia : BigDecimal.ZERO;
+        return maximoSugerido.subtract(ex).max(BigDecimal.ZERO).setScale(0, RoundingMode.CEILING);
+    }
+
+    /**
+     * Unidades que vende por día: unidades / días con datos (4 decimales).
+     * Sin días o sin unidades: 0.
+     */
+    public static BigDecimal demandaDiaria(BigDecimal unidades, int diasConDatos) {
+        if (diasConDatos <= 0 || unidades == null || unidades.signum() <= 0) {
+            return BigDecimal.ZERO.setScale(4);
+        }
+        return unidades.divide(BigDecimal.valueOf(diasConDatos), 4, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Días que le alcanza la existencia al ritmo de venta (1 decimal). Sin
+     * demanda no se puede saber: null. Existencia en cero o negativa: 0.
+     */
+    public static BigDecimal diasCobertura(BigDecimal existencia, BigDecimal demandaDiaria) {
+        if (demandaDiaria == null || demandaDiaria.signum() <= 0) {
+            return null;
+        }
+        if (existencia == null || existencia.signum() <= 0) {
+            return BigDecimal.ZERO.setScale(1);
+        }
+        return existencia.divide(demandaDiaria, 1, RoundingMode.HALF_UP);
+    }
+
     /** A si alguno es A; C si los dos son C; B en los demás casos. */
     public static String combinar(String claseValor, String claseRotacion) {
         if (CLASE_A.equals(claseValor) || CLASE_A.equals(claseRotacion)) {

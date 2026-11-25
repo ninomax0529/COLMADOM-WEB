@@ -1,6 +1,7 @@
 package com.maxsoft.application.servicio.interfaces.inventario;
 
 import com.maxsoft.application.modelo.ArticuloClasificacionAbc;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +37,28 @@ public interface ClasificacionAbcService {
 
     /** Resultado guardado de un artículo. */
     Optional<ArticuloClasificacionAbc> obtenerPorArticulo(Integer codigoArticulo);
+
+    /**
+     * Copia el mínimo y el máximo sugeridos a los del artículo
+     * (articulo.minimo / maximo). Los que no tienen sugerencia (no venden)
+     * no se tocan.
+     *
+     * @return cuántos artículos se actualizaron
+     */
+    int aplicarSugeridos(java.util.Collection<Integer> codigosArticulo);
+
+    /** Artículo que hay que reponer, con la existencia actual y cuánto pedir. */
+    record ArticuloPorReponer(Integer articulo, String descripcion, String clase, BigDecimal existencia,
+            BigDecimal diasCobertura, BigDecimal minimoSugerido, BigDecimal maximoSugerido, BigDecimal pedir) {
+    }
+
+    /**
+     * Artículos por agotarse según ClasificacionAbcUtil.porReponer, con la
+     * existencia de este momento; los que menos días tienen, primero.
+     *
+     * @param soloClaseA true para el aviso: solo los A (los que no pueden faltar)
+     */
+    List<ArticuloPorReponer> porReponer(boolean soloClaseA);
 
     /** Fecha y hora del último cálculo; vacío si nunca se calculó. */
     Optional<LocalDateTime> ultimoCalculo();
