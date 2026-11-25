@@ -12,8 +12,8 @@ public interface ArticuloClasificacionAbcRepo extends JpaRepository<ArticuloClas
     /**
      * Ventas del período por artículo de venta: los que tienen una
      * presentación "se vende en" (igual que el POS) o vendieron algo en el
-     * período. No se usan articulo.para_venta ni habilitado: hoy no se
-     * guardan desde el formulario (están en 0). Columnas: [0] código, [1] fecha_creacion, [2] ventas netas sin
+     * período. No se filtra por articulo.para_venta ni habilitado (hasta
+     * V20261125_2 el formulario no los guardaba). Columnas: [0] código, [1] fecha_creacion, [2] ventas netas sin
      * ITBIS, [3] facturas, [4] unidades base. Sin facturas anuladas y restando
      * lo devuelto de cada línea (proporcional a cantidad_devuelta).
      */

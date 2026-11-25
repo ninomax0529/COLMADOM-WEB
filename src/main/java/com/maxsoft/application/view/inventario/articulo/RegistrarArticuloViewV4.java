@@ -83,6 +83,9 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
     private final Checkbox chkExentoItbis = new Checkbox("Exento de ITBIS");
     private final BigDecimalField txtTasaItbis = new BigDecimalField("ITBIS (%)");
     private final IntegerField txtCodigo = new IntegerField("Código");
+    // Estado del artículo: de venta (se ofrece al cliente) y habilitado (activo)
+    private final Checkbox chkParaVenta = new Checkbox("Artículo de venta");
+    private final Checkbox chkHabilitado = new Checkbox("Habilitado");
     private final RadioButtonGroup<UnidadDeVenta> rbbGrupo = new RadioButtonGroup<>();
     // Categoría: agrupa el artículo en los botones del catálogo del POS
     private final ComboBox<Categoria> cbCategoria = new ComboBox<>("Categoría");
@@ -275,7 +278,14 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 
         configurarCategoria();
 
-        FormLayout formLayout = new FormLayout(hlArt, hbPrecio, hbItbis, cbCategoria, rbbGrupo);
+        chkParaVenta.setTooltipText("Se ofrece al cliente; desmárquelo para insumos o artículos de consumo interno");
+        chkHabilitado.setTooltipText("Desmárquelo para dar de baja el artículo sin borrarlo");
+        HorizontalLayout hbEstado = new HorizontalLayout(chkParaVenta, chkHabilitado);
+
+        FormLayout formLayout = new FormLayout(hlArt, hbPrecio, hbItbis, hbEstado, cbCategoria, rbbGrupo);
+
+        binder.bind(chkParaVenta, Articulo::getParaVenta, Articulo::setParaVenta);
+        binder.bind(chkHabilitado, Articulo::getHabilitado, Articulo::setHabilitado);
 
         binder.bind(chkExentoItbis, Articulo::getExentoItbis, Articulo::setExentoItbis);
         binder.bind(txtTasaItbis,
@@ -999,6 +1009,8 @@ public class RegistrarArticuloViewV4 extends VerticalLayout implements HasUrlPar
 
         // Un artículo nuevo arranca con los valores por defecto de inventario y compra
         if (articulo.getCodigo() == null) {
+            articulo.setParaVenta(true);
+            articulo.setHabilitado(true);
             aplicarValoresPorDefectoInventario(articulo);
             aplicarValoresPorDefectoCompra(articulo);
         }
