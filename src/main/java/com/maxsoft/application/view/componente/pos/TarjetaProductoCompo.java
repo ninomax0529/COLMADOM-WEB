@@ -6,6 +6,7 @@ package com.maxsoft.application.view.componente.pos;
 
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.ArticuloEmpaque;
+import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
@@ -55,15 +56,19 @@ public class TarjetaProductoCompo extends VerticalLayout {
 
     /** Existencia actual (unidad base) por código de artículo. */
     private final Function<Integer, BigDecimal> existenciaDeArticulo;
+    /** Mostrador frente a su mínimo y a los otros almacenes, por código (puede ser null). */
+    private final Function<Integer, InventarioService.EstadoMostrador> estadoDeArticulo;
 
     public TarjetaProductoCompo(
             List<ArticuloEmpaque> presentacionesArticulo,
             String imageUrl,
             BiConsumer<ArticuloEmpaque, BigDecimal> onCantidadChanged,
             Consumer<ArticuloEmpaque> onVentaPorMontoRequested,
-            Function<Integer, BigDecimal> existenciaDeArticulo
+            Function<Integer, BigDecimal> existenciaDeArticulo,
+            Function<Integer, InventarioService.EstadoMostrador> estadoDeArticulo
     ) {
         this.existenciaDeArticulo = existenciaDeArticulo;
+        this.estadoDeArticulo = estadoDeArticulo;
         this.presentaciones = new ArrayList<>(presentacionesArticulo);
         this.presentaciones.sort(Comparator.comparing(TarjetaProductoCompo::factorDe));
         // Por defecto la presentación más pequeña (normalmente la unidad)
@@ -305,19 +310,42 @@ public class TarjetaProductoCompo extends VerticalLayout {
                 ? articulo.getMinimo()
                 : POCO_POR_DEFECTO;
 
+        // Mostrador en su mínimo (o agotado) y hay en otro almacén: se dice
+        // cuánto hay atrás, para que lo traigan con un traslado
+        InventarioService.EstadoMostrador estado = estadoDeArticulo != null
+                ? estadoDeArticulo.apply(articulo.getCodigo()) : null;
+        String atras = "";
+        if (estado != null && estado.tocaTrasladar()) {
+            BigDecimal otros = enPresentacion(estado.enOtrosAlmacenes(), factor);
+            atras = " · " + (otros.signum() > 0 ? otros.stripTrailingZeros().toPlainString() : "hay")
+                    + " en almacén";
+            existenciaLabel.getElement().setAttribute("title",
+                    "Hay en otro almacén: haga un traslado al mostrador");
+        } else {
+            existenciaLabel.getElement().removeAttribute("title");
+        }
+
         existenciaLabel.setVisible(true);
         if (enPresentacion.signum() <= 0) {
-            existenciaLabel.setText("Agotado");
-            existenciaLabel.getStyle().set("color", "var(--lumo-error-text-color)");
+            existenciaLabel.setText("Agotado" + atras);
+            existenciaLabel.getStyle().set("color", atras.isEmpty()
+                    ? "var(--lumo-error-text-color)"
+                    : COLOR_POCO);
             getStyle().set("opacity", "0.6");
         } else {
             String cantidad = enPresentacion.stripTrailingZeros().toPlainString();
-            existenciaLabel.setText("Quedan " + cantidad);
-            existenciaLabel.getStyle().set("color", base.compareTo(minimo) <= 0
+            existenciaLabel.setText("Quedan " + cantidad + atras);
+            existenciaLabel.getStyle().set("color", base.compareTo(minimo) <= 0 || !atras.isEmpty()
                     ? COLOR_POCO
                     : "var(--lumo-success-text-color)");
             getStyle().remove("opacity");
         }
+    }
+
+    /** Unidades base llevadas a la presentación elegida (enteras si es caja, fardo...). */
+    private BigDecimal enPresentacion(BigDecimal base, BigDecimal factor) {
+        BigDecimal valor = factor.signum() > 0 ? base.divide(factor, 2, RoundingMode.DOWN) : base;
+        return esEmpaqueMultiple(seleccionada) ? valor.setScale(0, RoundingMode.DOWN) : valor;
     }
 
     private static BigDecimal factorDe(ArticuloEmpaque ae) {

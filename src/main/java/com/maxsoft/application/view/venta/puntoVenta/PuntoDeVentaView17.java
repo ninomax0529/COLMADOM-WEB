@@ -20,6 +20,7 @@ import com.maxsoft.application.servicio.interfaces.reporte.ReporteService;
 import com.maxsoft.application.servicio.interfaces.venta.TipoVentaService;
 import com.maxsoft.application.util.ClaseUtil;
 import com.maxsoft.application.util.LineaPosUtil;
+import com.maxsoft.application.util.TrasladoMostradorUtil;
 import com.maxsoft.application.view.componente.pos.DialogoAnulacionFactura;
 import com.maxsoft.application.view.componente.pos.DialogoCobroEfectivo;
 import com.maxsoft.application.view.componente.pos.DialogoConfirmarEliminarItem;
@@ -120,6 +121,8 @@ public class PuntoDeVentaView17 extends HorizontalLayout
     private final FacturaDeVentaService factService;
     /** Valida la existencia con la misma regla que se aplica al facturar. */
     private final InventarioService inventarioService;
+    /** Artículos ya avisados de "haga un traslado al mostrador" (una vez cada uno). */
+    private final java.util.Set<Integer> avisadosTraslado = new java.util.HashSet<>();
     /** Categorías para los botones de filtro del catálogo. */
     private final CategoriaService categoriaService;
     /** Autorización de supervisor (p. ej. vender de un lote vencido). */
@@ -921,9 +924,11 @@ public class PuntoDeVentaView17 extends HorizontalLayout
         try {
             inventarioService.validarStockDisponible(base.getCodigo(), requeridoBase);
         } catch (IllegalStateException e) {
+            InventarioService.EstadoMostrador estado = estadoMostrador(base);
             Notification bloqueo = Notification.show(
-                    "⛔ " + e.getMessage() + " Este artículo no permite venta sin existencia.",
-                    5000,
+                    "⛔ " + e.getMessage() + " Este artículo no permite venta sin existencia."
+                    + (hayAtras(estado) ? " " + textoTraslado(estado) : ""),
+                    hayAtras(estado) ? 8000 : 5000,
                     Notification.Position.TOP_CENTER
             );
             bloqueo.addThemeVariants(NotificationVariant.LUMO_ERROR);
@@ -932,7 +937,9 @@ public class PuntoDeVentaView17 extends HorizontalLayout
 
         if (Boolean.TRUE.equals(base.getInventariable())) {
 
-            BigDecimal stock = inventarioService.existenciaDisponible(base.getCodigo());
+            InventarioService.EstadoMostrador estado = estadoMostrador(base);
+            BigDecimal stock = estado != null ? estado.existencia()
+                    : inventarioService.existenciaDisponible(base.getCodigo());
 
             if (stock.compareTo(requeridoBase) < 0) {
 
@@ -940,16 +947,55 @@ public class PuntoDeVentaView17 extends HorizontalLayout
                         "⚠️ Notificación: " + empaque.getNombreArticulo()
                         + " no tiene stock suficiente en sistema ("
                         + stock.stripTrailingZeros().toPlainString()
-                        + " en unidad base). Se venderá en negativo.",
-                        3000,
+                        + " en unidad base). Se venderá en negativo."
+                        + (hayAtras(estado) ? " " + textoTraslado(estado) : ""),
+                        hayAtras(estado) ? 6000 : 3000,
                         Notification.Position.TOP_CENTER
                 );
 
+                notif.addThemeVariants(NotificationVariant.LUMO_WARNING);
+                avisadosTraslado.add(base.getCodigo());
+
+            } else if (estado != null && !TrasladoMostradorUtil.tocaTrasladar(stock.subtract(requeridoBase),
+                    estado.minimo(), estado.enOtrosAlmacenes())) {
+                // Hay suficiente: si después vuelve a bajar se avisa de nuevo
+                avisadosTraslado.remove(base.getCodigo());
+
+            } else if (estado != null && avisadosTraslado.add(base.getCodigo())) {
+                // Con esta venta el mostrador llega a su mínimo: se avisa una
+                // vez por artículo mientras el POS esté abierto
+                Notification notif = Notification.show(
+                        "📦 Queda poco " + base.getDescripcion() + " en el mostrador ("
+                        + stock.subtract(requeridoBase).stripTrailingZeros().toPlainString()
+                        + (estado.minimo().signum() > 0
+                        ? ", mínimo " + estado.minimo().stripTrailingZeros().toPlainString() : "")
+                        + "). " + textoTraslado(estado),
+                        6000,
+                        Notification.Position.TOP_CENTER
+                );
                 notif.addThemeVariants(NotificationVariant.LUMO_WARNING);
             }
         }
 
         return true;
+    }
+
+    /** Estado del mostrador del artículo; null si no se pudo leer (el aviso es informativo). */
+    private InventarioService.EstadoMostrador estadoMostrador(Articulo base) {
+        try {
+            return inventarioService.estadoMostrador(base.getCodigo());
+        } catch (RuntimeException ex) {
+            log.warn("No se pudo leer la existencia de los otros almacenes", ex);
+            return null;
+        }
+    }
+
+    private static boolean hayAtras(InventarioService.EstadoMostrador estado) {
+        return estado != null && estado.enOtrosAlmacenes().signum() > 0;
+    }
+
+    private static String textoTraslado(InventarioService.EstadoMostrador estado) {
+        return "Hay en " + estado.dondeHay() + " (unidad base): haga un traslado al mostrador.";
     }
 
     private void actualizarCantidadItem(

@@ -95,6 +95,8 @@ public class PanelProductos extends VerticalLayout {
     // recarga después de cada venta, anulación o devolución.
     private final InventarioService inventarioService;
     private Map<Integer, BigDecimal> existencias;
+    /** Mostrador frente a su mínimo y a los otros almacenes (aviso "en almacén" de la tarjeta). */
+    private Map<Integer, InventarioService.EstadoMostrador> estadosMostrador = Map.of();
 
     private final BiConsumer<ArticuloEmpaque, BigDecimal> onAgregarCantidadAlTicketActivo;
     private final Consumer<ArticuloEmpaque> onAbrirVentaPorMonto;
@@ -115,6 +117,7 @@ public class PanelProductos extends VerticalLayout {
 
         this.inventarioService = inventarioService;
         this.existencias = inventarioService.existenciasPorArticulo();
+        this.estadosMostrador = leerEstadosMostrador();
 
         this.facturaDeVentaService = facturaDeVentaService;
         this.onAgregarCantidadAlTicketActivo = onAgregarCantidadAlTicketActivo;
@@ -475,8 +478,19 @@ public class PanelProductos extends VerticalLayout {
                         onAbrirVentaPorMonto.accept(articulo);
                     }
                 },
-                codigoArticulo -> existencias.get(codigoArticulo)
+                codigoArticulo -> existencias.get(codigoArticulo),
+                codigoArticulo -> estadosMostrador.get(codigoArticulo)
         );
+    }
+
+    /** El aviso de traslado es informativo: si falla, la tarjeta sale como antes. */
+    private Map<Integer, InventarioService.EstadoMostrador> leerEstadosMostrador() {
+        try {
+            return inventarioService.estadosMostrador();
+        } catch (RuntimeException ex) {
+            log.warn("No se pudo leer la existencia de los otros almacenes", ex);
+            return Map.of();
+        }
     }
 
     /**
@@ -486,6 +500,7 @@ public class PanelProductos extends VerticalLayout {
     public void refrescarExistencias() {
         try {
             existencias = inventarioService.existenciasPorArticulo();
+            estadosMostrador = leerEstadosMostrador();
             gridContainer.getChildren()
                     .filter(TarjetaProductoCompo.class::isInstance)
                     .map(TarjetaProductoCompo.class::cast)

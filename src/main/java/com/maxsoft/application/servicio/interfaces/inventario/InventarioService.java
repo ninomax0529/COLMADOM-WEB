@@ -31,4 +31,25 @@ public interface InventarioService {
      * pueden vender en el POS.
      */
     java.util.Map<Integer, BigDecimal> existenciasPorArticulo();
+
+    /**
+     * Existencia del artículo en el mostrador (almacén de venta) frente a su
+     * mínimo ahí y a lo que hay en los demás almacenes, en unidad base.
+     *
+     * @param dondeHay texto con los otros almacenes ("ALMACEN PRINCIPAL: 3");
+     * solo lo llena {@link #estadoMostrador(Integer)}, para los mensajes
+     */
+    record EstadoMostrador(BigDecimal existencia, BigDecimal minimo, BigDecimal enOtrosAlmacenes, String dondeHay) {
+
+        /** Llegó al mínimo (o se agotó) y hay de dónde reponer. */
+        public boolean tocaTrasladar() {
+            return com.maxsoft.application.util.TrasladoMostradorUtil.tocaTrasladar(existencia, minimo, enOtrosAlmacenes);
+        }
+    }
+
+    /** Estado del mostrador de un artículo, con el detalle de los otros almacenes. */
+    EstadoMostrador estadoMostrador(Integer idArticulo);
+
+    /** Estado del mostrador de todos los artículos (sin el detalle de almacenes). */
+    java.util.Map<Integer, EstadoMostrador> estadosMostrador();
 }

@@ -5,6 +5,10 @@ import com.maxsoft.application.repo.ArticuloAlmacenRepo;
 import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,6 +67,44 @@ public class InventarioServiceImpl implements InventarioService {
             mapa.put((Integer) fila[0], fila[1] != null ? (BigDecimal) fila[1] : BigDecimal.ZERO);
         }
         return mapa;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EstadoMostrador estadoMostrador(Integer idArticulo) {
+        List<Object[]> filas = articuloAlmacenRepo.estadosMostrador(ALMACEN_VENTA, idArticulo);
+        if (filas.isEmpty()) {
+            return new EstadoMostrador(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "");
+        }
+        String dondeHay = articuloAlmacenRepo.existenciaEnOtrosAlmacenes(idArticulo, ALMACEN_VENTA).stream()
+                .map(f -> (f[0] != null ? f[0].toString() : "otro almacén") + ": " + texto(aDecimal(f[1])))
+                .collect(Collectors.joining(", "));
+        return estado(filas.get(0), dondeHay);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Integer, EstadoMostrador> estadosMostrador() {
+        Map<Integer, EstadoMostrador> mapa = new HashMap<>();
+        for (Object[] fila : articuloAlmacenRepo.estadosMostrador(ALMACEN_VENTA, null)) {
+            mapa.put(((Number) fila[0]).intValue(), estado(fila, null));
+        }
+        return mapa;
+    }
+
+    private static EstadoMostrador estado(Object[] fila, String dondeHay) {
+        return new EstadoMostrador(aDecimal(fila[1]), aDecimal(fila[2]), aDecimal(fila[3]), dondeHay);
+    }
+
+    private static BigDecimal aDecimal(Object valor) {
+        if (valor == null) {
+            return BigDecimal.ZERO;
+        }
+        return valor instanceof BigDecimal b ? b : new BigDecimal(valor.toString());
+    }
+
+    private static String texto(BigDecimal valor) {
+        return valor.stripTrailingZeros().toPlainString();
     }
 
     /**

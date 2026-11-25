@@ -27,6 +27,34 @@ public interface ArticuloAlmacenRepo extends JpaRepository<ArticuloAlmacen, Inte
     @Query("SELECT aa.articulo.codigo, aa.existencia FROM ArticuloAlmacen aa WHERE aa.almacen.codigo = :idAlmacen")
     java.util.List<Object[]> existenciasDelAlmacen(@Param("idAlmacen") Integer idAlmacen);
 
+    /**
+     * Por artículo, para saber si hay que trasladar al mostrador: [0] código,
+     * [1] existencia en el almacén de venta, [2] mínimo en el almacén de
+     * venta, [3] existencia positiva en los demás almacenes.
+     */
+    @Query(value = """
+            SELECT aa.articulo,
+                   COALESCE(SUM(CASE WHEN aa.almacen = :venta THEN aa.existencia END), 0),
+                   COALESCE(MAX(CASE WHEN aa.almacen = :venta THEN aa.minimo END), 0),
+                   COALESCE(SUM(CASE WHEN aa.almacen <> :venta AND aa.existencia > 0 THEN aa.existencia END), 0)
+            FROM articulo_almacen aa
+            WHERE (:articulo IS NULL OR aa.articulo = :articulo)
+            GROUP BY aa.articulo
+            """, nativeQuery = true)
+    java.util.List<Object[]> estadosMostrador(@Param("venta") int almacenVenta,
+            @Param("articulo") Integer articulo);
+
+    /** [nombre del almacén, existencia] de los otros almacenes con existencia, de mayor a menor. */
+    @Query(value = """
+            SELECT al.nombre, aa.existencia
+            FROM articulo_almacen aa
+            JOIN almacen al ON al.codigo = aa.almacen
+            WHERE aa.articulo = :articulo AND aa.almacen <> :venta AND aa.existencia > 0
+            ORDER BY aa.existencia DESC
+            """, nativeQuery = true)
+    java.util.List<Object[]> existenciaEnOtrosAlmacenes(@Param("articulo") Integer articulo,
+            @Param("venta") int almacenVenta);
+
     /** Existencia total del artículo: suma de todos sus almacenes (unidad base). */
     @Query("SELECT COALESCE(SUM(a.existencia), 0) FROM ArticuloAlmacen a WHERE a.articulo.codigo = :idArticulo")
     java.math.BigDecimal sumarExistencia(@Param("idArticulo") Integer idArticulo);
