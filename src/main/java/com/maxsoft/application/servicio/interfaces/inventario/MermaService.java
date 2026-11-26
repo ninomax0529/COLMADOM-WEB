@@ -20,6 +20,12 @@ public interface MermaService {
     List<DetalleMerma> getDetalle(Integer codigoMerma);
 
     /**
+     * Mermas entre dos fechas (inclusive; null = sin límite), de un tipo y/o
+     * almacén (null = todos). Filtra en la BD, las más recientes primero.
+     */
+    List<Merma> buscar(java.time.LocalDate desde, java.time.LocalDate hasta, Integer tipoMerma, Integer almacen);
+
+    /**
      * Registra la merma y genera la salida de inventario correspondiente, todo
      * en una sola transacción: si la salida falla (por ejemplo, stock
      * insuficiente) la merma tampoco se guarda.

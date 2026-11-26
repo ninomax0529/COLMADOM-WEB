@@ -142,6 +142,9 @@ public interface LoteService {
     /** Todos los lotes con existencia distinta de cero (consulta de vencimientos). */
     List<LoteAlmacen> getLotesConExistencia();
 
+    /** Lotes vencidos a la fecha con existencia en el almacén (para la merma por vencimiento). */
+    List<LoteAlmacen> getLotesVencidos(Integer codigoAlmacen, java.time.LocalDate hoy);
+
     /** Artículo/almacén con existencia distinta a la suma de sus lotes: {articulo, almacen, existencia, suma_lotes}. */
     List<Object[]> getDescuadres();
 }

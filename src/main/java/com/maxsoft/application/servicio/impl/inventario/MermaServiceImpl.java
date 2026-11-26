@@ -33,6 +33,15 @@ public class MermaServiceImpl implements MermaService {
         return repo.getDetalle(merma);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<Merma> buscar(java.time.LocalDate desde, java.time.LocalDate hasta, Integer tipoMerma, Integer almacen) {
+        // Sin límite = fechas extremas (un parámetro de fecha null complica la consulta)
+        java.time.LocalDate d = desde != null ? desde : java.time.LocalDate.of(1900, 1, 1);
+        java.time.LocalDate h = hasta != null ? hasta : java.time.LocalDate.of(9999, 12, 31);
+        return repo.buscar(java.sql.Date.valueOf(d), java.sql.Date.valueOf(h), tipoMerma, almacen);
+    }
+
     @Transactional(rollbackFor = Exception.class)
     @Override
     public Merma procesarMerma(Merma merma, List<DetalleMerma> detalles, String usuario) {

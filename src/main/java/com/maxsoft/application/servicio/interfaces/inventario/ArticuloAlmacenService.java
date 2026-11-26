@@ -25,4 +25,10 @@ public interface ArticuloAlmacenService {
     Optional<ArticuloAlmacen> buscarPorArticuloYAlmacen(
             Integer idArticulo, Integer idAlmacen);
 
+    /**
+     * Existencia (unidad base) de todos los artículos registrados en el
+     * almacén, en una sola consulta: código de artículo → existencia.
+     */
+    java.util.Map<Integer, java.math.BigDecimal> existenciasDelAlmacen(Integer idAlmacen);
+
 }

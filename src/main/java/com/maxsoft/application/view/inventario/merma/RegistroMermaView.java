@@ -95,6 +95,10 @@ public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow
     // Solo se usa para mostrar "existencia actual / nueva existencia".
     private final Map<DetalleMerma, BigDecimal> existenciaPrevia = new IdentityHashMap<>();
 
+    /** Existencias (unidad base) del almacén elegido, leídas de una vez: artículo → existencia. */
+    private Map<Integer, BigDecimal> existencias = Map.of();
+    private Integer almacenDeExistencias;
+
     private Grid.Column<DetalleMerma> colTotal;
 
     @Autowired
@@ -190,9 +194,19 @@ public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow
             return BigDecimal.ZERO;
         }
 
-        return existenciaService.buscarPorArticuloYAlmacen(articulo.getCodigo(), almacen.getCodigo())
-                .map(a -> a.getExistencia() != null ? a.getExistencia() : BigDecimal.ZERO)
-                .orElse(BigDecimal.ZERO);
+        // Una sola consulta por almacén en vez de una por línea o cambio de cantidad.
+        // La salida vuelve a validar con la existencia real (bloqueada) al guardar.
+        if (!Objects.equals(almacenDeExistencias, almacen.getCodigo())) {
+            existencias = existenciaService.existenciasDelAlmacen(almacen.getCodigo());
+            almacenDeExistencias = almacen.getCodigo();
+        }
+        return existencias.getOrDefault(articulo.getCodigo(), BigDecimal.ZERO);
+    }
+
+    /** La próxima lectura de existencias vuelve a la BD (p. ej. después de guardar). */
+    private void olvidarExistencias() {
+        existencias = Map.of();
+        almacenDeExistencias = null;
     }
 
     private BigDecimal factorDe(ArticuloEmpaque empaque) {
@@ -338,13 +352,9 @@ public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow
             cbAlmacen.focus();
             return;
         }
-        LocalDate hoy = LocalDate.now();
         int agregados = 0;
-        for (com.maxsoft.application.modelo.LoteAlmacen la : loteService.getLotesConExistencia()) {
-            if (!Objects.equals(la.getAlmacen().getCodigo(), almacen.getCodigo())
-                    || la.getExistencia().signum() <= 0 || !la.getLote().isVencido(hoy)) {
-                continue;
-            }
+        // Solo los lotes vencidos de este almacén (antes se traían los de todos y se filtraba aquí)
+        for (com.maxsoft.application.modelo.LoteAlmacen la : loteService.getLotesVencidos(almacen.getCodigo(), LocalDate.now())) {
             boolean yaEsta = listDet.stream().anyMatch(d -> d.getLote() != null
                     && Objects.equals(d.getLote().getCodigo(), la.getLote().getCodigo()));
             if (yaEsta) {
@@ -710,6 +720,7 @@ public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow
 
         listDet.clear();
         existenciaPrevia.clear();
+        olvidarExistencias();
         txtObservacion.clear();
         cbTipoMerma.clear();
         dpFecha.setValue(LocalDate.now());

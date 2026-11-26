@@ -58,6 +58,14 @@ public interface LoteAlmacenRepo extends JpaRepository<LoteAlmacen, Integer> {
             + " order by case when l.fechaVencimiento is null then 1 else 0 end, l.fechaVencimiento")
     List<LoteAlmacen> findConExistencia();
 
+    /** Lotes vencidos (vencimiento antes de :hoy) con existencia en el almacén, con su artículo. */
+    @Query("select la from LoteAlmacen la join fetch la.lote l join fetch l.articulo"
+            + " where la.almacen.codigo = :almacen and la.existencia > 0"
+            + " and l.fechaVencimiento is not null and l.fechaVencimiento < :hoy"
+            + " order by l.fechaVencimiento, l.codigo")
+    List<LoteAlmacen> findVencidosEnAlmacen(@Param("almacen") Integer codigoAlmacen,
+            @Param("hoy") java.time.LocalDate hoy);
+
     /**
      * Artículo/almacén donde articulo_almacen.existencia no cuadra con la suma
      * de sus lotes (solo artículos que controlan lote). Debe venir vacía.

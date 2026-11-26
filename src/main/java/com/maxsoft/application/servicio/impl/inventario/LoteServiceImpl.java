@@ -433,6 +433,12 @@ public class LoteServiceImpl implements LoteService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<LoteAlmacen> getLotesVencidos(Integer codigoAlmacen, java.time.LocalDate hoy) {
+        return loteAlmacenRepo.findVencidosEnAlmacen(codigoAlmacen, hoy);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Object[]> getDescuadres() {
         return loteAlmacenRepo.findDescuadres();
     }

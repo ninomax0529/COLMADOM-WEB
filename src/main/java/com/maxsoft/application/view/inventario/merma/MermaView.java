@@ -40,8 +40,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 @PermitAll
 @PageTitle("Merma de Inventario")
@@ -210,17 +208,10 @@ public class MermaView extends VerticalLayout {
             TipoMerma tipo = cbTipoMerma.getValue();
             Almacen almacen = cbAlmacen.getValue();
 
-            List<Merma> resultado = this.mermaService.getLista()
-                    .stream()
-                    .filter(m -> dentroDeRango(aLocalDate(m.getFecha())))
-                    .filter(m -> tipo == null || (m.getTipoMerma() != null
-                    && Objects.equals(m.getTipoMerma().getCodigo(), tipo.getCodigo())))
-                    .filter(m -> almacen == null || (m.getAlmacen() != null
-                    && Objects.equals(m.getAlmacen().getCodigo(), almacen.getCodigo())))
-                    .sorted(Comparator.comparing(
-                            (Merma m) -> aLocalDate(m.getFecha()),
-                            Comparator.nullsLast(Comparator.reverseOrder())))
-                    .collect(Collectors.toList());
+            // Filtra en la BD (fechas, tipo y almacén) y trae las relaciones en la misma consulta
+            List<Merma> resultado = this.mermaService.buscar(dpDesde.getValue(), dpHasta.getValue(),
+                    tipo != null ? tipo.getCodigo() : null,
+                    almacen != null ? almacen.getCodigo() : null);
 
             listaMermas.clear();
             listaMermas.addAll(resultado);
@@ -413,17 +404,6 @@ public class MermaView extends VerticalLayout {
     // ============================================================
     // UTILIDADES
     // ============================================================
-    private boolean dentroDeRango(LocalDate fecha) {
-
-        if (fecha == null) {
-            return dpDesde.getValue() == null && dpHasta.getValue() == null;
-        }
-        if (dpDesde.getValue() != null && fecha.isBefore(dpDesde.getValue())) {
-            return false;
-        }
-        return dpHasta.getValue() == null || !fecha.isAfter(dpHasta.getValue());
-    }
-
     private LocalDate aLocalDate(Date fecha) {
 
         if (fecha == null) {

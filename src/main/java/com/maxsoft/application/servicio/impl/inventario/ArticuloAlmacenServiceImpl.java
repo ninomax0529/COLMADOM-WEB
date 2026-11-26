@@ -43,5 +43,16 @@ public class ArticuloAlmacenServiceImpl implements ArticuloAlmacenService {
     public Optional<List<ArticuloAlmacen>> buscarPorArticulo(Integer idArticulo) {
         return repo.buscarPorArticulo(idArticulo);
     }
+
+    @Override
+    public java.util.Map<Integer, java.math.BigDecimal> existenciasDelAlmacen(Integer idAlmacen) {
+        java.util.Map<Integer, java.math.BigDecimal> mapa = new java.util.HashMap<>();
+        for (Object[] fila : repo.existenciasDelAlmacen(idAlmacen)) {
+            java.math.BigDecimal existencia = fila[1] instanceof java.math.BigDecimal b ? b
+                    : fila[1] != null ? new java.math.BigDecimal(fila[1].toString()) : java.math.BigDecimal.ZERO;
+            mapa.put(((Number) fila[0]).intValue(), existencia);
+        }
+        return mapa;
+    }
     
 }
