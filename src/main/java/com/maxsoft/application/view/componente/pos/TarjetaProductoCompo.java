@@ -306,14 +306,22 @@ public class TarjetaProductoCompo extends VerticalLayout {
             enPresentacion = enPresentacion.setScale(0, RoundingMode.DOWN);
         }
 
-        BigDecimal minimo = articulo.getMinimo() != null && articulo.getMinimo().signum() > 0
-                ? articulo.getMinimo()
-                : POCO_POR_DEFECTO;
+        InventarioService.EstadoMostrador estado = estadoDeArticulo != null
+                ? estadoDeArticulo.apply(articulo.getCodigo()) : null;
+
+        // "Poco" se mide contra el mínimo del mostrador (lo que se vende de
+        // aquí); si no tiene, el mínimo del artículo; si tampoco, un valor fijo
+        BigDecimal minimo;
+        if (estado != null && estado.minimo() != null && estado.minimo().signum() > 0) {
+            minimo = estado.minimo();
+        } else if (articulo.getMinimo() != null && articulo.getMinimo().signum() > 0) {
+            minimo = articulo.getMinimo();
+        } else {
+            minimo = POCO_POR_DEFECTO;
+        }
 
         // Mostrador en su mínimo (o agotado) y hay en otro almacén: se dice
         // cuánto hay atrás, para que lo traigan con un traslado
-        InventarioService.EstadoMostrador estado = estadoDeArticulo != null
-                ? estadoDeArticulo.apply(articulo.getCodigo()) : null;
         String atras = "";
         if (estado != null && estado.tocaTrasladar()) {
             BigDecimal otros = enPresentacion(estado.enOtrosAlmacenes(), factor);
