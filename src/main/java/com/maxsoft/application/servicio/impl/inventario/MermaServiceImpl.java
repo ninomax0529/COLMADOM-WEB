@@ -6,6 +6,7 @@ package com.maxsoft.application.servicio.impl.inventario;
 
 import com.maxsoft.application.modelo.DetalleMerma;
 import com.maxsoft.application.modelo.Merma;
+import com.maxsoft.application.modelo.SalidaInventario;
 import com.maxsoft.application.repo.MerrmaRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.MermaService;
 import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
@@ -45,10 +46,13 @@ public class MermaServiceImpl implements MermaService {
         merma.setDetalleMermaCollection(detalles);
 
         Merma mermadb = repo.save(merma);
-        
-        this.salidaInventarioService.crearSalidaPorMerma(merma, detalles);
 
-        return mermadb;
+        // La merma queda enlazada a la salida que descontó la existencia
+        // (columna "Salida N°" de la consulta y base para anularla)
+        SalidaInventario salida = this.salidaInventarioService.crearSalidaPorMerma(mermadb, detalles);
+        mermadb.setSalidaInventario(salida);
+
+        return repo.save(mermadb);
     }
 
 }

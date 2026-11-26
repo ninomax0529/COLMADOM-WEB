@@ -511,17 +511,19 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setExistencia(stockActual);
                 detSalida.setUnidad(det.getArticuloEmpaque().getUnidadEmpaque());
 
-                BigDecimal costo = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
+                // Costo de la PRESENTACIÓN: guardar() lo multiplica por la cantidad en
+                // presentación. Se usa el de la línea de merma (costo del empaque, o
+                // costo base x factor); antes iba el costo base y una caja de 24 quedaba
+                // en el kardex por el valor de una unidad.
+                BigDecimal costoBase = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
+                BigDecimal costo = det.getCostoUnitario() != null && det.getCostoUnitario().signum() > 0
+                        ? det.getCostoUnitario()
+                        : costoBase.multiply(factorConversion);
                 BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
 
                 detSalida.setCostoUnitario(costo);
                 detSalida.setPrecioCompra(costo);
                 detSalida.setPrecioVenta(precio);
-
-                BigDecimal cantidadFisicaBase1 = detSalida.getCantidad()
-                        .multiply(detSalida.getFactorConversion());
-
-                detSalida.setCantidadFisicaBase(cantidadFisicaBase1);
 
                 detallesSalida.add(detSalida);
 //                }

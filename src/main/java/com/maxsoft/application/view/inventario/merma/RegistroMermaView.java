@@ -409,6 +409,9 @@ public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow
                         4500, Position.MIDDLE);
                 return false;
             }
+            if (!alcanzaElLote(det, det.getLote(), base)) {
+                return false;
+            }
         }
 
         det.setCantidad(cantidad);
@@ -424,6 +427,50 @@ public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow
         det.setTotal(cantidad.multiply(costo));
 
         return true;
+    }
+
+    /**
+     * Si la línea sale de un lote elegido, ese lote debe tener la cantidad
+     * (unidad base), sumando las otras líneas del mismo lote. Sin lote (FEFO)
+     * basta la existencia del almacén.
+     */
+    private boolean alcanzaElLote(DetalleMerma det, com.maxsoft.application.modelo.Lote lote, BigDecimal base) {
+
+        if (lote == null || det.getArticulo() == null || cbAlmacen.getValue() == null) {
+            return true;
+        }
+        BigDecimal enLote = loteService.getLotesDisponibles(det.getArticulo().getCodigo(), cbAlmacen.getValue().getCodigo())
+                .stream()
+                .filter(la -> Objects.equals(la.getLote().getCodigo(), lote.getCodigo()))
+                .map(la -> la.getExistencia() != null ? la.getExistencia() : BigDecimal.ZERO)
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
+        BigDecimal otras = listDet.stream()
+                .filter(d -> d != det && d.getLote() != null && Objects.equals(d.getLote().getCodigo(), lote.getCodigo()))
+                .map(this::cantidadBase)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (otras.add(base).compareTo(enLote) > 0) {
+            Notification.show(
+                    String.format("El lote %s solo tiene %s (UMM)%s. Baje la cantidad o deje el lote en automático (FEFO).",
+                            lote.getNumeroLote(), FORMATO_NUMERO.format(enLote),
+                            otras.signum() > 0 ? " y ya hay " + FORMATO_NUMERO.format(otras) + " en otras líneas" : ""),
+                    5000, Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_WARNING);
+            return false;
+        }
+        return true;
+    }
+
+    /** Al elegir otro lote en la línea: se acepta solo si ese lote alcanza. */
+    private void cambiarLote(DetalleMerma det, com.maxsoft.application.modelo.Lote lote) {
+
+        if (alcanzaElLote(det, lote, cantidadBase(det))) {
+            det.setLote(lote);
+        } else {
+            // Se repinta la fila para que el selector vuelva al lote anterior
+            grid.getDataProvider().refreshItem(det);
+        }
     }
 
     /**
@@ -478,7 +525,7 @@ public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow
 
         // Lote del que sale la merma (vacío = FEFO). Solo artículos con control de lote.
         grid.addComponentColumn(d -> com.maxsoft.application.view.componente.inventario.LoteUi.selectorSalida(
-                loteService, d.getArticulo(), cbAlmacen.getValue(), d.getLote(), d::setLote))
+                loteService, d.getArticulo(), cbAlmacen.getValue(), d.getLote(), lote -> cambiarLote(d, lote)))
                 .setHeader("Lote")
                 .setAutoWidth(true);
 
