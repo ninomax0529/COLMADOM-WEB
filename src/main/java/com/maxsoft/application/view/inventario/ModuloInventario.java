@@ -68,12 +68,19 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
     private final com.maxsoft.application.servicio.interfaces.inventario.ClasificacionAbcService abcService;
     private final Button btnAlertaLotes = new Button();
     private final Button btnAlertaReponer = new Button();
+    private final com.maxsoft.application.servicio.interfaces.inventario.InventarioService inventarioService;
+    private final Button btnAlertaTraslado = new Button();
+
+    /** Atributo de sesión con la fecha del último aviso de artículos por trasladar al mostrador. */
+    private static final String SESION_AVISO_TRASLADO = "aviso-traslado-fecha";
 
     public ModuloInventario(LoteService loteService,
-            com.maxsoft.application.servicio.interfaces.inventario.ClasificacionAbcService abcService) {
+            com.maxsoft.application.servicio.interfaces.inventario.ClasificacionAbcService abcService,
+            com.maxsoft.application.servicio.interfaces.inventario.InventarioService inventarioService) {
 
         this.loteService = loteService;
         this.abcService = abcService;
+        this.inventarioService = inventarioService;
         createHeader();
         createDrawer();
     }
@@ -86,6 +93,44 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
     public void afterNavigation(AfterNavigationEvent event) {
         actualizarAlertaLotes();
         actualizarAlertaReponer();
+        actualizarAlertaTraslado();
+    }
+
+    /**
+     * Aviso de artículos del mostrador en su mínimo (o agotados) que tienen
+     * existencia en otro almacén. La primera vez del día en la sesión también
+     * muestra una notificación con los primeros.
+     */
+    private void actualizarAlertaTraslado() {
+        java.util.List<com.maxsoft.application.servicio.interfaces.inventario.InventarioService.ArticuloPorTrasladar> lista;
+        try {
+            lista = inventarioService.porTrasladar();
+        } catch (RuntimeException ex) {
+            log.warn("No se pudo calcular el aviso de artículos por trasladar al mostrador", ex);
+            btnAlertaTraslado.setVisible(false);
+            return;
+        }
+        if (lista.isEmpty()) {
+            btnAlertaTraslado.setVisible(false);
+            return;
+        }
+
+        int n = lista.size();
+        btnAlertaTraslado.setText(n + " por trasladar al mostrador");
+        btnAlertaTraslado.setVisible(true);
+
+        LocalDate hoy = LocalDate.now();
+        VaadinSession sesion = VaadinSession.getCurrent();
+        if (sesion != null && !hoy.equals(sesion.getAttribute(SESION_AVISO_TRASLADO))) {
+            sesion.setAttribute(SESION_AVISO_TRASLADO, hoy);
+            String nombres = lista.stream().limit(3)
+                    .map(a -> a.descripcion() + (a.mostrador().signum() <= 0 ? " (agotado)" : ""))
+                    .collect(java.util.stream.Collectors.joining(", "));
+            Notification aviso = Notification.show("Mostrador en su mínimo y con existencia en almacén: " + nombres
+                    + (n > 3 ? " y " + (n - 3) + " más" : "") + ". Vea \"Por trasladar\" para hacer el traslado.",
+                    7000, Notification.Position.TOP_END);
+            aviso.addThemeVariants(NotificationVariant.LUMO_WARNING);
+        }
     }
 
     /**
@@ -189,6 +234,8 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
         RouterLink linkConteo = createLink(VaadinIcon.CLIPBOARD_CHECK, "Conteo cíclico",
                 com.maxsoft.application.view.inventario.conteo.ConteoCiclicoView.class);
         RouterLink linkTrasladoInventario = createLink(VaadinIcon.FILE_TABLE, "Traslado", ConsultaTrasladoInventarioView.class);
+        RouterLink linkPorTrasladar = createLink(VaadinIcon.EXCHANGE, "Por trasladar",
+                com.maxsoft.application.view.inventario.traslado.PorTrasladarView.class);
         RouterLink linkTrasladoArticalmacen = createLink(VaadinIcon.FILE_TABLE, "Articulo Almacen", ArticuloAlmacenView.class);
         RouterLink linkGestionEtiquetasView = createLink(VaadinIcon.FILE_TABLE, "Gestion de Etiqueta", GestionEtiquetasView.class);
         RouterLink linkConsultaAjusteInventarioView = createLink(VaadinIcon.FILE_TABLE, "Ajuste", ConsultaAjusteInventarioView.class);
@@ -208,6 +255,7 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
                 //                linkAjuste,
                 linkConsultaAjusteInventarioView,
                 linkTrasladoInventario,
+                linkPorTrasladar,
                 linkMermaView,
                 linkMovimiento,
                 linkLotes,
@@ -277,7 +325,16 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
                 QueryParameters.simple(java.util.Map.of(
                         com.maxsoft.application.view.inventario.abc.ClasificacionAbcView.PARAM_REPONER, "A"))));
 
-        HorizontalLayout header = new HorizontalLayout(menuIcon, logo, spacer, btnAlertaReponer, btnAlertaLotes, userIcon);
+        // Aviso de artículos por trasladar al mostrador (se llena en afterNavigation)
+        btnAlertaTraslado.setIcon(VaadinIcon.EXCHANGE.create());
+        btnAlertaTraslado.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_CONTRAST);
+        btnAlertaTraslado.setTooltipText("Ver cuáles y crear el traslado del almacén al mostrador");
+        btnAlertaTraslado.setVisible(false);
+        btnAlertaTraslado.addClickListener(e -> UI.getCurrent().navigate(
+                com.maxsoft.application.view.inventario.traslado.PorTrasladarView.class));
+
+        HorizontalLayout header = new HorizontalLayout(menuIcon, logo, spacer, btnAlertaTraslado, btnAlertaReponer,
+                btnAlertaLotes, userIcon);
         header.setWidth("100%");
         header.setAlignItems(Alignment.CENTER);
         header.addClassName("header");

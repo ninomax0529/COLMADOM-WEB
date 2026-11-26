@@ -52,4 +52,28 @@ public interface InventarioService {
 
     /** Estado del mostrador de todos los artículos (sin el detalle de almacenes). */
     java.util.Map<Integer, EstadoMostrador> estadosMostrador();
+
+    /**
+     * Artículo que hay que pasar al mostrador (unidad base). El origen es el
+     * almacén con más existencia; enOtrosAlmacenes suma todos los demás.
+     */
+    record ArticuloPorTrasladar(int articulo, String descripcion, BigDecimal mostrador, BigDecimal minimo,
+            BigDecimal maximo, int almacenOrigen, String nombreOrigen, BigDecimal enOrigen,
+            BigDecimal enOtrosAlmacenes, BigDecimal sugerido) {
+    }
+
+    /**
+     * Artículos del mostrador (de venta, inventariables y habilitados) que
+     * llegaron a su mínimo (o se agotaron) y tienen existencia en otro
+     * almacén, con la cantidad sugerida para trasladar.
+     */
+    java.util.List<ArticuloPorTrasladar> porTrasladar();
+
+    /**
+     * Traslado preparado para abrir la pantalla de traslado ya llena:
+     * cantidades en unidad base por código de artículo, en orden.
+     */
+    record PropuestaTraslado(int almacenOrigen, int almacenDestino, String observacion,
+            java.util.LinkedHashMap<Integer, BigDecimal> cantidades) {
+    }
 }

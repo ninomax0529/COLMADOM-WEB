@@ -36,8 +36,14 @@ import com.vaadin.flow.component.textfield.BigDecimalField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
+import com.maxsoft.application.util.NavigationContext;
+import com.vaadin.flow.router.BeforeEvent;
+import com.vaadin.flow.router.HasUrlParameter;
+import com.vaadin.flow.router.OptionalParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import java.math.RoundingMode;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -51,7 +57,7 @@ import java.util.Objects;
 @PermitAll
 @PageTitle("Traslado de Inventario | MaxSoft ERP")
 @Route(value = "inventario/registroTraslado")
-public class TrasladoInventarioView extends VerticalLayout {
+public class TrasladoInventarioView extends VerticalLayout implements HasUrlParameter<String> {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TrasladoInventarioView.class);
 
 
@@ -643,6 +649,51 @@ public class TrasladoInventarioView extends VerticalLayout {
         txtObservacion.clear();
         txtBuscar.clear();
         listaDetalles.clear();
+        gridDetalle.getDataProvider().refreshAll();
+    }
+
+    /**
+     * Con una clave de NavigationContext (InventarioService.PropuestaTraslado)
+     * la pantalla se abre ya llena: origen, destino y una línea por artículo
+     * en su empaque base. Sin clave, se abre vacía como siempre.
+     */
+    @Override
+    public void setParameter(BeforeEvent event, @OptionalParameter String clave) {
+        if (clave == null) {
+            return;
+        }
+        InventarioService.PropuestaTraslado propuesta
+                = NavigationContext.retrieve(clave, InventarioService.PropuestaTraslado.class);
+        if (propuesta != null) {
+            cargarPropuesta(propuesta);
+        }
+    }
+
+    private void cargarPropuesta(InventarioService.PropuestaTraslado propuesta) {
+        Almacen origen = almacenRepo.findById(propuesta.almacenOrigen()).orElse(null);
+        Almacen destino = almacenRepo.findById(propuesta.almacenDestino()).orElse(null);
+        if (origen == null || destino == null) {
+            return;
+        }
+        cbAlmacenOrigen.setValue(origen);
+        cbAlmacenDestino.setValue(destino);
+        txtObservacion.setValue(propuesta.observacion() != null ? propuesta.observacion() : "");
+
+        propuesta.cantidades().forEach((codigo, cantidadBase) -> {
+            try {
+                Articulo articulo = articuloService.buscarPorCodigo(codigo);
+                ArticuloEmpaque base = articuloEmpaqueService.getEmpaqueBase(codigo).orElse(null);
+                int antes = listaDetalles.size();
+                agregarOActualizarArticulo(articulo, base);
+                if (listaDetalles.size() > antes) {
+                    DetalleTrasladoInventario det = listaDetalles.get(listaDetalles.size() - 1);
+                    det.setCantidadEnviada(cantidadBase.divide(obtenerFactorConversion(base), 2, RoundingMode.DOWN));
+                    recalcularExistenciaFila(det);
+                }
+            } catch (RuntimeException ex) {
+                log.warn("No se pudo agregar el artículo {} al traslado propuesto", codigo, ex);
+            }
+        });
         gridDetalle.getDataProvider().refreshAll();
     }
 

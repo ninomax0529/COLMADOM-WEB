@@ -44,6 +44,27 @@ public interface ArticuloAlmacenRepo extends JpaRepository<ArticuloAlmacen, Inte
     java.util.List<Object[]> estadosMostrador(@Param("venta") int almacenVenta,
             @Param("articulo") Integer articulo);
 
+    /**
+     * Artículos de venta, inventariables y habilitados, registrados en el
+     * almacén de venta (los que vende el POS), con existencia en algún otro
+     * almacén; una fila por almacén (de más a menos existencia):
+     * [0] código, [1] descripción, [2] existencia en el mostrador, [3] mínimo
+     * del mostrador, [4] máximo del mostrador, [5] código del almacén, [6] su
+     * nombre, [7] existencia en ese almacén.
+     */
+    @Query(value = """
+            SELECT a.codigo, a.descripcion,
+                   COALESCE(v.existencia, 0), COALESCE(v.minimo, 0), COALESCE(v.maximo, 0),
+                   o.almacen, al.nombre, o.existencia
+            FROM articulo a
+            JOIN articulo_almacen o ON o.articulo = a.codigo AND o.almacen <> :venta AND o.existencia > 0
+            JOIN almacen al ON al.codigo = o.almacen
+            JOIN articulo_almacen v ON v.articulo = a.codigo AND v.almacen = :venta
+            WHERE a.inventariable = 1 AND a.habilitado = 1 AND a.para_venta = 1
+            ORDER BY a.descripcion, o.existencia DESC
+            """, nativeQuery = true)
+    java.util.List<Object[]> existenciasFueraDelMostrador(@Param("venta") int almacenVenta);
+
     /** [nombre del almacén, existencia] de los otros almacenes con existencia, de mayor a menor. */
     @Query(value = """
             SELECT al.nombre, aa.existencia
