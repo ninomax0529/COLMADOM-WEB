@@ -6,6 +6,7 @@ import com.maxsoft.application.repo.ArticuloEmpaqueRepo;
 import com.maxsoft.application.repo.ArticuloRepo;
 import com.maxsoft.application.repo.EntradaDeInventarioRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.*;
+import com.maxsoft.application.util.CostoInventarioUtil;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -113,18 +114,23 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                             ? detalle.getCostoUnitario()
                             : BigDecimal.ZERO;
 
-                    BigDecimal subTotal = costoUnitario.multiply(cantidadEntrante);
-                    BigDecimal itbis = BigDecimal.ZERO; // Ajustar si calculas ITBIS en el detalle
-                    BigDecimal total = subTotal.add(itbis);
-
                     BigDecimal factor = detalle.getFactorConversion() != null
                             && detalle.getFactorConversion().signum() > 0
                             ? detalle.getFactorConversion() : BigDecimal.ONE;
                     // UNIDAD BASE. Las líneas repartidas por lote traen la cantidad base exacta.
-                    BigDecimal cantidadFisicaBase = detalle.isUsarCantidadFisicaBase()
-                            && detalle.getCantidadFisicaBase() != null
+                    boolean porBase = detalle.isUsarCantidadFisicaBase()
+                            && detalle.getCantidadFisicaBase() != null;
+                    BigDecimal cantidadFisicaBase = porBase
                             ? detalle.getCantidadFisicaBase()
                             : cantidadEntrante.multiply(factor);
+
+                    // costoUnitario es el de la presentación. Con cantidad base exacta se valora
+                    // por ella (sin el redondeo de pasarla a presentación: 1/24 = 0.04 cajas)
+                    BigDecimal subTotal = porBase
+                            ? CostoInventarioUtil.valorPorCantidadBase(costoUnitario, cantidadFisicaBase, factor)
+                            : costoUnitario.multiply(cantidadEntrante);
+                    BigDecimal itbis = BigDecimal.ZERO; // Ajustar si calculas ITBIS en el detalle
+                    BigDecimal total = subTotal.add(itbis);
 
                     // Lote: el de la línea; si no hay pero se digitó número o vencimiento, se crea;
                     // si no hay nada, el movimiento usa el lote automático del día.
@@ -274,6 +280,11 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                         ajuste.getAlmacen().getNombre(),
                         det.getArticuloEmpaque().getNombreEmpaque()
                 );
+                // Costo de la presentación de la línea (el del empaque elegido)
+                BigDecimal costoAjuste = CostoInventarioUtil.costoPresentacion(det.getCostoUnitario(),
+                        det.getArticulo().getPrecioCompra(), det.getFactorConversion());
+                detEntrada.setCostoUnitario(costoAjuste);
+                detEntrada.setPrecioCompra(costoAjuste);
                 // Ajuste positivo: lote elegido, o número/vencimiento digitados (se crea), o lote del día
                 detEntrada.setLote(det.getLote());
                 detEntrada.setNumeroLote(det.getNumeroLote());
@@ -444,6 +455,11 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
 
                 detEntrada.setCantidadPedida(det.getCantidadEnviada());
                 detEntrada.setUnidad(det.getUnidad());
+                // El mismo costo de la presentación con que salió del origen
+                BigDecimal costoTraslado = CostoInventarioUtil.costoPresentacion(det.getCostoUnitario(),
+                        det.getArticulo().getPrecioCompra(), det.getFactorConversion());
+                detEntrada.setCostoUnitario(costoTraslado);
+                detEntrada.setPrecioCompra(costoTraslado);
 
                 // Lotes: entra al destino con los mismos lotes (y cantidades) que salieron del origen
                 List<MovimientoInventario> salidos = det.getMovimientosSalida();
@@ -469,6 +485,8 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
                         parte.setUnidad(det.getUnidad());
                         parte.setLote(m.getLote());
                         parte.setUsarCantidadFisicaBase(true);
+                        parte.setCostoUnitario(costoTraslado);
+                        parte.setPrecioCompra(costoTraslado);
                         detallesEntrada.add(parte);
                     }
                     continue;
@@ -730,7 +748,9 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
             String nombreUnidad
     ) {
         BigDecimal actual = stockActual != null ? stockActual : BigDecimal.ZERO;
-        BigDecimal costo = articulo.getPrecioCompra() != null ? articulo.getPrecioCompra() : BigDecimal.ZERO;
+        // Costo de la PRESENTACIÓN por defecto (guardar() lo multiplica por la cantidad en
+        // presentación); quien tenga el costo de la línea lo pone después
+        BigDecimal costo = CostoInventarioUtil.costoPresentacion(null, articulo.getPrecioCompra(), factorConversion);
 
         DetalleEntradaInventario detEntrada = new DetalleEntradaInventario();
 

@@ -1,5 +1,6 @@
 package com.maxsoft.application.servicio.impl.inventario;
 
+import com.maxsoft.application.util.CostoInventarioUtil;
 import com.maxsoft.application.modelo.AjusteInventario;
 import com.maxsoft.application.modelo.Almacen;
 import com.maxsoft.application.modelo.Articulo;
@@ -278,7 +279,10 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setCantidadFisicaBase(det.getFactorConversion().multiply(det.getCantidad()));
                 detSalida.setArticuloEmpaque(det.getArticuloEmpaque());
 
-                BigDecimal costo = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
+                // Costo de la PRESENTACIÓN (guardar() lo multiplica por la cantidad en
+                // presentación); antes iba el costo base y una caja quedaba como una unidad
+                BigDecimal costo = CostoInventarioUtil.costoPresentacion(det.getCostoUnitario(),
+                        det.getArticulo().getPrecioCompra(), det.getFactorConversion());
                 BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
 
                 detSalida.setCostoUnitario(costo);
@@ -403,7 +407,10 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 detSalida.setUnidad(det.getUnidad());
                 detSalida.setLote(det.getLote()); // traslado: lote elegido, o FEFO si es null
 
-                BigDecimal costo = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
+                // Costo de la PRESENTACIÓN (guardar() lo multiplica por la cantidad en
+                // presentación); antes iba el costo base y una caja quedaba como una unidad
+                BigDecimal costo = CostoInventarioUtil.costoPresentacion(det.getCostoUnitario(),
+                        det.getArticulo().getPrecioCompra(), factorConversion);
                 BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
 
                 detSalida.setCostoUnitario(costo);
@@ -515,10 +522,8 @@ public class SalidaInventarioServiceImpl implements SalidaInventarioService {
                 // presentación. Se usa el de la línea de merma (costo del empaque, o
                 // costo base x factor); antes iba el costo base y una caja de 24 quedaba
                 // en el kardex por el valor de una unidad.
-                BigDecimal costoBase = det.getArticulo().getPrecioCompra() != null ? det.getArticulo().getPrecioCompra() : BigDecimal.ZERO;
-                BigDecimal costo = det.getCostoUnitario() != null && det.getCostoUnitario().signum() > 0
-                        ? det.getCostoUnitario()
-                        : costoBase.multiply(factorConversion);
+                BigDecimal costo = CostoInventarioUtil.costoPresentacion(det.getCostoUnitario(),
+                        det.getArticulo().getPrecioCompra(), factorConversion);
                 BigDecimal precio = det.getArticulo().getPrecioVenta() != null ? det.getArticulo().getPrecioVenta() : BigDecimal.ZERO;
 
                 detSalida.setCostoUnitario(costo);
