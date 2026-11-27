@@ -107,6 +107,25 @@ class LineaPosUtilTest {
         assertEquals("Cerveza", LineaPosUtil.descripcion(empaque(5, cerveza, null, "1", null)));
     }
 
+    @Test
+    void buscarPorCodigoExactoPrimeroElDeBarras() {
+        ArticuloEmpaque conBarra = empaque(7, cerveza, "Lata", "1", null);
+        conBarra.setCodigoBarra(" 7501031311309 ");
+        // Un código de barras corto que coincide con el código interno de otro empaque
+        ArticuloEmpaque barraCorta = empaque(8, cerveza, "Six", "6", null);
+        barraCorta.setCodigoBarra("1");
+        List<ArticuloEmpaque> catalogo = List.of(unidad, caja, conBarra, barraCorta);
+
+        assertEquals(conBarra, LineaPosUtil.buscarPorCodigo("7501031311309", catalogo).orElseThrow());
+        assertEquals(barraCorta, LineaPosUtil.buscarPorCodigo("1", catalogo).orElseThrow(),
+                "el código de barras gana sobre el código interno");
+        assertEquals(caja, LineaPosUtil.buscarPorCodigo(" 2 ", catalogo).orElseThrow(), "código interno");
+        assertTrue(LineaPosUtil.buscarPorCodigo("750103131130", catalogo).isEmpty(), "sin coincidencia parcial");
+        assertTrue(LineaPosUtil.buscarPorCodigo("99", catalogo).isEmpty());
+        assertTrue(LineaPosUtil.buscarPorCodigo("  ", catalogo).isEmpty());
+        assertTrue(LineaPosUtil.buscarPorCodigo(null, catalogo).isEmpty());
+    }
+
     private static Articulo articulo(int codigo, String precio, String existencia) {
         Articulo a = new Articulo();
         a.setCodigo(codigo);

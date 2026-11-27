@@ -130,6 +130,29 @@ public final class LineaPosUtil {
     }
 
     /**
+     * Presentación cuyo código es EXACTAMENTE {@code texto} (lo que manda el
+     * escáner): primero el código de barras (el del fabricante o el asignado),
+     * luego el código interno del empaque, que es lo que imprimen las
+     * etiquetas de las presentaciones sin código de barras. Sin coincidencia
+     * parcial: "71" no encuentra "7100".
+     */
+    public static Optional<ArticuloEmpaque> buscarPorCodigo(String texto, List<ArticuloEmpaque> catalogo) {
+        if (texto == null || texto.isBlank() || catalogo == null) {
+            return Optional.empty();
+        }
+        String codigo = texto.trim();
+        Optional<ArticuloEmpaque> porBarra = catalogo.stream()
+                .filter(ae -> ae.getCodigoBarra() != null && ae.getCodigoBarra().trim().equalsIgnoreCase(codigo))
+                .findFirst();
+        if (porBarra.isPresent()) {
+            return porBarra;
+        }
+        return catalogo.stream()
+                .filter(ae -> ae.getCodigo() != null && String.valueOf(ae.getCodigo()).equals(codigo))
+                .findFirst();
+    }
+
+    /**
      * Cantidad total del ARTÍCULO en las líneas, en unidad base. Suma todas las
      * presentaciones del mismo artículo (unidad, caja, etc.) porque el stock es
      * único por artículo.

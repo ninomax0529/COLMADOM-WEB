@@ -25,6 +25,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.maxsoft.application.modelo.Categoria;
+import com.maxsoft.application.util.LineaPosUtil;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -100,6 +101,9 @@ public class PanelProductos extends VerticalLayout {
 
     private final BiConsumer<ArticuloEmpaque, BigDecimal> onAgregarCantidadAlTicketActivo;
     private final Consumer<ArticuloEmpaque> onAbrirVentaPorMonto;
+    private final Consumer<ArticuloEmpaque> onAgregarAlTicketActivo;
+    /** Para decir por qué un código escaneado no está en el catálogo del mostrador. */
+    private final ArticuloEmpaqueService articuloEmpaqueService;
 
     public PanelProductos(
             ArticuloEmpaqueService articuloServicel,
@@ -122,6 +126,8 @@ public class PanelProductos extends VerticalLayout {
         this.facturaDeVentaService = facturaDeVentaService;
         this.onAgregarCantidadAlTicketActivo = onAgregarCantidadAlTicketActivo;
         this.onAbrirVentaPorMonto = onAbrirVentaPorMonto;
+        this.onAgregarAlTicketActivo = onAgregarAlTicketActivo;
+        this.articuloEmpaqueService = articuloServicel;
 
         // Una sola consulta al servicio para el buscador y para el catálogo.
         // Solo los artículos registrados en el almacén de venta (mostrador):
@@ -270,7 +276,57 @@ public class PanelProductos extends VerticalLayout {
         combo.setAutofocus(true);
         combo.addFocusShortcut(Key.F4);
 
+        // Escáner: manda el código y Enter. Si el combo no tiene un producto
+        // resaltado, el texto llega como "valor propio" y se busca ese código
+        // exacto (código de barras o código interno del empaque).
+        combo.setAllowCustomValue(true);
+        combo.addCustomValueSetListener(e -> agregarPorCodigo(e.getDetail()));
+
         return combo;
+    }
+
+    /**
+     * Agrega al ticket la presentación con ese código exacto. Si no está en el
+     * catálogo dice por qué (no existe, o no está en el mostrador). Un texto
+     * que no parece código (un nombre a medio escribir) se deja como está
+     * para que el cajero elija de la lista.
+     */
+    private void agregarPorCodigo(String texto) {
+
+        String codigo = texto != null ? texto.trim() : "";
+        if (codigo.isEmpty()) {
+            return;
+        }
+
+        ArticuloEmpaque empaque = LineaPosUtil.buscarPorCodigo(codigo, catalogo).orElse(null);
+        if (empaque != null) {
+            if (onAgregarAlTicketActivo != null) {
+                onAgregarAlTicketActivo.accept(empaque);
+            }
+            limpiarBuscador();
+            return;
+        }
+
+        if (codigo.contains(" ") || codigo.chars().noneMatch(Character::isDigit)) {
+            return; // es una búsqueda por nombre: que elija de la lista
+        }
+
+        ArticuloEmpaque fueraDelCatalogo = articuloEmpaqueService.getPorCodigoBarra(codigo).orElse(null);
+        String mensaje = fueraDelCatalogo != null
+                ? "\"" + etiquetaEmpaque(fueraDelCatalogo) + "\" no está a la venta en el mostrador "
+                + "(inactivo o sin registrar en el almacén de venta)."
+                : "No hay ningún producto con el código " + codigo + ".";
+        Notification n = Notification.show(mensaje, 3500, Notification.Position.MIDDLE);
+        n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        limpiarBuscador();
+    }
+
+    /** Vacía el texto del buscador (y su filtro) y lo deja listo para el siguiente escaneo. */
+    private void limpiarBuscador() {
+        searchBox.clear();
+        searchBox.getElement().executeJs(
+                "this.filter = ''; if (this.inputElement) { this.inputElement.value = ''; }");
+        searchBox.focus();
     }
 
     private String etiquetaEmpaque(ArticuloEmpaque ae) {
@@ -306,6 +362,9 @@ public class PanelProductos extends VerticalLayout {
         }
         if (ae.getArticulo() != null && ae.getArticulo().getCodigo() != null) {
             pajar.append(' ').append(ae.getArticulo().getCodigo());
+        }
+        if (ae.getCodigoBarra() != null && !ae.getCodigoBarra().isBlank()) {
+            pajar.append(' ').append(ae.getCodigoBarra().trim().toLowerCase());
         }
 
         String contenido = pajar.toString();
