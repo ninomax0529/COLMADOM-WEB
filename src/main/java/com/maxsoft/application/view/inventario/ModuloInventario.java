@@ -240,6 +240,8 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
         RouterLink linkGestionEtiquetasView = createLink(VaadinIcon.FILE_TABLE, "Gestion de Etiqueta", GestionEtiquetasView.class);
         RouterLink linkConsultaAjusteInventarioView = createLink(VaadinIcon.FILE_TABLE, "Ajuste", ConsultaAjusteInventarioView.class);
         RouterLink linkMermaView = createLink(VaadinIcon.FILE_TABLE, "Merma", MermaView.class);
+        RouterLink linkAnalisisMerma = createLink(VaadinIcon.PIE_CHART, "Análisis de merma",
+                com.maxsoft.application.view.inventario.merma.AnalisisMermaView.class);
         RouterLink linkImpresionCodigoBarraView = createLink(VaadinIcon.FILE_TABLE, "Etiqueta", ImpresionCodigoBarraView.class);
 
         RouterLink linkModulo = createLink(VaadinIcon.EXIT, "Salir", ModuloPrincipal.class);
@@ -257,6 +259,7 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
                 linkTrasladoInventario,
                 linkPorTrasladar,
                 linkMermaView,
+                linkAnalisisMerma,
                 linkMovimiento,
                 linkLotes,
                 linkAbc,

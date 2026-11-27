@@ -14,6 +14,8 @@ import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventari
 import com.maxsoft.application.repo.MerrmaRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.MermaService;
 import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
+import com.maxsoft.application.dto.ResumenMermaDTO;
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -114,6 +116,52 @@ public class MermaServiceImpl implements MermaService {
                 .orElseThrow(() -> new IllegalArgumentException("No existe la merma #" + codigoMerma));
         return com.maxsoft.application.reporte.inventario.ComprobanteMermaPdf.generar(
                 merma, repo.getDetalle(codigoMerma), empresaRepo.findFirstByOrderByCodigoAsc().orElse(null));
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<ResumenMermaDTO> resumenPorTipo(java.time.LocalDate desde, java.time.LocalDate hasta,
+            Integer almacen) {
+        return repo.resumenPorTipo(inicio(desde), fin(hasta), almacen).stream()
+                .map(f -> new ResumenMermaDTO(entero(f[0]), (String) f[1], entero(f[2]), BigDecimal.ZERO,
+                        decimal(f[3])))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<ResumenMermaDTO> resumenPorArticulo(java.time.LocalDate desde, java.time.LocalDate hasta,
+            Integer almacen) {
+        return repo.resumenPorArticulo(inicio(desde), fin(hasta), almacen).stream()
+                .map(f -> new ResumenMermaDTO(entero(f[0]), (String) f[1], entero(f[2]), decimal(f[3]),
+                        decimal(f[4])))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public BigDecimal ventasNetas(java.time.LocalDate desde, java.time.LocalDate hasta) {
+        BigDecimal v = repo.ventasNetas(inicio(desde), fin(hasta));
+        return v != null ? v : BigDecimal.ZERO;
+    }
+
+    private static java.util.Date inicio(java.time.LocalDate desde) {
+        return java.sql.Date.valueOf(desde != null ? desde : java.time.LocalDate.of(1900, 1, 1));
+    }
+
+    private static java.util.Date fin(java.time.LocalDate hasta) {
+        return java.sql.Date.valueOf(hasta != null ? hasta : java.time.LocalDate.of(9999, 12, 31));
+    }
+
+    private static int entero(Object o) {
+        return o != null ? ((Number) o).intValue() : 0;
+    }
+
+    private static BigDecimal decimal(Object o) {
+        if (o == null) {
+            return BigDecimal.ZERO;
+        }
+        return o instanceof BigDecimal b ? b : new BigDecimal(o.toString());
     }
 
 }

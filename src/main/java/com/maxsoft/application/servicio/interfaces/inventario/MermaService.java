@@ -51,4 +51,21 @@ public interface MermaService {
 
     /** Comprobante de la merma en PDF (para imprimir y firmar). */
     byte[] comprobantePdf(Integer codigoMerma);
+
+    /**
+     * Pérdida del período por tipo de merma, sin las anuladas (almacén null =
+     * todos). La de más valor primero.
+     */
+    List<com.maxsoft.application.dto.ResumenMermaDTO> resumenPorTipo(java.time.LocalDate desde,
+            java.time.LocalDate hasta, Integer almacen);
+
+    /**
+     * Pérdida del período por artículo, sin las anuladas (almacén null =
+     * todos). El de más valor primero.
+     */
+    List<com.maxsoft.application.dto.ResumenMermaDTO> resumenPorArticulo(java.time.LocalDate desde,
+            java.time.LocalDate hasta, Integer almacen);
+
+    /** Ventas netas del período (facturas no anuladas menos devoluciones), base del % de merma. */
+    java.math.BigDecimal ventasNetas(java.time.LocalDate desde, java.time.LocalDate hasta);
 }

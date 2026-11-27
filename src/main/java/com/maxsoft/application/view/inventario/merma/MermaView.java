@@ -137,7 +137,10 @@ public class MermaView extends VerticalLayout {
         btnAnular.setTooltipText("Devuelve la existencia con una entrada de inventario");
         grid.asSingleSelect().addValueChangeListener(e -> actualizarAcciones());
         actualizarAcciones();
-        botonera.add(btnImprimir, btnAnular);
+        Button btnAnalisis = new Button("Análisis", VaadinIcon.PIE_CHART.create(),
+                e -> UI.getCurrent().navigate(AnalisisMermaView.class));
+        btnAnalisis.setTooltipText("Pérdida por tipo y por artículo, % sobre ventas y lotes en riesgo");
+        botonera.add(btnImprimir, btnAnular, btnAnalisis);
         EstiloConsulta.aplicarVista(this, null);
 
         add(botonera, crearBarraFiltros(), tabs);
