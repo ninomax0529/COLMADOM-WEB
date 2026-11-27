@@ -11,6 +11,7 @@ import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloAlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
+import com.maxsoft.application.servicio.interfaces.inventario.InventarioService;
 import com.maxsoft.application.servicio.interfaces.inventario.MermaService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoMermaService;
 import com.maxsoft.application.util.ClaseUtil;
@@ -167,9 +168,83 @@ public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow
         btnNuevo.addClickShortcut(Key.F2);
 
         txtBuscar.setWidth("50%");
-        txtBuscar.setPlaceholder("Filtrar por código o descripción...");
-        txtBuscar.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+        txtBuscar.setPlaceholder("Escanee el código de barras (Enter agrega) o filtre las líneas...");
+        txtBuscar.setPrefixComponent(new Icon(VaadinIcon.BARCODE));
         txtBuscar.setValueChangeMode(ValueChangeMode.EAGER);
+        txtBuscar.addKeyPressListener(Key.ENTER, e -> agregarPorCodigo());
+
+        // Casi todo lo que se daña o vence está en el mostrador
+        almacenService.getLista().stream()
+                .filter(a -> Objects.equals(a.getCodigo(), InventarioService.ALMACEN_VENTA))
+                .findFirst()
+                .ifPresent(cbAlmacen::setValue);
+
+        // Robo / pérdida: la observación es obligatoria (queda la justificación)
+        cbTipoMerma.addValueChangeListener(e -> {
+            boolean exige = exigeObservacion(e.getValue());
+            txtObservacion.setRequiredIndicatorVisible(exige);
+            txtObservacion.setPlaceholder(exige ? "Obligatoria: qué pasó y quién lo detectó"
+                    : "Motivo o detalle de la merma");
+        });
+    }
+
+    /** ROBO / PÉRDIDA exige observación. */
+    private static boolean exigeObservacion(TipoMerma tipo) {
+        if (tipo == null || tipo.getDescripcion() == null) {
+            return false;
+        }
+        String d = tipo.getDescripcion().toUpperCase();
+        return d.contains("ROBO") || d.contains("PÉRDIDA") || d.contains("PERDIDA");
+    }
+
+    /**
+     * Enter en el buscador: un código de barras agrega la línea con ese
+     * empaque; un código de artículo abre la elección de empaque.
+     */
+    private void agregarPorCodigo() {
+
+        String valor = txtBuscar.getValue() == null ? "" : txtBuscar.getValue().trim();
+        if (valor.isEmpty()) {
+            return;
+        }
+        if (cbAlmacen.getValue() == null) {
+            ClaseUtil.mostrarNotificacion("Debe seleccionar un Almacén antes de agregar artículos", NotificationVariant.LUMO_WARNING);
+            cbAlmacen.focus();
+            return;
+        }
+
+        ArticuloEmpaque porBarra = articuloEmpaqueService.getPorCodigoBarra(valor).orElse(null);
+        if (porBarra != null && porBarra.getArticulo() != null) {
+            txtBuscar.clear();
+            agregarOActualizar(porBarra.getArticulo(), porBarra);
+            txtBuscar.focus();
+            return;
+        }
+
+        Articulo porCodigo = null;
+        if (valor.matches("\\d{1,9}")) {
+            try {
+                porCodigo = articuloService.buscarPorCodigo(Integer.parseInt(valor));
+            } catch (java.util.NoSuchElementException noExiste) {
+                porCodigo = null;
+            }
+        }
+        if (porCodigo == null) {
+            Notification.show("No hay artículo con el código \"" + valor + "\"", 3000, Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_WARNING);
+            // Seleccionado para que el próximo escaneo lo reemplace
+            txtBuscar.focus();
+            txtBuscar.getElement().executeJs("this.inputElement.select()");
+            return;
+        }
+        txtBuscar.clear();
+        Articulo articulo = porCodigo;
+        new EmpaqueSeleccionDialogo(articulo, articuloEmpaqueService, empaque -> {
+            if (empaque != null) {
+                agregarOActualizar(articulo, empaque);
+            }
+            txtBuscar.focus();
+        }).open();
     }
 
     private void cambiarAlmacen(Almacen nuevoAlmacen) {
@@ -669,6 +744,15 @@ public class RegistroMermaView extends VerticalLayout implements com.vaadin.flow
         if (cbTipoMerma.getValue() == null) {
             Notification.show("Debe seleccionar el Tipo de Merma", 3000, Position.TOP_CENTER);
             cbTipoMerma.focus();
+            return;
+        }
+
+        if (exigeObservacion(cbTipoMerma.getValue())
+                && (txtObservacion.getValue() == null || txtObservacion.getValue().isBlank())) {
+            Notification.show("En " + cbTipoMerma.getValue().getDescripcion()
+                    + " la observación es obligatoria: indique qué pasó.", 4000, Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_WARNING);
+            txtObservacion.focus();
             return;
         }
 
