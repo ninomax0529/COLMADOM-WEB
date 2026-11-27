@@ -3,11 +3,15 @@ package com.maxsoft.application.view.inventario.articulo;
 
 import com.maxsoft.application.modelo.Articulo;
 import com.maxsoft.application.modelo.ArticuloEmpaque;
+import com.maxsoft.application.reporte.inventario.EtiquetasPdf;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloEmpaqueService;
 import com.maxsoft.application.servicio.interfaces.inventario.ArticuloService;
 import com.maxsoft.application.util.ClaseUtil;
+import com.maxsoft.application.util.CodigoBarraUtil;
 import com.maxsoft.application.view.componente.EmpaqueSeleccionDialogo;
+import com.maxsoft.application.view.componente.EstiloConsulta;
 import com.maxsoft.application.view.dialogo.ConfirmDialog;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -19,6 +23,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.IFrame;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -31,19 +36,30 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.StreamRegistration;
+import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.server.VaadinSession;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Impresión de etiquetas de código de barras de los artículos. Las etiquetas
+ * se generan en PDF al tamaño exacto (rollo o carta) con el código de barras
+ * de la presentación; si no tiene uno, con su código interno.
+ */
 @PermitAll
 @PageTitle("Impresión de Códigos de Barra")
 @Route(value = "inventario/codigoBarra")
 public class ImpresionCodigoBarraView extends VerticalLayout {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ImpresionCodigoBarraView.class);
 
     /**
      * Más etiquetas que esto en una sola impresión piden confirmación.
@@ -53,6 +69,31 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
     private static final int MAXIMO_POR_LINEA = 1000;
 
     private static final DecimalFormat FORMATO_PRECIO = new DecimalFormat("#,##0.00");
+
+    /** Imprime el PDF desde un iframe oculto (como la factura del POS). */
+    private static final String SCRIPT_IMPRIMIR = """
+            fetch($0)
+                .then(r => { if (!r.ok) { throw new Error('HTTP ' + r.status); } return r.blob(); })
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    let marco = document.getElementById('etiquetas-print-frame');
+                    if (!marco) {
+                        marco = document.createElement('iframe');
+                        marco.id = 'etiquetas-print-frame';
+                        marco.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+                        document.body.appendChild(marco);
+                    }
+                    marco.onload = function () {
+                        setTimeout(function () {
+                            marco.contentWindow.focus();
+                            marco.contentWindow.print();
+                            URL.revokeObjectURL(url);
+                        }, 300);
+                    };
+                    marco.src = url;
+                })
+                .catch(err => console.error('Error al imprimir las etiquetas:', err));
+            """;
 
     /**
      * Tamaños de etiqueta disponibles (milímetros).
@@ -99,6 +140,9 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
     private Grid.Column<LineaEtiqueta> colArticulo;
     private Grid.Column<LineaEtiqueta> colCantidad;
 
+    /** PDF mandado a imprimir; se libera al imprimir otro o al salir. */
+    private StreamRegistration pdfImpresion;
+
     @Autowired
     public ImpresionCodigoBarraView(ArticuloService articuloService,
             ArticuloEmpaqueService articuloEmpaqueService) {
@@ -129,6 +173,12 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
         actualizarTotales();
     }
 
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        liberarPdf();
+        super.onDetach(detachEvent);
+    }
+
     // ============================================================
     // CONTROLES
     // ============================================================
@@ -137,12 +187,14 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
         cbTamano.setItems(TAMANOS);
         cbTamano.setAllowCustomValue(false);
         cbTamano.setValue(TAMANOS.get(2));
+        // En hoja carta no caben más etiquetas por fila que las que da el ancho
+        cbTamano.addValueChangeListener(e -> ajustarPorFila());
 
         txtPorFila.setMin(1);
-        txtPorFila.setMax(6);
-        txtPorFila.setValue(3);
         txtPorFila.setStepButtonsVisible(true);
         txtPorFila.setWidth("150px");
+        ajustarPorFila();
+        txtPorFila.setValue(3);
 
         chkRollo.addValueChangeListener(e -> txtPorFila.setEnabled(!e.getValue()));
         chkRollo.setValue(true);
@@ -164,6 +216,17 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
 
         btnLimpiar = new Button("Vaciar lista", VaadinIcon.TRASH.create(), e -> vaciarLista());
         btnLimpiar.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
+    }
+
+    private void ajustarPorFila() {
+
+        TamanoEtiqueta t = cbTamano.getValue() != null ? cbTamano.getValue() : TAMANOS.get(2);
+        int maximo = EtiquetasPdf.maximoPorFila(t.ancho());
+        txtPorFila.setMax(maximo);
+        txtPorFila.setHelperText("En carta caben hasta " + maximo);
+        if (txtPorFila.getValue() != null && txtPorFila.getValue() > maximo) {
+            txtPorFila.setValue(maximo);
+        }
     }
 
     // ============================================================
@@ -209,16 +272,20 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
     }
 
     /**
-     * Valor que se codifica en la etiqueta para una presentación.
-     *
-     * Hoy se usa el código interno del empaque (el buscador del POS lo
-     * reconoce). Si los empaques guardan un código de barras propio (por
-     * ejemplo el EAN-13 del fabricante), este es el único lugar que hay que
-     * cambiar.
+     * Valor que se codifica en la etiqueta: el código de barras de la
+     * presentación (el del fabricante o el asignado); si no tiene, su código
+     * interno.
      */
-    private String codigoBarraDe(ArticuloEmpaque empaque) {
+    private static String codigoBarraDe(ArticuloEmpaque empaque) {
 
+        if (empaque.getCodigoBarra() != null && !empaque.getCodigoBarra().isBlank()) {
+            return empaque.getCodigoBarra().trim();
+        }
         return empaque.getCodigo() != null ? String.valueOf(empaque.getCodigo()) : "";
+    }
+
+    private static boolean usaCodigoInterno(ArticuloEmpaque empaque) {
+        return empaque.getCodigoBarra() == null || empaque.getCodigoBarra().isBlank();
     }
 
     // ============================================================
@@ -239,6 +306,10 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
 
         grid.addColumn(l -> textoPresentacion(l.empaque))
                 .setHeader("Presentación")
+                .setAutoWidth(true);
+
+        grid.addComponentColumn(this::celdaCodigo)
+                .setHeader("Código de barras")
                 .setAutoWidth(true);
 
         grid.addColumn(l -> l.empaque.getPrecioVenta() != null
@@ -278,6 +349,26 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
             String nombre = l.empaque.getNombreArticulo() != null ? l.empaque.getNombreArticulo().toLowerCase() : "";
             return nombre.contains(term) || l.codigo.toLowerCase().contains(term);
         }));
+    }
+
+    /** El código y su tipo; el interno y el no válido se marcan. */
+    private HorizontalLayout celdaCodigo(LineaEtiqueta l) {
+
+        CodigoBarraUtil.Tipo tipo = CodigoBarraUtil.tipo(l.codigo);
+        Span chip;
+        if (tipo == CodigoBarraUtil.Tipo.INVALIDO) {
+            chip = EstiloConsulta.chip("NO VÁLIDO", "fv-chip-anulada");
+        } else if (usaCodigoInterno(l.empaque)) {
+            chip = EstiloConsulta.chip("INTERNO", "fv-chip-credito");
+            chip.getElement().setAttribute("title",
+                    "La presentación no tiene código de barras: se imprime su código interno");
+        } else {
+            chip = EstiloConsulta.chip(tipo.getNombre(), "fv-chip-pagada");
+        }
+        HorizontalLayout h = new HorizontalLayout(new Span(l.codigo), chip);
+        h.setSpacing(true);
+        h.setAlignItems(Alignment.CENTER);
+        return h;
     }
 
     private void actualizarTotales() {
@@ -354,15 +445,22 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
             return;
         }
 
+        byte[] pdf = generarPdf(true);
+        if (pdf == null) {
+            return;
+        }
+
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Vista previa de etiquetas");
-        dialog.setWidth("900px");
-        dialog.setHeight("620px");
+        dialog.setWidth("90vw");
+        dialog.setHeight("90vh");
 
         IFrame marco = new IFrame();
         marco.setSizeFull();
-        marco.getElement().setProperty("srcdoc", construirHtml(true));
         marco.getStyle().set("border", "1px solid var(--lumo-contrast-20pct)");
+        StreamResource recurso = new StreamResource("etiquetas-vista-previa.pdf", () -> new ByteArrayInputStream(pdf));
+        recurso.setContentType("application/pdf");
+        marco.getElement().setAttribute("src", recurso);
 
         VerticalLayout contenido = new VerticalLayout(marco);
         contenido.setSizeFull();
@@ -370,6 +468,7 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
 
         dialog.add(contenido);
         dialog.getFooter().add(
+                new Span("La línea punteada marca el borde de cada etiqueta; no se imprime."),
                 new Button("Cerrar", e -> dialog.close()),
                 crearBotonImprimirDesde(dialog)
         );
@@ -408,34 +507,53 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
     }
 
     /**
-     * Imprime desde un marco oculto con el mismo HTML de la vista previa, sin
-     * abrir otra pestaña.
+     * Manda el PDF a la impresora desde un marco oculto, sin abrir otra
+     * pestaña. Al ser PDF, el tamaño de la etiqueta es exacto.
      */
     private void enviarAImpresora() {
 
-        String html = construirHtml(false);
+        byte[] pdf = generarPdf(false);
+        if (pdf == null) {
+            return;
+        }
 
-        UI.getCurrent().getPage().executeJs(
-                """
-                const html = $0;
-                const anterior = document.getElementById('etiquetas-print-frame');
-                if (anterior) { anterior.remove(); }
+        StreamResource recurso = new StreamResource("etiquetas.pdf", () -> new ByteArrayInputStream(pdf));
+        recurso.setContentType("application/pdf");
+        liberarPdf();
+        pdfImpresion = VaadinSession.getCurrent().getResourceRegistry().registerResource(recurso);
 
-                const marco = document.createElement('iframe');
-                marco.id = 'etiquetas-print-frame';
-                marco.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
-                document.body.appendChild(marco);
+        UI.getCurrent().getPage().executeJs(SCRIPT_IMPRIMIR, pdfImpresion.getResourceUri().toString());
+        Notification.show("Enviando las etiquetas a la impresora...", 2000, Notification.Position.BOTTOM_END)
+                .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+    }
 
-                marco.onload = function () {
-                    setTimeout(function () {
-                        marco.contentWindow.focus();
-                        marco.contentWindow.print();
-                    }, 300);
-                };
-                marco.srcdoc = html;
-                """,
-                html
-        );
+    private void liberarPdf() {
+        if (pdfImpresion != null) {
+            pdfImpresion.unregister();
+            pdfImpresion = null;
+        }
+    }
+
+    /** PDF con todas las etiquetas de la lista; null si falló (ya se avisó). */
+    private byte[] generarPdf(boolean vistaPrevia) {
+
+        TamanoEtiqueta t = cbTamano.getValue() != null ? cbTamano.getValue() : TAMANOS.get(2);
+        EtiquetasPdf.Formato formato = new EtiquetasPdf.Formato(t.ancho(), t.alto(),
+                txtPorFila.getValue() != null ? txtPorFila.getValue() : 1, chkRollo.getValue(),
+                chkNombre.getValue(), chkPresentacion.getValue(), chkCodigo.getValue(), chkPrecio.getValue());
+
+        List<EtiquetasPdf.Etiqueta> etiquetas = lineas.stream()
+                .map(l -> new EtiquetasPdf.Etiqueta(l.empaque.getNombreArticulo(), textoPresentacion(l.empaque),
+                        l.codigo, l.empaque.getPrecioVenta(), l.cantidad()))
+                .toList();
+        try {
+            return EtiquetasPdf.generar(etiquetas, formato, vistaPrevia);
+        } catch (RuntimeException ex) {
+            log.error("Error al generar las etiquetas", ex);
+            ClaseUtil.mostrarNotificacion("No se pudieron generar las etiquetas: " + ex.getMessage(),
+                    NotificationVariant.LUMO_ERROR);
+            return null;
+        }
     }
 
     private boolean hayEtiquetas() {
@@ -446,16 +564,10 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
         }
 
         // Los códigos que no se pueden codificar se avisan antes de imprimir
-        List<String> invalidos = new ArrayList<>();
-        
-        for (LineaEtiqueta l : lineas) {
-            try {
-//                BarcodeSvg.generar(l.codigo);
-                
-            } catch (IllegalArgumentException ex) {
-                invalidos.add(l.empaque.getNombreArticulo());
-            }
-        }
+        List<String> invalidos = lineas.stream()
+                .filter(l -> CodigoBarraUtil.tipo(l.codigo) == CodigoBarraUtil.Tipo.INVALIDO)
+                .map(l -> l.empaque.getNombreArticulo() + " (" + l.codigo + ")")
+                .toList();
 
         if (!invalidos.isEmpty()) {
             ClaseUtil.mostrarNotificacion(
@@ -468,113 +580,12 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
     }
 
     // ============================================================
-    // HTML DE LAS ETIQUETAS
-    // ============================================================
-    /**
-     * Arma el documento HTML con todas las etiquetas. En la vista previa las
-     * etiquetas llevan un borde punteado para ver sus límites.
-     */
-    private String construirHtml(boolean vistaPrevia) {
-
-        TamanoEtiqueta t = cbTamano.getValue() != null ? cbTamano.getValue() : TAMANOS.get(2);
-        boolean rollo = chkRollo.getValue();
-        int columnas = rollo ? 1 : Math.max(1, txtPorFila.getValue() != null ? txtPorFila.getValue() : 1);
-
-        // Tamaños de texto y alto de barras según el alto de la etiqueta
-        double fuenteNombre = clamp(t.alto() * 0.30, 7, 13);
-        double fuenteTexto = clamp(t.alto() * 0.26, 6, 11);
-        double altoBarras = t.alto() * (chkNombre.getValue() ? 0.36 : 0.50);
-
-        StringBuilder css = new StringBuilder();
-        css.append("*{box-sizing:border-box;}")
-                .append("body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#000;")
-                .append(vistaPrevia ? "padding:6mm;background:#fff;" : "")
-                .append("}");
-
-        if (rollo) {
-            css.append("@page{size:").append(t.ancho()).append("mm ").append(t.alto()).append("mm;margin:0;}");
-        } else {
-            css.append("@page{margin:8mm;}");
-        }
-
-        css.append(".hoja{display:grid;grid-template-columns:repeat(").append(columnas).append(",")
-                .append(t.ancho()).append("mm);gap:").append(rollo ? "0" : "2mm").append(";}")
-                .append(".etiqueta{width:").append(t.ancho()).append("mm;height:").append(t.alto()).append("mm;")
-                .append("padding:1mm 1.5mm;overflow:hidden;display:flex;flex-direction:column;")
-                .append("align-items:center;justify-content:center;text-align:center;")
-                .append("break-inside:avoid;page-break-inside:avoid;")
-                .append(rollo ? "page-break-after:always;break-after:page;" : "")
-                .append(vistaPrevia ? "border:1px dashed #999;" : "")
-                .append("}")
-                .append(".nombre{width:100%;font-size:").append(fmt(fuenteNombre)).append("px;font-weight:bold;")
-                .append("line-height:1.1;max-height:2.2em;overflow:hidden;}")
-                .append(".pres{font-size:").append(fmt(fuenteTexto)).append("px;line-height:1.1;}")
-                .append(".barras{width:100%;margin-top:0.5mm;}")
-                .append(".barras svg{display:block;width:100%;height:").append(fmt(altoBarras)).append("mm;fill:#000;}")
-                .append(".texto{font-size:").append(fmt(fuenteTexto)).append("px;letter-spacing:1px;line-height:1.1;}")
-                .append(".precio{font-size:").append(fmt(fuenteNombre + 2)).append("px;font-weight:bold;line-height:1.1;}")
-                .append(".error{font-size:").append(fmt(fuenteTexto)).append("px;color:#c00;}");
-
-        StringBuilder cuerpo = new StringBuilder("<div class=\"hoja\">");
-
-        for (LineaEtiqueta l : lineas) {
-
-            String etiqueta = construirEtiqueta(l);
-
-            for (int i = 0; i < l.cantidad(); i++) {
-                cuerpo.append(etiqueta);
-            }
-        }
-
-        cuerpo.append("</div>");
-
-        return "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>" + css + "</style></head><body>"
-                + cuerpo + "</body></html>";
-    }
-
-    private String construirEtiqueta(LineaEtiqueta l) {
-
-        StringBuilder sb = new StringBuilder("<div class=\"etiqueta\">");
-
-        if (chkNombre.getValue() && l.empaque.getNombreArticulo() != null) {
-            sb.append("<div class=\"nombre\">").append(esc(l.empaque.getNombreArticulo())).append("</div>");
-        }
-
-        if (chkPresentacion.getValue()) {
-            sb.append("<div class=\"pres\">").append(esc(textoPresentacion(l.empaque))).append("</div>");
-        }
-
-        sb.append("<div class=\"barras\">");
-        
-        try {
-            
-//            sb.append(BarcodeSvg.generar(l.codigo));
-            
-        } catch (IllegalArgumentException ex) {
-            sb.append("<div class=\"error\">Código no válido</div>");
-        }
-        sb.append("</div>");
-
-        if (chkCodigo.getValue()) {
-            sb.append("<div class=\"texto\">").append(esc(l.codigo)).append("</div>");
-        }
-
-        if (chkPrecio.getValue() && l.empaque.getPrecioVenta() != null) {
-            sb.append("<div class=\"precio\">RD$ ").append(FORMATO_PRECIO.format(l.empaque.getPrecioVenta())).append("</div>");
-        }
-
-        sb.append("</div>");
-
-        return sb.toString();
-    }
-
-    // ============================================================
     // UTILIDADES
     // ============================================================
     /**
      * Texto de la presentación: "Unidad", "Caja x12", etc.
      */
-    private String textoPresentacion(ArticuloEmpaque ae) {
+    private static String textoPresentacion(ArticuloEmpaque ae) {
 
         String unidad = (ae.getUnidadEmpaque() != null && ae.getUnidadEmpaque().getDescripcion() != null)
                 ? ae.getUnidadEmpaque().getDescripcion()
@@ -585,26 +596,5 @@ public class ImpresionCodigoBarraView extends VerticalLayout {
             return unidad + " x" + factor.stripTrailingZeros().toPlainString();
         }
         return unidad;
-    }
-
-    private static double clamp(double v, double min, double max) {
-
-        return Math.max(min, Math.min(max, v));
-    }
-
-    private static String fmt(double v) {
-
-        return String.format(java.util.Locale.US, "%.1f", v);
-    }
-
-    /**
-     * Escapa el texto que se inserta en el HTML de las etiquetas.
-     */
-    private static String esc(String s) {
-
-        if (s == null) {
-            return "";
-        }
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 }

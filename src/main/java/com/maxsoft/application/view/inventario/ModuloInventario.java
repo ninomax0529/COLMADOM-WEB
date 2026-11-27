@@ -8,7 +8,6 @@ import com.maxsoft.application.view.inventario.articulo.ArticuloView;
 import com.maxsoft.application.view.ModuloPrincipal;
 import com.maxsoft.application.view.inventario.ajuste.ConsultaAjusteInventarioView;
 import com.maxsoft.application.view.inventario.articulo.ArticuloAlmacenView;
-import com.maxsoft.application.view.inventario.articulo.GestionEtiquetasView;
 import com.maxsoft.application.view.inventario.articulo.ImpresionCodigoBarraView;
 import com.maxsoft.application.view.inventario.entrada.EntradaDeIventarioView;
 import com.maxsoft.application.view.inventario.merma.MermaView;
@@ -237,7 +236,6 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
         RouterLink linkPorTrasladar = createLink(VaadinIcon.EXCHANGE, "Por trasladar",
                 com.maxsoft.application.view.inventario.traslado.PorTrasladarView.class);
         RouterLink linkTrasladoArticalmacen = createLink(VaadinIcon.FILE_TABLE, "Articulo Almacen", ArticuloAlmacenView.class);
-        RouterLink linkGestionEtiquetasView = createLink(VaadinIcon.FILE_TABLE, "Gestion de Etiqueta", GestionEtiquetasView.class);
         RouterLink linkConsultaAjusteInventarioView = createLink(VaadinIcon.FILE_TABLE, "Ajuste", ConsultaAjusteInventarioView.class);
         RouterLink linkMermaView = createLink(VaadinIcon.FILE_TABLE, "Merma", MermaView.class);
         RouterLink linkAnalisisMerma = createLink(VaadinIcon.PIE_CHART, "Análisis de merma",
@@ -265,7 +263,6 @@ public class ModuloInventario extends AppLayout implements AfterNavigationObserv
                 linkAbc,
                 linkConteo,
                 linkTrasladoArticalmacen,
-                linkGestionEtiquetasView,
                 linkImpresionCodigoBarraView,
                 linkModulo
         );
