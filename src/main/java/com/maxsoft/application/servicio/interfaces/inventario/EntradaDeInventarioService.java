@@ -42,6 +42,13 @@ public interface EntradaDeInventarioService {
 
     EntradaInventario crearEntradaPorRecepcion(RecepcionMercancia ajuste, List<DetalleRecepcionMercancia> detalles);
 
+    /**
+     * Devuelve lo que sacó una merma al anularla: una línea por cada
+     * movimiento de su salida (mismo almacén, lote, cantidad base y costo).
+     */
+    EntradaInventario crearEntradaPorAnulacionMerma(com.maxsoft.application.modelo.Merma merma,
+            List<com.maxsoft.application.modelo.MovimientoInventario> salidas, String usuario);
+
     EntradaInventario crearEntradaPorTraslado(TrasladoInventario ajuste, List<DetalleTrasladoInventario> detalles);
 
     /**

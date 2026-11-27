@@ -38,4 +38,17 @@ public interface MermaService {
      * @throws IllegalStateException la salida de inventario no se pudo procesar
      */
     Merma procesarMerma(Merma merma, List<DetalleMerma> detalles, String usuario);
+
+    /**
+     * Anula la merma: la marca como anulada (con motivo, fecha y usuario) y
+     * genera una entrada de inventario que devuelve exactamente lo que sacó
+     * su salida (mismo almacén, lote y costo), en una sola transacción.
+     *
+     * @throws IllegalArgumentException falta el motivo o la merma no existe
+     * @throws IllegalStateException ya está anulada o no tiene salida enlazada
+     */
+    Merma anular(Integer codigoMerma, String motivo, String usuario);
+
+    /** Comprobante de la merma en PDF (para imprimir y firmar). */
+    byte[] comprobantePdf(Integer codigoMerma);
 }

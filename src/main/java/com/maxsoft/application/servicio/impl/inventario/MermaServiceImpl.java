@@ -7,6 +7,10 @@ package com.maxsoft.application.servicio.impl.inventario;
 import com.maxsoft.application.modelo.DetalleMerma;
 import com.maxsoft.application.modelo.Merma;
 import com.maxsoft.application.modelo.SalidaInventario;
+import com.maxsoft.application.modelo.EntradaInventario;
+import com.maxsoft.application.modelo.MovimientoInventario;
+import com.maxsoft.application.repo.MovimientoInventarioRepo;
+import com.maxsoft.application.servicio.interfaces.inventario.EntradaDeInventarioService;
 import com.maxsoft.application.repo.MerrmaRepo;
 import com.maxsoft.application.servicio.interfaces.inventario.MermaService;
 import com.maxsoft.application.servicio.interfaces.inventario.SalidaInventarioService;
@@ -22,6 +26,12 @@ public class MermaServiceImpl implements MermaService {
     MerrmaRepo repo;
     @Autowired
     SalidaInventarioService salidaInventarioService;
+    @Autowired
+    EntradaDeInventarioService entradaService;
+    @Autowired
+    MovimientoInventarioRepo movimientoRepo;
+    @Autowired
+    com.maxsoft.application.repo.EmpresaRepo empresaRepo;
 
     @Override
     public List<Merma> getLista() {
@@ -62,6 +72,48 @@ public class MermaServiceImpl implements MermaService {
         mermadb.setSalidaInventario(salida);
 
         return repo.save(mermadb);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Merma anular(Integer codigoMerma, String motivo, String usuario) {
+
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException("Indique el motivo de la anulación.");
+        }
+        Merma merma = repo.findById(codigoMerma)
+                .orElseThrow(() -> new IllegalArgumentException("No existe la merma #" + codigoMerma));
+        if (merma.isAnulada()) {
+            throw new IllegalStateException("La merma #" + codigoMerma + " ya está anulada.");
+        }
+        if (merma.getSalidaInventario() == null) {
+            throw new IllegalStateException("La merma #" + codigoMerma + " no tiene su salida de inventario "
+                    + "enlazada (es anterior a la corrección); devuelva la existencia con un ajuste.");
+        }
+
+        // Lo que realmente salió, lote por lote, según el kardex de su salida
+        List<MovimientoInventario> salidas = movimientoRepo.findPorDocumento(
+                "SAL-" + merma.getSalidaInventario().getCodigo(), 2);
+
+        String user = usuario != null && !usuario.isBlank() ? usuario : "SISTEMA";
+        merma.setAnulada(true);
+        merma.setFechaAnulacion(new java.util.Date());
+        merma.setMotivoAnulacion(motivo.trim().length() > 255 ? motivo.trim().substring(0, 255) : motivo.trim());
+        merma.setUsuarioAnulacion(user);
+
+        EntradaInventario entrada = entradaService.crearEntradaPorAnulacionMerma(merma, salidas, user);
+        merma.setEntradaAnulacion(entrada.getCodigo());
+
+        return repo.save(merma);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public byte[] comprobantePdf(Integer codigoMerma) {
+        Merma merma = repo.findById(codigoMerma)
+                .orElseThrow(() -> new IllegalArgumentException("No existe la merma #" + codigoMerma));
+        return com.maxsoft.application.reporte.inventario.ComprobanteMermaPdf.generar(
+                merma, repo.getDetalle(codigoMerma), empresaRepo.findFirstByOrderByCodigoAsc().orElse(null));
     }
 
 }

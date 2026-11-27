@@ -586,6 +586,53 @@ public class EntradaDeInventarioServiceImpl implements EntradaDeInventarioServic
         return guardar(entrada, user);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public EntradaInventario crearEntradaPorAnulacionMerma(Merma merma, List<MovimientoInventario> salidas,
+            String usuario) {
+
+        String user = usuario != null && !usuario.isBlank() ? usuario : "SISTEMA";
+        String comentario = "Reverso por anulación de la merma #" + merma.getCodigo()
+                + (merma.getMotivoAnulacion() != null ? ". " + merma.getMotivoAnulacion() : "");
+        EntradaInventario entrada = inicializarCabeceraBase(1, "ANU-MER-" + merma.getCodigo(), user, comentario);
+
+        List<DetalleEntradaInventario> lineas = new ArrayList<>();
+        for (MovimientoInventario mov : salidas) {
+            BigDecimal base = mov.getCantidad() != null ? mov.getCantidad() : BigDecimal.ZERO;
+            if (base.signum() <= 0) {
+                continue;
+            }
+            Articulo articulo = mov.getArticulo();
+            Almacen almacen = mov.getAlmacen();
+            ArticuloEmpaque empaqueBase = articuloEmpaqueService.getEmpaqueBase(articulo.getCodigo())
+                    .orElse(mov.getArticuloEmpaque());
+            BigDecimal stock = articuloAlmacenService
+                    .buscarPorArticuloYAlmacen(articulo.getCodigo(), almacen.getCodigo())
+                    .map(ArticuloAlmacen::getExistencia).orElse(BigDecimal.ZERO);
+            // Vuelve al mismo costo con que salió (por unidad base)
+            BigDecimal subTotal = mov.getSubTotal() != null ? mov.getSubTotal() : BigDecimal.ZERO;
+            BigDecimal costoBase = subTotal.signum() > 0
+                    ? subTotal.divide(base, 4, RoundingMode.HALF_UP)
+                    : (articulo.getPrecioCompra() != null ? articulo.getPrecioCompra() : BigDecimal.ZERO);
+
+            DetalleEntradaInventario d = buildDetalleEntradaBase(entrada, articulo, empaqueBase, BigDecimal.ONE,
+                    base, BigDecimal.ZERO, subTotal, subTotal, base, stock, almacen, almacen.getNombre(),
+                    empaqueBase != null && empaqueBase.getUnidadEmpaque() != null
+                    ? empaqueBase.getUnidadEmpaque().getDescripcion() : null);
+            d.setCostoUnitario(costoBase);
+            d.setPrecioCompra(costoBase);
+            d.setLote(mov.getLote()); // al mismo lote del que salió
+            d.setUsarCantidadFisicaBase(true);
+            lineas.add(d);
+        }
+        if (lineas.isEmpty()) {
+            throw new IllegalStateException("La salida de la merma #" + merma.getCodigo()
+                    + " no tiene movimientos que devolver.");
+        }
+        entrada.setDetalleEntradaInventarioCollection(lineas);
+        return guardar(entrada, user);
+    }
+
     private EntradaInventario inicializarCabeceraBase(Integer tipoDocumento, String numDocumento, String usuario, String comentario) {
         EntradaInventario entrada = new EntradaInventario();
         Date fechaActual = new Date();

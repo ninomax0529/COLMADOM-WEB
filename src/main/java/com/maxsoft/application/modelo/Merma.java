@@ -72,7 +72,63 @@ public class Merma implements Serializable {
     @ManyToOne
     private Usuario usuario;
 
+    // Anulación: la merma no se borra; una entrada devuelve la existencia
+    @Column(name = "anulada")
+    private boolean anulada;
+    @Column(name = "fecha_anulacion")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaAnulacion;
+    @Size(max = 255)
+    @Column(name = "motivo_anulacion")
+    private String motivoAnulacion;
+    @Size(max = 100)
+    @Column(name = "usuario_anulacion")
+    private String usuarioAnulacion;
+    /** Código de la entrada de inventario que devolvió la existencia. */
+    @Column(name = "entrada_anulacion")
+    private Integer entradaAnulacion;
+
     public Merma() {
+    }
+
+    public boolean isAnulada() {
+        return anulada;
+    }
+
+    public void setAnulada(boolean anulada) {
+        this.anulada = anulada;
+    }
+
+    public Date getFechaAnulacion() {
+        return fechaAnulacion;
+    }
+
+    public void setFechaAnulacion(Date fechaAnulacion) {
+        this.fechaAnulacion = fechaAnulacion;
+    }
+
+    public String getMotivoAnulacion() {
+        return motivoAnulacion;
+    }
+
+    public void setMotivoAnulacion(String motivoAnulacion) {
+        this.motivoAnulacion = motivoAnulacion;
+    }
+
+    public String getUsuarioAnulacion() {
+        return usuarioAnulacion;
+    }
+
+    public void setUsuarioAnulacion(String usuarioAnulacion) {
+        this.usuarioAnulacion = usuarioAnulacion;
+    }
+
+    public Integer getEntradaAnulacion() {
+        return entradaAnulacion;
+    }
+
+    public void setEntradaAnulacion(Integer entradaAnulacion) {
+        this.entradaAnulacion = entradaAnulacion;
     }
 
     public Merma(Integer codigo) {

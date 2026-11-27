@@ -7,6 +7,7 @@ import com.maxsoft.application.modelo.TipoMerma;
 import com.maxsoft.application.servicio.interfaces.inventario.AlmacenService;
 import com.maxsoft.application.servicio.interfaces.inventario.MermaService;
 import com.maxsoft.application.servicio.interfaces.inventario.TipoMermaService;
+import com.maxsoft.application.view.componente.EstiloConsulta;
 import com.maxsoft.application.view.componente.ToolBarBotonera;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
@@ -64,6 +65,8 @@ public class MermaView extends VerticalLayout {
     private final Grid<Merma> grid = new Grid<>(Merma.class, false);
     private final Grid<DetalleMerma> gridDetalle = new Grid<>(DetalleMerma.class, false);
     ToolBarBotonera botonera = new ToolBarBotonera(true, false, false);
+    private final Button btnImprimir = new Button("Imprimir", VaadinIcon.PRINT.create());
+    private final Button btnAnular = new Button("Anular", VaadinIcon.BAN.create());
 
     // Filtros de consulta
     private final DatePicker dpDesde = new DatePicker("Desde");
@@ -125,6 +128,17 @@ public class MermaView extends VerticalLayout {
         configurarFiltros();
         configurarGrid();
         configurarGridDetalle();
+
+        // Imprimir / Anular la merma seleccionada
+        btnImprimir.addClickListener(e -> imprimir());
+        btnImprimir.setTooltipText("Comprobante en PDF para la firma del encargado");
+        btnAnular.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        btnAnular.addClickListener(e -> abrirAnulacion());
+        btnAnular.setTooltipText("Devuelve la existencia con una entrada de inventario");
+        grid.asSingleSelect().addValueChangeListener(e -> actualizarAcciones());
+        actualizarAcciones();
+        botonera.add(btnImprimir, btnAnular);
+        EstiloConsulta.aplicarVista(this, null);
 
         add(botonera, crearBarraFiltros(), tabs);
 
@@ -338,6 +352,13 @@ public class MermaView extends VerticalLayout {
                 .setHeader("Salida N°")
                 .setKey("salida");
 
+        grid.addComponentColumn(m -> m.isAnulada()
+                ? EstiloConsulta.chipAnulada()
+                : new com.vaadin.flow.component.html.Span())
+                .setHeader("Estado")
+                .setKey("estado")
+                .setComparator(Comparator.comparing(Merma::isAnulada));
+
         grid.addColumn(Merma::getObservacion)
                 .setHeader("Observación")
                 .setKey("observacion")
@@ -399,6 +420,98 @@ public class MermaView extends VerticalLayout {
             col.setAutoWidth(true);
             col.setSortable(true);
         });
+    }
+
+    // ============================================================
+    // IMPRIMIR / ANULAR
+    // ============================================================
+    /** Usuario que anula (hasta que exista el usuario de la sesión). */
+    private static final String USUARIO_ACTUAL = "ADMIN";
+
+    private Merma seleccionada() {
+        return grid.asSingleSelect().getValue();
+    }
+
+    private void actualizarAcciones() {
+        Merma m = seleccionada();
+        btnImprimir.setEnabled(m != null);
+        btnAnular.setEnabled(m != null && !m.isAnulada());
+    }
+
+    private void imprimir() {
+
+        Merma m = seleccionada();
+        if (m == null) {
+            return;
+        }
+        try {
+            byte[] pdf = mermaService.comprobantePdf(m.getCodigo());
+            com.vaadin.flow.server.StreamResource recurso = new com.vaadin.flow.server.StreamResource(
+                    "merma-" + m.getCodigo() + ".pdf", () -> new java.io.ByteArrayInputStream(pdf));
+            recurso.setContentType("application/pdf");
+
+            com.vaadin.flow.component.html.IFrame visor = new com.vaadin.flow.component.html.IFrame();
+            visor.getElement().setAttribute("src", recurso);
+            visor.setSizeFull();
+            visor.getStyle().set("border", "none");
+
+            com.vaadin.flow.component.dialog.Dialog dialogo = new com.vaadin.flow.component.dialog.Dialog();
+            dialogo.setHeaderTitle("Comprobante de merma #" + m.getCodigo());
+            dialogo.setWidth("90vw");
+            dialogo.setHeight("90vh");
+            dialogo.add(visor);
+            dialogo.getFooter().add(new Button("Cerrar", e -> dialogo.close()));
+            dialogo.open();
+        } catch (RuntimeException ex) {
+            log.error("No se pudo generar el comprobante de la merma {}", m.getCodigo(), ex);
+            mostrarNotificacion("No se pudo generar el comprobante: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
+        }
+    }
+
+    private void abrirAnulacion() {
+
+        Merma m = seleccionada();
+        if (m == null || m.isAnulada()) {
+            return;
+        }
+        com.vaadin.flow.component.textfield.TextArea txtMotivo = new com.vaadin.flow.component.textfield.TextArea("Motivo");
+        txtMotivo.setRequired(true);
+        txtMotivo.setMaxLength(255);
+        txtMotivo.setWidthFull();
+        txtMotivo.setPlaceholder("Por qué se anula (p. ej. se registró dos veces, el producto apareció...)");
+
+        com.vaadin.flow.component.dialog.Dialog dialogo = new com.vaadin.flow.component.dialog.Dialog();
+        dialogo.setHeaderTitle("Anular merma #" + m.getCodigo());
+        dialogo.setWidth("480px");
+        dialogo.add(new com.vaadin.flow.component.html.Paragraph(
+                "Se devolverá al almacén " + (m.getAlmacen() != null ? m.getAlmacen().getNombre() : "")
+                + " lo que sacó esta merma (mismos lotes y costo) con una entrada de inventario. "
+                + "La merma queda marcada como ANULADA; no se borra."), txtMotivo);
+
+        Button confirmar = new Button("Anular merma", VaadinIcon.BAN.create(), e -> {
+            if (txtMotivo.getValue() == null || txtMotivo.getValue().isBlank()) {
+                txtMotivo.setInvalid(true);
+                txtMotivo.setErrorMessage("Indique el motivo");
+                txtMotivo.focus();
+                return;
+            }
+            try {
+                Merma anulada = mermaService.anular(m.getCodigo(), txtMotivo.getValue(), USUARIO_ACTUAL);
+                dialogo.close();
+                mostrarNotificacion("Merma #" + anulada.getCodigo() + " anulada. La entrada de inventario #"
+                        + anulada.getEntradaAnulacion() + " devolvió la existencia.", NotificationVariant.LUMO_SUCCESS);
+                buscar();
+            } catch (IllegalStateException | IllegalArgumentException ex) {
+                mostrarNotificacion(ex.getMessage(), NotificationVariant.LUMO_WARNING);
+            } catch (RuntimeException ex) {
+                log.error("Error anulando la merma {}", m.getCodigo(), ex);
+                mostrarNotificacion("No se pudo anular la merma: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
+            }
+        });
+        confirmar.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        dialogo.getFooter().add(new Button("Cancelar", e -> dialogo.close()), confirmar);
+        dialogo.open();
+        txtMotivo.focus();
     }
 
     // ============================================================
